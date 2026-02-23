@@ -1,0 +1,5 @@
+{
+  "name": "Wersja 3 grok",
+  "description": "A web-based architectural prototype of a Polish Football Manager game. Features a modular state management system, placeholder data structures, and a modern dashboard UI.",
+  "requestFramePermissions": []
+}
