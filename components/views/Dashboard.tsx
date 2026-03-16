@@ -336,7 +336,7 @@ const boardConfidence = useMemo(() => {
         <div className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
            <div className="bg-slate-900 border border-white/10 px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-pulse">
               <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-              <span className="text-xs font-black text-white uppercase tracking-widest">PRZESUWANIE CZASU...</span>
+              <span className="text-xs font-black text-white uppercase tracking-widest">PRZETWARZANIE DANYCH...</span>
            </div>
         </div>
       )}
