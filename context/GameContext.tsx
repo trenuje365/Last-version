@@ -173,9 +173,22 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
- const [supercupWinners, setSupercupWinners] = useState<{ season: string; winner: string; year: number; }[]>([
-    { season: '2023/2024', winner: 'Jagiellonia Białystok', year: 2024 }
-  ]);
+ const [supercupWinners, setSupercupWinners] = useState<{ season: string; winner: string; year: number; }[]>(() => {
+    // Załaduj z localStorage przy inicjalizacji
+    try {
+      const stored = localStorage?.getItem('fm_championship_history');
+      if (stored) {
+        const all = JSON.parse(stored) as any[];
+        return all.filter(e => e.competition === 'SUPERPUCHAR_POLSKI') || [];
+      }
+    } catch (e) {
+      console.error('Failed to load supercup winners from localStorage:', e);
+    }
+    // Fallback na dane domyślne
+    return [
+      { season: '2023/2024', winner: 'Jagiellonia Białystok', year: 2024 }
+    ];
+  });
 
   // Guard: zapobiega wielokrotnemu uruchomieniu processLeagueEvent dla tej samej daty
   const lastProcessedLeagueDateRef = React.useRef<string | null>(null);

@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { CompetitionType, MatchStatus, ViewState } from '../types';
+import { ChampionshipHistoryService } from '../data/championship_history';
 import LigaMistrzowBg from '../Graphic/themes/liga_mistrzow.png';
 
 // ── Rundy — na razie tylko R1Q. Kolejne dodaj tutaj. ──────────────────────
@@ -351,7 +352,52 @@ const clFixtures = useMemo(
   const finalAvailable = finalFixtures.length > 0;
   const finalDone = finalFixtures.filter(f => f.status === MatchStatus.FINISHED).length;
 
-  // ── Empty state ──────────────────────────────────────────────────────────
+  // Ref do śledzenia czy finał już został zapisany
+  const savedFinalRef = useRef<Set<string>>(new Set());
+
+  // Automatycznie zapisz zwycięzcę finału do ChampionshipHistoryService
+  useEffect(() => {
+    finalFixtures.forEach(finalFixture => {
+      if (
+        finalFixture.status === MatchStatus.FINISHED &&
+        !savedFinalRef.current.has(finalFixture.id)
+      ) {
+        // Określ zwycięzcę
+        let winnerId: string | null = null;
+        const hs = finalFixture.homeScore as number;
+        const as_ = finalFixture.awayScore as number;
+        
+        if (hs > as_) {
+          winnerId = finalFixture.homeTeamId;
+        } else if (as_ > hs) {
+          winnerId = finalFixture.awayTeamId;
+        } else if (
+          finalFixture.homePenaltyScore != null &&
+          finalFixture.awayPenaltyScore != null
+        ) {
+          winnerId =
+            finalFixture.homePenaltyScore > finalFixture.awayPenaltyScore
+              ? finalFixture.homeTeamId
+              : finalFixture.awayTeamId;
+        }
+
+        if (winnerId) {
+          const winner = clubs.find(c => c.id === winnerId);
+          if (winner) {
+            const year = finalFixture.date.getFullYear();
+            const month = finalFixture.date.getMonth();
+            const seasonStartYear = month >= 6 ? year : year - 1;
+            const seasonEndYear = seasonStartYear + 1;
+            const seasonLabel = `${seasonStartYear}/${seasonEndYear}`;
+            
+            // Zapisz zwycięzcę do localStorage
+            ChampionshipHistoryService.addCLChampion(seasonLabel, winner.name, seasonEndYear);
+            savedFinalRef.current.add(finalFixture.id);
+          }
+        }
+      }
+    });
+  }, [finalFixtures, clubs]);
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (pairs.length === 0) {

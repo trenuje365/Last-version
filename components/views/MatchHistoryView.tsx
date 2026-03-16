@@ -15,6 +15,12 @@ export const MatchHistoryView: React.FC = () => {
 
   const history = useMemo(() => MatchHistoryService.getAll(), [refreshTrigger]);
   const championshipHistory = useMemo(() => ChampionshipHistoryService.getAll(), [refreshTrigger, supercupWinners]);
+  
+  // Pobierz Superpuchary z Championship History (z localStorage)
+  const supercupWinnersFromHistory = useMemo(
+    () => championshipHistory.filter(c => c.competition === 'SUPERPUCHAR_POLSKI'),
+    [championshipHistory]
+  );
 
   // Odśwież dane gdy komponent się montuje
   useEffect(() => {
@@ -294,7 +300,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {supercupWinners.sort((a, b) => b.year - a.year).map((entry, idx) => (
+                      {supercupWinnersFromHistory.sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>

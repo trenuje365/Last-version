@@ -3,6 +3,7 @@ import React, { useMemo, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, MatchEventType, CompetitionType } from '../types';
 import { KitSelectionService } from '../services/KitSelectionService';
+import { ChampionshipHistoryService } from '../data/championship_history';
 import { PostMatchCommentSelector } from './PostMatchCommentSelector';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
@@ -66,6 +67,9 @@ export const PostMatchCupStudioView: React.FC = () => {
       const seasonLabel = `${seasonStartYear}/${seasonEndYear}`;
       
       addSupercupWinner(seasonLabel, winner.name, seasonEndYear);
+      
+      // Zapisz także do persistent storage (localStorage)
+      ChampionshipHistoryService.addCupChampion(seasonLabel, 'SUPERPUCHAR_POLSKI', winner.name, seasonEndYear);
       
       savedMatchesRef.current.add(matchId);
     }
