@@ -1421,7 +1421,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
             eventSide = homeWins > awayWins ? 'HOME' : 'AWAY';
         }
         // --- FAZA 2: PROGRESJA ATAKU (5-12 RZUTÓW) ---
-        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 3.2);
+        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 2.0);
         let successfulPasses = 0;
         
         for (let i = 0; i < diceRolls; i++) {
@@ -1493,6 +1493,11 @@ if (targetPlayer && !prev.isPausedForEvent) {
         // Przy równych siłach szansa na wejście w pole karne rośnie z ~37% do ~65%.
         const activeBaseThreshold = eventSide === 'HOME' ? homeProgressionThreshold : awayProgressionThreshold;
         let dynamicThreshold = Math.max(0.25, (activeBaseThreshold - momentumBonus) *1.05); // Mnożnik 1.10 dla większej dynamiki i wrażenia kontroli
+
+// Podnosimy szanse słabszej drużyny (underdog) o ~12% poprzez obniżenie progu
+const isUnderdog = eventSide === 'HOME' ? powerDiff < 0 : powerDiff > 0;
+const undedogThresholdMultiplier = isUnderdog ? 0.88 : 1.0;
+dynamicThreshold *= undedogThresholdMultiplier;
 
         // Podłączenie pActionMod gracza: FAST obniża próg ~4.7%, SLOW podnosi ~5.3%, AGGRESSIVE daje mały bonus
         // Działa tylko gdy atakuje strona gracza (eventSide === userSide)
