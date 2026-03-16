@@ -110,7 +110,7 @@ const fatigueMult = 0.12 + (pFatigue / 100) * 0.43; // Zakres: 0.12 (cond=0) →
     
     // ZMIANA PRO: Potencjał nieliniowy. Każdy punkt atrybutu powyżej 50 ma coraz większą wagę.
     // 1.15 zamiast 1.35 — łagodniejsza krzywa, niższe Tiery mają realne szanse na akcje
-    const powerBase = Math.pow(avgAttr, 1.15); 
+    const powerBase = Math.pow(avgAttr, 1.07); 
     
     return sum + (powerBase * fatigueMult * weatherMod * integrityMult * numericalPenalty * generalDisorderMult);
   }, 0);
@@ -296,7 +296,7 @@ tempo: 'NORMAL',
 mindset: 'NEUTRAL',
 intensity: 'NORMAL',
 lastChangeMinute: -5,
-expiryMinute: 0
+expiryMinute: 0,
 }
       });
     }
@@ -1366,7 +1366,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
            // ZMIANA PRO: Rachunek prawdopodobieństwa. Moc to nie gwarancja, to szansa.
             const totalPower = hPwr + aPwr;
             const homeWinProb = hPwr / totalPower;
-            const matchChaos = 0.85 + (seededRng(currentSeed, nextMinute, i) * 0.30); // 15% chaosu meczowego
+            const matchChaos = 0.70 + (seededRng(currentSeed, nextMinute, i) * 0.40); // 15% chaosu meczowego
 
             if (seededRng(currentSeed, nextMinute, i + 100) * matchChaos < homeWinProb) { 
                 homeWins++; 
@@ -1421,7 +1421,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
             eventSide = homeWins > awayWins ? 'HOME' : 'AWAY';
         }
         // --- FAZA 2: PROGRESJA ATAKU (5-12 RZUTÓW) ---
-        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 8);
+        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 7.2);
         let successfulPasses = 0;
         
         for (let i = 0; i < diceRolls; i++) {
@@ -1492,7 +1492,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
  // REKALIBRACJA PRO: Obniżamy bazowy próg z 0.55 na 0.42. 
         // Przy równych siłach szansa na wejście w pole karne rośnie z ~37% do ~65%.
         const activeBaseThreshold = eventSide === 'HOME' ? homeProgressionThreshold : awayProgressionThreshold;
-        let dynamicThreshold = Math.max(0.25, activeBaseThreshold - momentumBonus);
+        let dynamicThreshold = Math.max(0.25, (activeBaseThreshold - momentumBonus) *1.05); // Mnożnik 1.10 dla większej dynamiki i wrażenia kontroli
 
         // Podłączenie pActionMod gracza: FAST obniża próg ~4.7%, SLOW podnosi ~5.3%, AGGRESSIVE daje mały bonus
         // Działa tylko gdy atakuje strona gracza (eventSide === userSide)
@@ -1703,14 +1703,14 @@ if (keeper.tier === 4 && Math.random() < 0.13) { // 13% szansy na super interwen
             const upsetPowerGap = upsetDefPwr / Math.max(1, upsetAttPwr);
 
             if (upsetPowerGap > 1.4) {
-                const upsetActionChance = Math.min(0.06, 0.08 / upsetPowerGap);
+                const upsetActionChance = Math.min(0.08, 0.011 / upsetPowerGap);
                 if (seededRng(currentSeed, nextMinute, 9991) < upsetActionChance) {
                     const upsetAttTeam = eventSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
                     const upsetAttLineup = (eventSide === 'HOME' ? nextHomeLineup : nextAwayLineup).startingXI;
                     const upsetScorer = GoalAttributionService.pickScorer(upsetAttTeam, upsetAttLineup as string[], false, () => seededRng(currentSeed, nextMinute, 9992));
                     if (upsetScorer) {
                         // Konwersja na gola spada wraz z rosnącą przewagą obrony
-                        const goalConvRate = Math.max(0.06, 0.20 / upsetPowerGap);
+                        const goalConvRate = Math.max(0.08, 0.23 / upsetPowerGap);
                         if (seededRng(currentSeed, nextMinute, 9993) < goalConvRate) {
                             eventType = MatchEventType.GOAL;
                             const formattedName = `${upsetScorer.firstName.charAt(0)}. ${upsetScorer.lastName}`;
