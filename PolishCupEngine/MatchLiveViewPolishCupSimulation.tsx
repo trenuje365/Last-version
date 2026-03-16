@@ -576,7 +576,7 @@ useEffect(() => {
         let nextAwayInjuries = { ...prev.awayInjuries };
         let nextMomentum = prev.momentum;
         // === BALANS 2025 – stałe do łatwego tuningu ===
-        const RED_CARD_CHANCE        = 0.00026;  // ~0.065 czerwonych/mecz
+        const RED_CARD_CHANCE        = 0.00009;  // ~0.065 czerwonych/mecz
         const SEVERE_INJURY_CHANCE   = 0.00009;   // (-20%)
         const LIGHT_INJURY_CHANCE    = 0.0040;
         const YELLOW_CARD_CHANCE     = 0.070;    // ~3.15 żółtych/mecz (normal)
@@ -1113,8 +1113,8 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
         let effectiveYellowChance = YELLOW_CARD_CHANCE; // ~3.15 żółtych/mecz (normalnie)
 
         if (sideIntensity === 'AGGRESSIVE') {
-            effectiveRedChance    *= 1.25;  // +50% czerwone przy agresji
-            effectiveYellowChance *= 2.0;  // +100% żółte przy agresji (główna kara)
+            effectiveRedChance    *= 1.11;  // +50% czerwone przy agresji
+            effectiveYellowChance *= 2.3;  // +100% żółte przy agresji (główna kara)
         } else if (sideIntensity === 'CAUTIOUS') {
             effectiveRedChance    *= 0.5;
             effectiveYellowChance *= 0.5;
