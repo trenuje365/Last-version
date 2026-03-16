@@ -1421,7 +1421,16 @@ if (targetPlayer && !prev.isPausedForEvent) {
             eventSide = homeWins > awayWins ? 'HOME' : 'AWAY';
         }
         // --- FAZA 2: PROGRESJA ATAKU (5-12 RZUTÓW) ---
-        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 2.0);
+        ///const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 1.2);
+
+        // LOSOWY MULTIPLIKATOR: od 0.5 do 1.2
+const diceMultiplier = 0.5 + seededRng(currentSeed, nextMinute, 444) * 0.7;
+
+// DiceRolls nadal bazuje na „5 + [losowe]”, ale teraz skaluje się w zakresie 0.5–1.2
+const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 445) * 2.0 * diceMultiplier);
+
+
+
         let successfulPasses = 0;
         
         for (let i = 0; i < diceRolls; i++) {
@@ -1492,8 +1501,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
  // REKALIBRACJA PRO: Obniżamy bazowy próg z 0.55 na 0.42. 
         // Przy równych siłach szansa na wejście w pole karne rośnie z ~37% do ~65%.
         const activeBaseThreshold = eventSide === 'HOME' ? homeProgressionThreshold : awayProgressionThreshold;
-        let dynamicThreshold = Math.max(0.25, (activeBaseThreshold - momentumBonus) *1.05); // Mnożnik 1.10 dla większej dynamiki i wrażenia kontroli
-
+       let dynamicThreshold = Math.max(0.25, (activeBaseThreshold - momentumBonus) * 1.05);
 // Podnosimy szanse słabszej drużyny (underdog) o ~12% poprzez obniżenie progu
 const isUnderdog = eventSide === 'HOME' ? powerDiff < 0 : powerDiff > 0;
 const undedogThresholdMultiplier = isUnderdog ? 0.88 : 1.0;
@@ -1539,7 +1547,7 @@ dynamicThreshold *= undedogThresholdMultiplier;
 
         // 3. Dodatkowy "Cool-off" po golu (przez 10 minut trudniej o kolejny "cios za ciosem")
         if (timeSinceGoal < 10) {
-            dynamicThreshold *= 1.15;
+            dynamicThreshold *= 1.35;
         }
 
         // 3. Bazowy system Post-Goal Suppression (Fatigue/Celebration)
