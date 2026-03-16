@@ -44,8 +44,8 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
                       {item.description}
                     </span>
                     {item.previousBalance !== undefined && (
-                      <div className="text-[8px] text-slate-400 italic mt-1">
-                        Poprzednie saldo: {formatCurrency(item.previousBalance)}
+                      <div className="text-[7px] text-slate-400 italic mt-2 font-mono">
+                        <span className="text-slate-500">poprzednie saldo:</span> {formatCurrency(item.previousBalance)} <span className="text-slate-600">→</span> <span className="text-slate-500">obecne saldo:</span> {formatCurrency(item.previousBalance + item.amount)}
                       </div>
                     )}
                   </div>
@@ -53,11 +53,6 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
                     <span className={`text-sm font-black font-mono block ${item.amount > 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
                       {item.amount > 0 ? '+' : ''}{formatCurrency(item.amount)}
                     </span>
-                    {item.previousBalance !== undefined && (
-                      <span className="text-[8px] text-slate-400 mt-1 block">
-                        → {formatCurrency(item.previousBalance + item.amount)}
-                      </span>
-                    )}
                   </div>
                 </div>
               ))}
