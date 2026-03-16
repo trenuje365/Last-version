@@ -186,7 +186,7 @@ const penaltyPendingRef = useRef<null | { side: 'HOME' | 'AWAY', scorer: any, mi
     const home = clubs.find(c => c.id === fixture.homeTeamId)!;
     const away = clubs.find(c => c.id === fixture.awayTeamId)!;
     return {
-      fixture, homeClub: home, awayClub: away, homePlayers: players[home.id] || [], awayPlayers: players[away.id] || [], homeAdvantage: false, competition: 'CUP'
+      fixture, homeClub: home, awayClub: away, homePlayers: players[home.id] || [], awayPlayers: players[away.id] || [], homeAdvantage: 0.0015, competition: 'CUP'
     } as any;
   }, [userTeamId, clubs, fixtures, players, currentDate]);
 
@@ -576,10 +576,10 @@ useEffect(() => {
         let nextAwayInjuries = { ...prev.awayInjuries };
         let nextMomentum = prev.momentum;
         // === BALANS 2025 – stałe do łatwego tuningu ===
-        const RED_CARD_CHANCE        = 0.00066;  // ~0.065 czerwonych/mecz
-        const SEVERE_INJURY_CHANCE   = 0.0002;   // (-20%)
-        const LIGHT_INJURY_CHANCE    = 0.0060;
-        const YELLOW_CARD_CHANCE     = 0.025;    // ~3.15 żółtych/mecz (normal)
+        const RED_CARD_CHANCE        = 0.00036;  // ~0.065 czerwonych/mecz
+        const SEVERE_INJURY_CHANCE   = 0.00012;   // (-20%)
+        const LIGHT_INJURY_CHANCE    = 0.0040;
+        const YELLOW_CARD_CHANCE     = 0.055;    // ~3.15 żółtych/mecz (normal)
         const BASE_EVENT_THRESHOLD   = 0.42;
         const BASE_GOAL_THRESHOLD    = 0.065;
         const MOMENTUM_INERTIA       = 0.88;
@@ -779,8 +779,8 @@ useEffect(() => {
 
         // Eksponencjalna kara: 1 brak=+0.20 (gra w 10), 2 braki → próg 0.95 (gra w 9 = cud)
         const numericalPenaltyThreshold = (missing: number) => missing === 0 ? 0 : Math.pow(missing, 1.8) * 0.20;
-        homeProgressionThreshold = Math.min(0.95, homeProgressionThreshold + numericalPenaltyThreshold(homeMissing));
-        awayProgressionThreshold = Math.min(0.95, awayProgressionThreshold + numericalPenaltyThreshold(awayMissing));
+        homeProgressionThreshold = Math.min(0.75, homeProgressionThreshold + numericalPenaltyThreshold(homeMissing));
+        awayProgressionThreshold = Math.min(0.75, awayProgressionThreshold + numericalPenaltyThreshold(awayMissing));
 
         // === PREMIA DLA RYWALA GRAJĄCEGO PRZECIW OSŁABIONEMU SKŁADOWI ===
         // Im silniejszy atakujący vs osłabiony rywal, tym łatwiej mu atakować (progresywnie)
@@ -790,12 +790,12 @@ useEffect(() => {
         const repRatioBonus = (attackerRep: number, defenderRep: number) =>
             Math.min(1.5, Math.max(0.6, attackerRep / Math.max(1, defenderRep)));
         if (awayMissing > 0) {
-            const baseBonus = numericalPenaltyThreshold(awayMissing) * 0.25;
+            const baseBonus = numericalPenaltyThreshold(awayMissing) * 0.21;
             const strengthMult = repRatioBonus(ctx.homeClub.reputation, ctx.awayClub.reputation);
             homeProgressionThreshold = Math.max(0.25, homeProgressionThreshold - baseBonus * strengthMult);
         }
         if (homeMissing > 0) {
-            const baseBonus = numericalPenaltyThreshold(homeMissing) * 0.25;
+            const baseBonus = numericalPenaltyThreshold(homeMissing) * 0.21;
             const strengthMult = repRatioBonus(ctx.awayClub.reputation, ctx.homeClub.reputation);
             awayProgressionThreshold = Math.max(0.25, awayProgressionThreshold - baseBonus * strengthMult);
         }
@@ -1113,7 +1113,7 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
         let effectiveYellowChance = YELLOW_CARD_CHANCE; // ~3.15 żółtych/mecz (normalnie)
 
         if (sideIntensity === 'AGGRESSIVE') {
-            effectiveRedChance    *= 1.5;  // +50% czerwone przy agresji
+            effectiveRedChance    *= 1.25;  // +50% czerwone przy agresji
             effectiveYellowChance *= 2.0;  // +100% żółte przy agresji (główna kara)
         } else if (sideIntensity === 'CAUTIOUS') {
             effectiveRedChance    *= 0.5;
@@ -1123,7 +1123,7 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
         // Modyfikator kontuzji zależny od intensywności gry OBU drużyn
         let injuryIntensityMult = 1.0;
         if (sideIntensity === 'AGGRESSIVE' || otherIntensity === 'AGGRESSIVE')
-            injuryIntensityMult = 1.5 + seededRng(currentSeed, nextMinute, 7777) * 0.5; // ×1.5–2.0 przy agresji
+            injuryIntensityMult = 1.2 + seededRng(currentSeed, nextMinute, 7777) * 0.5; // ×1.5–2.0 przy agresji
         else if (sideIntensity === 'CAUTIOUS' && otherIntensity === 'CAUTIOUS')
             injuryIntensityMult = 0.4; // obie ostrożne → −60% kontuzji
         else if (sideIntensity === 'CAUTIOUS' || otherIntensity === 'CAUTIOUS')
@@ -1421,7 +1421,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
             eventSide = homeWins > awayWins ? 'HOME' : 'AWAY';
         }
         // --- FAZA 2: PROGRESJA ATAKU (5-12 RZUTÓW) ---
-        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 7.2);
+        const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 3.2);
         let successfulPasses = 0;
         
         for (let i = 0; i < diceRolls; i++) {
