@@ -236,8 +236,8 @@ if (todayFixtures.length === 0) {
           const newForm = [...(c.stats.form || []), resultChar].slice(-5) as ("W" | "R" | "P")[];
 
           const matchExpenses = isHome ? homeMatchExpenses : awayMatchExpenses;
-          const ticketPrice = 45;
-          const ticketRevenue = isHome ? (fixture.attendance || 0) * ticketPrice : 0;
+          const tier = parseInt(c.leagueId.split('_')[2] || '1');
+          const ticketRevenue = isHome ? FinanceService.calculateMatchTicketRevenue(fixture.attendance || 0, tier, c.reputation) : 0;
           const netChange = ticketRevenue - matchExpenses;
 
           // Tworzymy logi finansowe z poprzednim saldem
@@ -247,12 +247,13 @@ if (todayFixtures.length === 0) {
           if (isHome) {
             // 🏟️ Przychody z biletów
             if (ticketRevenue > 0) {
+              const ticketPrice = FinanceService.calculateTicketPrice(tier, c.reputation);
               financeLogsToAdd.push({
                 id: Math.random().toString(36).substr(2, 9),
                 date: currentDate.toISOString().split('T')[0],
                 amount: ticketRevenue,
                 type: 'INCOME' as const,
-                description: `Przychody z biletów: ${fixture.attendance || 0} widzów @ 45 PLN`,
+                description: `Przychody z biletów: ${fixture.attendance || 0} widzów @ ${ticketPrice} PLN`,
                 previousBalance: runningBalance
               });
               runningBalance += ticketRevenue;

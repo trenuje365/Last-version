@@ -443,6 +443,98 @@ export const FinanceService = {
       return 'TRANSFER_LIST';
     }
     return 'RELEASE';
+  },
+
+  // Funkcja zwraca cenę biletu jednorazowego w zależności od ligi i reputacji
+  calculateTicketPrice: (tier: number, reputation: number): number => {
+    let basePrice = 0;
+    
+    switch (tier) {
+      case 1: // Ekstraklasa
+        basePrice = 20 + (reputation / 10) * 160; // 20-180 PLN
+        break;
+      case 2: // 1 Liga
+        const ekstraPrice = 20 + (reputation / 10) * 160;
+        basePrice = ekstraPrice * (0.4 + (reputation / 10) * 0.2); // 40-60% poniżej
+        break;
+      case 3: // 2 Liga i niższe
+        const refPrice = 20 + (reputation / 10) * 160;
+        basePrice = refPrice * (0.15 + (reputation / 10) * 0.25); // 60-85% poniżej
+        break;
+      default:
+        basePrice = 40;
+    }
+    
+    return Math.floor(basePrice);
+  },
+
+  // Przychód z biletów jednorazowych
+  calculateMatchTicketRevenue: (attendance: number, tier: number, reputation: number): number => {
+    const ticketPrice = FinanceService.calculateTicketPrice(tier, reputation);
+    return Math.floor(attendance * ticketPrice);
+  },
+
+  // Przychód z karnetów na sezon (tylko dla gospodarza)
+  calculateSeasonTicketRevenue: (stadiumCapacity: number, reputation: number, tier: number): number => {
+    // Karnetami kupuje się od 10%-30% pojemności stadionu w zaledości od reputacji
+    let percentageOfCapacity = 0.10 + ((reputation / 10) * 0.20); // 10-30%
+    
+    // Cena sezonu od 200 do 1300 PLN
+    const singlePrice = FinanceService.calculateTicketPrice(tier, reputation);
+    const matchesPerSeason = 19; // Średnia liczba meczów u siebie
+    const seasonTicketPrice = singlePrice * matchesPerSeason;
+    const minSeasonPrice = 200;
+    const maxSeasonPrice = 1300;
+    
+    const finalSeasonPrice = Math.max(minSeasonPrice, Math.min(maxSeasonPrice, seasonTicketPrice));
+    const seasonTicketsSold = Math.floor(stadiumCapacity * percentageOfCapacity);
+    
+    return Math.floor(seasonTicketsSold * finalSeasonPrice);
+  },
+
+  // Bonusy za pozycję końcową w lidze (Ekstraklasa)
+  calculateLeagueFinishBonus: (position: number, tier: number): number => {
+    // Bonusy tylko dla Ekstraklasy (tier 1)
+    if (tier !== 1) return 0;
+    
+    const bonuses: Record<number, number> = {
+      1: 35000000 + Math.random() * 3000000, // 35-38 mln
+      2: 28000000 + Math.random() * 4000000, // 28-32 mln
+      3: 24000000 + Math.random() * 4000000, // 24-28 mln
+      4: 20000000 + Math.random() * 5000000, // 20-25 mln
+    };
+    
+    if (bonuses[position]) return Math.floor(bonuses[position]);
+    
+    // Dla pozycji 5-18: zmniejszające się bonusy
+    if (position > 4) {
+      const baseBonus = 10000000;
+      const decrement = 500000 * (position - 4);
+      return Math.max(0, Math.floor(baseBonus - decrement));
+    }
+    
+    return 0;
+  },
+
+  // Bonusy za Puchar Polski
+  calculatePolishCupBonus: (cupPosition: 'WINNER' | 'FINALIST' | 'SEMIFINALIST' | 'QUARTERFINALIST' | 'ROUND_8' | 'ROUND_16' | 'ROUND_32' | 'ROUND_64'): number => {
+    const bonuses: Record<string, number> = {
+      'WINNER': 5000000,
+      'FINALIST': 1000000,
+      'SEMIFINALIST': 380000,
+      'QUARTERFINALIST': 190000,
+      'ROUND_8': 90000,
+      'ROUND_16': 45000,
+      'ROUND_32': 20000,
+      'ROUND_64': 10000,
+    };
+    
+    return bonuses[cupPosition] || 0;
+  },
+
+  // Bonus za Superpuchar Polski
+  calculateSuperCupBonus: (isWinner: boolean): number => {
+    return isWinner ? 200000 : 100000;
   }
 
 };

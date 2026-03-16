@@ -409,6 +409,7 @@ export interface Fixture {
   // Cup specific metadata
   homePenaltyScore?: number;
   awayPenaltyScore?: number;
+  attendance?: number;
 }
 
 export interface Lineup {

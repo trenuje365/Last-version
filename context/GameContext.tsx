@@ -434,23 +434,85 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
       }
 
       const newTier = parseInt(newLeagueId.split('_')[2]) || 4;
-      const seasonalAwardRank = standingsL1.findIndex(c => c.id === club.id) + 1 || 10;
-      const nextSeasonInjection = FinanceService.calculateSeasonalIncome(newTier, newReputation, seasonalAwardRank);
+      
+      // Obliczanie rankingu klubu w nowej lidze (po potencjalnym awansie/spadku)
+      let leagueRanking = 10;
+      let currentLeagueStandings: Club[] = [];
+      
+      if (newLeagueId === 'L_PL_1') {
+        currentLeagueStandings = standingsL1;
+      } else if (newLeagueId === 'L_PL_2') {
+        currentLeagueStandings = standingsL2;
+      } else if (newLeagueId === 'L_PL_3') {
+        currentLeagueStandings = standingsL3;
+      }
+      
+      if (currentLeagueStandings.length > 0) {
+        leagueRanking = currentLeagueStandings.findIndex(c => c.id === club.id) + 1 || leagueRanking;
+      }
+      
+      const seasonalAwardRank = leagueRanking;
+      let nextSeasonInjection = FinanceService.calculateSeasonalIncome(newTier, newReputation, seasonalAwardRank);
+      
+      // Bonusy ligowe (tylko dla Ekstraklasy - tier 1)
+      let leagueBonusAmount = 0;
+      if (newTier === 1 && newLeagueId === 'L_PL_1') {
+        leagueBonusAmount = FinanceService.calculateLeagueFinishBonus(leagueRanking, newTier);
+        nextSeasonInjection += leagueBonusAmount;
+      }
+      
+      // Bonusy za Puchar Polski
+      let cupBonusAmount = 0;
+      if (club.id === cupWinnerId) {
+        cupBonusAmount = FinanceService.calculatePolishCupBonus('WINNER');
+        nextSeasonInjection += cupBonusAmount;
+      }
+
+      // Tworzymy logi finansowe dla bonusów
+      const financeLogsToAdd: any[] = [];
+      let currentBalance = club.budget;
 
       const seasonalLog = {
         id: Math.random().toString(36).substring(2, 9),
         date: currentDate.toISOString().split('T')[0],
         amount: nextSeasonInjection,
         type: 'INCOME' as const,
-        description: `Zastrzyk finansowy (TV, Sponsoring, Nagrody)`
+        description: `Zastrzyk finansowy (TV, Sponsoring, Nagrody)`,
+        previousBalance: currentBalance
       };
+      financeLogsToAdd.push(seasonalLog);
+
+      // Jeśli są bonusy ligowe lub pucharowe, dodaj je jako osobne wpisy
+      if (leagueBonusAmount > 0) {
+        currentBalance += nextSeasonInjection - leagueBonusAmount; // Uwzględniamy inne przychody
+        financeLogsToAdd.push({
+          id: Math.random().toString(36).substring(2, 9),
+          date: currentDate.toISOString().split('T')[0],
+          amount: leagueBonusAmount,
+          type: 'INCOME' as const,
+          description: `Nagroda za ${leagueRanking === 1 ? 'Mistrzostwo Polski' : (leagueRanking === 2 ? '2. miejsce w Ekstraklasie' : (leagueRanking === 3 ? '3. miejsce w Ekstraklasie' : (leagueRanking === 4 ? '4. miejsce w Ekstraklasie' : `${leagueRanking}. miejsce w Ekstraklasie`)))}`,
+          previousBalance: currentBalance
+        });
+      }
+      
+      if (cupBonusAmount > 0) {
+        currentBalance = currentBalance - (leagueBonusAmount > 0 ? leagueBonusAmount : 0) + nextSeasonInjection;
+        financeLogsToAdd.push({
+          id: Math.random().toString(36).substring(2, 9),
+          date: currentDate.toISOString().split('T')[0],
+          amount: cupBonusAmount,
+          type: 'INCOME' as const,
+          description: `Nagroda za zwycięstwo w Pucharze Polski`,
+          previousBalance: currentBalance
+        });
+      }
 
       return {
         ...club,
         leagueId: newLeagueId,
         reputation: newReputation,
         budget: club.budget + nextSeasonInjection,
-        financeHistory: [seasonalLog, ...(club.financeHistory || [])].slice(0, 50),
+        financeHistory: [...financeLogsToAdd, ...(club.financeHistory || [])].slice(0, 50),
         stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
         isInPolishCup: false 
       };
@@ -1269,6 +1331,50 @@ setMessages([welcomeMail, fanMail]);
       postReviewClubs = review.updatedClubs;
       postReviewPlayers = review.updatedPlayers;
       DebugLoggerService.log('SQUAD_REVIEW', `Przegląd składów AI (2 lipca) wykonany.`, true);
+      
+      // Wyplata pensji zawodników na start sezonu
+      postReviewClubs = postReviewClubs.map(club => {
+        const squad = postReviewPlayers[club.id] || [];
+        const totalSalaries = FinanceService.calculateTotalSalaries(squad);
+        
+        // Obliczanie wynagrodzenia trenera (1-3 * 2.5% budżetu rocznie)
+        const trainerSalaryFactor = (1 + Math.random() * 2) * 0.025; // 2.5% - 7.5%
+        const trainerSalary = Math.floor(club.budget * trainerSalaryFactor);
+        
+        const totalCost = totalSalaries + trainerSalary;
+        const newBudget = club.budget - totalCost;
+        
+        // Tworzymy wpisy do finansów
+        const financeLogsToAdd: any[] = [];
+        
+        if (totalSalaries > 0) {
+          financeLogsToAdd.push({
+            id: Math.random().toString(36).substr(2, 9),
+            date: dateToProcess.toISOString().split('T')[0],
+            amount: -totalSalaries,
+            type: 'EXPENSE' as const,
+            description: `Pensje zawodników za sezon`,
+            previousBalance: club.budget
+          });
+        }
+        
+        if (trainerSalary > 0) {
+          financeLogsToAdd.push({
+            id: Math.random().toString(36).substr(2, 9),
+            date: dateToProcess.toISOString().split('T')[0],
+            amount: -trainerSalary,
+            type: 'EXPENSE' as const,
+            description: `Wynagrodzenie sztabu trenera`,
+            previousBalance: club.budget - totalSalaries
+          });
+        }
+        
+        return {
+          ...club,
+          budget: newBudget,
+          financeHistory: [...financeLogsToAdd, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      });
     }
 
 const finalResult: SimulationOutput = {
@@ -1306,6 +1412,52 @@ const finalResult: SimulationOutput = {
         return f;
       });
     });
+
+    // Przetwarzanie bonusów za Superpuchar Polski
+    const updatedClubsForSuperCup = finalResult.updatedClubs.map(club => {
+      const superCupFixture = clResult.updatedFixtures.find(f => f.leagueId === 'SUPER_CUP' && f.status === MatchStatus.FINISHED);
+      
+      if (superCupFixture && (club.id === superCupFixture.homeTeamId || club.id === superCupFixture.awayTeamId)) {
+        let isWinner = false;
+        
+        // Sprawdzenie czy klub wygrał w regulaminowym czasie
+        if (club.id === superCupFixture.homeTeamId && (superCupFixture.homeScore || 0) > (superCupFixture.awayScore || 0)) {
+          isWinner = true;
+        } else if (club.id === superCupFixture.awayTeamId && (superCupFixture.awayScore || 0) > (superCupFixture.homeScore || 0)) {
+          isWinner = true;
+        }
+        
+        // Sprawdzenie dla rzutów karnych w przypadku remisu
+        if (!isWinner && superCupFixture.homeScore === superCupFixture.awayScore && superCupFixture.homePenaltyScore !== undefined) {
+          if (club.id === superCupFixture.homeTeamId && (superCupFixture.homePenaltyScore || 0) > (superCupFixture.awayPenaltyScore || 0)) {
+            isWinner = true;
+          } else if (club.id === superCupFixture.awayTeamId && (superCupFixture.awayPenaltyScore || 0) > (superCupFixture.homePenaltyScore || 0)) {
+            isWinner = true;
+          }
+        }
+        
+        const bonusAmount = FinanceService.calculateSuperCupBonus(isWinner);
+        
+        const financeLog = {
+          id: Math.random().toString(36).substring(2, 9),
+          date: dateToProcess.toISOString().split('T')[0],
+          amount: bonusAmount,
+          type: 'INCOME' as const,
+          description: isWinner ? 'Nagroda za zwycięstwo w Superpucharze Polski' : 'Nagroda za udział w Superpucharze Polski',
+          previousBalance: club.budget
+        };
+        
+        return {
+          ...club,
+          budget: club.budget + bonusAmount,
+          financeHistory: [financeLog, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      }
+      
+      return club;
+    });
+    
+    setClubs(updatedClubsForSuperCup);
 
     // 5. Integracja NOWYCH OFERT AI do stanu
 

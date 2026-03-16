@@ -35,25 +35,33 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
           {history.length > 0 ? (
             <div className="space-y-2">
               {history.map((item, idx) => (
-                <div key={idx} className="flex items-start justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5 hover:bg-white/[0.05] transition-all group">
-                  <div className="w-24 shrink-0">
-                    <span className="text-[9px] font-mono text-slate-500">{item.date}</span>
-                  </div>
-                  <div className="flex-1 px-4">
-                    <span className="text-[10px] font-black uppercase italic text-white">
-                      {item.description}
-                    </span>
-                    {item.previousBalance !== undefined && (
-                      <div className="text-[12px] text-slate-400 italic mt-2 font-mono">
-                        <span className="text-slate-500">poprzednie saldo:</span> {formatCurrency(item.previousBalance)} <span className="text-slate-600">→</span> <span className="text-slate-500">obecne saldo:</span> {formatCurrency(item.previousBalance + item.amount)}
+                <div key={idx} className="flex flex-col p-4 bg-white/[0.02] rounded-2xl border border-white/5 hover:bg-white/[0.05] transition-all group">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[9px] font-mono text-slate-500">{item.date}</span>
                       </div>
-                    )}
+                      <span className="text-[10px] font-black uppercase italic text-white">
+                        {item.description}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <span className={`text-sm font-black font-mono block ${item.amount > 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                        {item.amount > 0 ? '+' : ''}{formatCurrency(item.amount)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="w-40 text-right shrink-0">
-                    <span className={`text-sm font-black font-mono block ${item.amount > 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                      {item.amount > 0 ? '+' : ''}{formatCurrency(item.amount)}
-                    </span>
-                  </div>
+                  {item.previousBalance !== undefined && (
+                    <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded-lg mt-2 border border-white/[0.03]">
+                      <div className="text-[8px] text-slate-400 italic font-mono">
+                        <span className="text-slate-500">stary balans:</span> <span className="text-slate-300">{formatCurrency(item.previousBalance)}</span>
+                      </div>
+                      <span className="text-slate-600 text-[8px]">→</span>
+                      <div className="text-[8px] text-slate-400 italic font-mono">
+                        <span className="text-slate-500">nowy balans:</span> <span className="text-slate-300">{formatCurrency(item.previousBalance + item.amount)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1468,8 +1468,8 @@ return {
           const matchCost = FinanceService.calculateMatchdayExpenses(c, isHome);
           
           // Dodajemy przychód z biletów dla gospodarza
-          const ticketPrice = 45; // Stała cena biletu (można ją później sparametryzować)
-          const ticketRevenue = isHome ? (ctx.fixture.attendance || 0) * ticketPrice : 0;
+          const tier = parseInt(c.leagueId.split('_')[2] || '1');
+          const ticketRevenue = isHome ? FinanceService.calculateMatchTicketRevenue(ctx.fixture.attendance || 0, tier, c.reputation) : 0;
           const netChange = ticketRevenue - matchCost;
 
           const s = isHome ? matchState.homeScore : matchState.awayScore;
@@ -1481,17 +1481,21 @@ return {
 
           // Tworzymy logi finansowe
           const financeLogsToAdd: any[] = [];
+          let currentBalance = c.budget;
           
           if (isHome) {
             // 🏟️ Przychody z biletów
             if (ticketRevenue > 0) {
+              const ticketPrice = FinanceService.calculateTicketPrice(tier, c.reputation);
               financeLogsToAdd.push({
                 id: Math.random().toString(36).substr(2, 9),
                 date: currentDate.toISOString().split('T')[0],
                 amount: ticketRevenue,
                 type: 'INCOME' as const,
-                description: `Przychody z biletów: ${ctx.fixture.attendance || 0} widzów @ 45 PLN`
+                description: `Przychody z biletów: ${ctx.fixture.attendance || 0} widzów @ ${ticketPrice} PLN`,
+                previousBalance: currentBalance
               });
+              currentBalance += ticketRevenue;
             }
             
             // 💰 Koszty organizacji
@@ -1501,8 +1505,10 @@ return {
                 date: currentDate.toISOString().split('T')[0],
                 amount: -matchCost,
                 type: 'EXPENSE' as const,
-                description: `Koszty organizacji meczu`
+                description: `Koszty organizacji meczu`,
+                previousBalance: currentBalance
               });
+              currentBalance -= matchCost;
             }
           } else {
             // 🚌 Koszty wyjazdu (away)
@@ -1511,8 +1517,10 @@ return {
               date: currentDate.toISOString().split('T')[0],
               amount: -matchCost,
               type: 'EXPENSE' as const,
-              description: `Koszty wyjazdu`
+              description: `Koszty wyjazdu`,
+              previousBalance: currentBalance
             });
+            currentBalance -= matchCost;
           }
 
           return {
