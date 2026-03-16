@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, MatchEventType, CompetitionType } from '../types';
 import { KitSelectionService } from '../services/KitSelectionService';
@@ -9,7 +9,8 @@ const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 sha
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
 export const PostMatchCupStudioView: React.FC = () => {
-  const { lastMatchSummary, navigateTo, processBackgroundCupMatches, jumpToNextEvent, players } = useGame();
+  const { lastMatchSummary, navigateTo, processBackgroundCupMatches, jumpToNextEvent, players, currentDate, addSupercupWinner } = useGame();
+  const savedMatchesRef = useRef<Set<string>>(new Set());
 
   if (!lastMatchSummary) return null;
 
@@ -54,6 +55,21 @@ export const PostMatchCupStudioView: React.FC = () => {
     if (distance < 180) aCol = awayClub.colorsHex[1] || '#475569';
     return { home: hCol, away: aCol };
   }, [homeClub, awayClub]);
+
+  // Zapisz zwycięzcę SuperPucharu do historii (tylko raz dla każdego meczu)
+  useEffect(() => {
+    if (isSuperCup && !savedMatchesRef.current.has(matchId)) {
+      const month = currentDate.getMonth();
+      const year = currentDate.getFullYear();
+      const seasonStartYear = month >= 6 ? year : year - 1;
+      const seasonEndYear = seasonStartYear + 1;
+      const seasonLabel = `${seasonStartYear}/${seasonEndYear}`;
+      
+      addSupercupWinner(seasonLabel, winner.name, seasonEndYear);
+      
+      savedMatchesRef.current.add(matchId);
+    }
+  }, [isSuperCup, matchId, winner, currentDate, addSupercupWinner]);
 
   const handleReturn = () => {
     if (isSuperCup) {

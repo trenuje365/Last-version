@@ -1,19 +1,37 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState, MatchHistoryEntry, MatchEventType, CompetitionType } from '../../types';
 import { MatchHistoryService } from '../../services/MatchHistoryService';
 import { ChampionshipHistoryService } from '../../data/championship_history';
 
 export const MatchHistoryView: React.FC = () => {
-  const { navigateTo, clubs, seasonNumber } = useGame();
+  const { navigateTo, clubs, seasonNumber, supercupWinners } = useGame();
   const [selectedLeague, setSelectedLeague] = useState<string>('ALL');
   const [selectedSeason, setSelectedSeason] = useState<number>(seasonNumber);
   const [selectedMatch, setSelectedMatch] = useState<MatchHistoryEntry | null>(null);
   const [viewMode, setViewMode] = useState<'matches' | 'champions'>('matches');
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
-  const history = useMemo(() => MatchHistoryService.getAll(), []);
-  const championshipHistory = useMemo(() => ChampionshipHistoryService.getAll(), []);
+  const history = useMemo(() => MatchHistoryService.getAll(), [refreshTrigger]);
+  const championshipHistory = useMemo(() => ChampionshipHistoryService.getAll(), [refreshTrigger, supercupWinners]);
+
+  // Odśwież dane gdy komponent się montuje
+  useEffect(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Odśwież dane gdy przełączamy na widok zwycięzców
+  useEffect(() => {
+    if (viewMode === 'champions') {
+      setRefreshTrigger(prev => prev + 1);
+    }
+  }, [viewMode]);
+
+  // Odśwież dane gdy zmienią się supercupWinners
+  useEffect(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, [supercupWinners]);
   
   const groupedHistory = useMemo(() => {
     const base = history.filter(m => {
@@ -250,7 +268,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {ChampionshipHistoryService.getByCompetition('PUCHAR_POLSKI').map((entry, idx) => (
+                      {championshipHistory.filter(c => c.competition === 'PUCHAR_POLSKI').sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
@@ -276,7 +294,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {ChampionshipHistoryService.getByCompetition('SUPERPUCHAR_POLSKI').map((entry, idx) => (
+                      {supercupWinners.sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
@@ -302,7 +320,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {ChampionshipHistoryService.getByCompetition('LIGA_MISTRZOW').map((entry, idx) => (
+                      {championshipHistory.filter(c => c.competition === 'LIGA_MISTRZOW').sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>

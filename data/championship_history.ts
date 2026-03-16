@@ -1,4 +1,6 @@
 // Historia zwycięzców konkurencji - SERWIS
+import SUPERCUP_WINNERS from './supercup_winners.json';
+
 export interface ChampionshipEntry {
   season: string;
   competition: 'EKSTRAKLASA' | 'PUCHAR_POLSKI' | 'SUPERPUCHAR_POLSKI' | 'LIGA_MISTRZOW';
@@ -22,7 +24,7 @@ export class ChampionshipHistoryService {
     }
     
     // Dane domyślne
-    return [
+    const defaultData: ChampionshipEntry[] = [
       {
         season: '2023/2024',
         competition: 'EKSTRAKLASA',
@@ -53,20 +55,6 @@ export class ChampionshipHistoryService {
       },
       {
         season: '2023/2024',
-        competition: 'SUPERPUCHAR_POLSKI',
-        winner: 'Jagiellonia Białystok',
-        runnerUp: 'Wisła Kraków',
-        year: 2024
-      },
-      {
-        season: '2024/2025',
-        competition: 'SUPERPUCHAR_POLSKI',
-        winner: 'Legia Warszawa',
-        runnerUp: 'Lech Poznań',
-        year: 2025
-      },
-      {
-        season: '2023/2024',
         competition: 'LIGA_MISTRZOW',
         winner: 'Real Madryt',
         runnerUp: 'Borussia Dortmund',
@@ -80,6 +68,12 @@ export class ChampionshipHistoryService {
         year: 2025
       }
     ];
+
+    // Dodaj dane SuperPucharu z JSON
+    const supercupData = (SUPERCUP_WINNERS as any[]) || [];
+    const allData = [...defaultData, ...supercupData];
+    
+    return allData;
   }
 
   private static saveHistory(history: ChampionshipEntry[]): void {

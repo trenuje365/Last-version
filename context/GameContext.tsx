@@ -82,6 +82,8 @@ interface GameContextType {
     activeCupDraw: { id: string, label: string, date: Date, pairs: Fixture[] } | null;
   activeGroupDraw: { id: string, label: string, date: Date, groups: string[][] } | null;
   clGroups: string[][] | null;
+  supercupWinners: { season: string; winner: string; year: number; }[];
+  addSupercupWinner: (season: string, winner: string, year: number) => void;
 
   activeIntensity: TrainingIntensity;
   setTrainingIntensity: (intensity: TrainingIntensity) => void;
@@ -171,6 +173,9 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
+ const [supercupWinners, setSupercupWinners] = useState<{ season: string; winner: string; year: number; }[]>([
+    { season: '2023/2024', winner: 'Jagiellonia Białystok', year: 2024 }
+  ]);
 
   // Guard: zapobiega wielokrotnemu uruchomieniu processLeagueEvent dla tej samej daty
   const lastProcessedLeagueDateRef = React.useRef<string | null>(null);
@@ -203,6 +208,16 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
         : c
     ));
   }, [currentDate, clubs]);
+
+  const addSupercupWinner = useCallback((season: string, winner: string, year: number) => {
+    setSupercupWinners(prev => {
+      const exists = prev.some(w => w.season === season);
+      if (exists) {
+        return prev.map(w => w.season === season ? { season, winner, year } : w);
+      }
+      return [...prev, { season, winner, year }];
+    });
+  }, []);
 
   // Guard: śledzi ID maili już wysłanych w trakcie sesji (by nie duplikować przy stale closure)
   const sentMailIdsRef = React.useRef<Set<string>>(new Set());
@@ -1441,6 +1456,17 @@ const finalResult: SimulationOutput = {
       const superCupFixture = clResult.updatedFixtures.find(f => f.leagueId === 'SUPER_CUP' && f.status === MatchStatus.FINISHED);
       
       if (superCupFixture && (club.id === superCupFixture.homeTeamId || club.id === superCupFixture.awayTeamId)) {
+        // Sprawdzenie czy bonus za ten konkretny mecz Super Cup już został przyznany
+        const bonusAlreadyApplied = club.financeHistory?.some(entry => 
+          (entry.description === 'Nagroda za zwycięstwo w Superpucharze Polski' || 
+           entry.description === 'Nagroda za udział w Superpucharze Polski') &&
+          entry.date === dateToProcess.toISOString().split('T')[0]
+        );
+        
+        if (bonusAlreadyApplied) {
+          return club;
+        }
+        
         let isWinner = false;
         
         // Sprawdzenie czy klub wygrał w regulaminowym czasie
@@ -2101,7 +2127,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog
+    confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
     }}>
       {children}
     </GameContext.Provider>
