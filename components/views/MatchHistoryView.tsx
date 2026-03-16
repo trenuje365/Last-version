@@ -16,11 +16,154 @@ export const MatchHistoryView: React.FC = () => {
   const history = useMemo(() => MatchHistoryService.getAll(), [refreshTrigger]);
   const championshipHistory = useMemo(() => ChampionshipHistoryService.getAll(), [refreshTrigger, supercupWinners]);
   
-  // Pobierz Superpuchary z Championship History (z localStorage)
-  const supercupWinnersFromHistory = useMemo(
-    () => championshipHistory.filter(c => c.competition === 'SUPERPUCHAR_POLSKI'),
-    [championshipHistory]
-  );
+  // SUPERPUCHAR POLSKI - ostatni mecz turnieju
+  const supercupWinnersFromMatches = useMemo(() => {
+    const supercupMatches = history.filter(m => 
+      m.competition.includes('SUPER') &&
+      m.homeScore !== null
+    );
+    
+    const winners: Record<string, any> = {};
+    supercupMatches.forEach(match => {
+      let winnerId: string | null = null;
+      
+      if (match.homeScore > match.awayScore) {
+        winnerId = match.homeTeamId;
+      } else if (match.awayScore > match.homeScore) {
+        winnerId = match.awayTeamId;
+      } else if (match.homePenaltyScore !== undefined && match.awayPenaltyScore !== undefined) {
+        winnerId = match.homePenaltyScore > match.awayPenaltyScore ? match.homeTeamId : match.awayTeamId;
+      }
+      
+      if (winnerId) {
+        const winnerClub = clubs.find(c => c.id === winnerId);
+        if (winnerClub) {
+          const date = new Date(match.date);
+          const month = date.getMonth();
+          const year = date.getFullYear();
+          const seasonStart = month >= 6 ? year : year - 1;
+          const seasonKey = `${seasonStart}/${seasonStart + 1}`;
+          
+          winners[seasonKey] = {
+            season: seasonKey,
+            winner: winnerClub.name,
+            year: seasonStart + 1
+          };
+        }
+      }
+    });
+    
+    const result = Object.values(winners);
+    console.log('⚡ Superpuchar winners:', result);
+    return result;
+  }, [history, clubs]);
+
+  // EKSTRAKLASA - Zwycięzca sezonu z localStorage
+  const ekstraklasaWinner = useMemo(() => {
+    try {
+      const stored = localStorage?.getItem('fm_championship_history');
+      const history = stored ? JSON.parse(stored) : [];
+      const winners = history
+        .filter((c: any) => c.competition === 'EKSTRAKLASA')
+        .sort((a: any, b: any) => b.year - a.year);
+      console.log('🥇 Ekstraklasa winners:', winners);
+      return winners;
+    } catch (e) {
+      console.error('Failed to load Ekstraklasa winners:', e);
+      return [];
+    }
+  }, [refreshTrigger]);
+
+  // PUCHAR POLSKI - Ostatni mecz (finał)
+  const pucharWinner = useMemo(() => {
+    const cupMatches = history.filter(m => 
+      m.competition.includes('PUCHAR') && 
+      !m.competition.includes('SUPER') &&
+      m.homeScore !== null
+    );
+    
+    const winners: Record<string, any> = {};
+    cupMatches.forEach(match => {
+      let winnerId: string | null = null;
+      
+      if (match.homeScore > match.awayScore) {
+        winnerId = match.homeTeamId;
+      } else if (match.awayScore > match.homeScore) {
+        winnerId = match.awayTeamId;
+      } else if (match.homePenaltyScore !== undefined && match.awayPenaltyScore !== undefined) {
+        winnerId = match.homePenaltyScore > match.awayPenaltyScore ? match.homeTeamId : match.awayTeamId;
+      }
+      
+      if (winnerId) {
+        const winnerClub = clubs.find(c => c.id === winnerId);
+        if (winnerClub) {
+          const date = new Date(match.date);
+          const month = date.getMonth();
+          const year = date.getFullYear();
+          const seasonStart = month >= 6 ? year : year - 1;
+          const seasonKey = `${seasonStart}/${seasonStart + 1}`;
+          
+          winners[seasonKey] = {
+            season: seasonKey,
+            winner: winnerClub.name,
+            year: seasonStart + 1
+          };
+        }
+      }
+    });
+    
+    const result = Object.values(winners);
+    console.log('🏆 Puchar Polski winners:', result);
+    return result;
+  }, [history, clubs]);
+
+  // LIGA MISTRZÓW - Finał (ostatni mecz CL_FINAL)
+  const clWinner = useMemo(() => {
+    const clMatches = history.filter(m => 
+      m.competition.includes('LIGA_MISTRZOW') || m.competition.includes('FINAL') &&
+      m.homeScore !== null
+    );
+    
+    const winners: Record<string, any> = {};
+    clMatches.forEach(match => {
+      let winnerId: string | null = null;
+      let runnerId: string | null = null;
+      
+      if (match.homeScore > match.awayScore) {
+        winnerId = match.homeTeamId;
+        runnerId = match.awayTeamId;
+      } else if (match.awayScore > match.homeScore) {
+        winnerId = match.awayTeamId;
+        runnerId = match.homeTeamId;
+      } else if (match.homePenaltyScore !== undefined && match.awayPenaltyScore !== undefined) {
+        winnerId = match.homePenaltyScore > match.awayPenaltyScore ? match.homeTeamId : match.awayTeamId;
+        runnerId = match.homePenaltyScore > match.awayPenaltyScore ? match.awayTeamId : match.homeTeamId;
+      }
+      
+      if (winnerId && runnerId) {
+        const winnerClub = clubs.find(c => c.id === winnerId);
+        const runnerClub = clubs.find(c => c.id === runnerId);
+        
+        if (winnerClub && runnerClub) {
+          const date = new Date(match.date);
+          const year = date.getFullYear();
+          const seasonStart = year;
+          const seasonKey = `${seasonStart}/${seasonStart + 1}`;
+          
+          winners[seasonKey] = {
+            season: seasonKey,
+            winner: winnerClub.name,
+            runnerUp: runnerClub.name,
+            year: seasonStart + 1
+          };
+        }
+      }
+    });
+    
+    const result = Object.values(winners).sort((a, b) => b.year - a.year);
+    console.log('⭐ Liga Mistrzów:', result);
+    return result;
+  }, [history, clubs]);
 
   // Odśwież dane gdy komponent się montuje
   useEffect(() => {
@@ -247,7 +390,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {ChampionshipHistoryService.getByCompetition('EKSTRAKLASA').map((entry, idx) => (
+                      {ekstraklasaWinner.map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
@@ -274,7 +417,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {championshipHistory.filter(c => c.competition === 'PUCHAR_POLSKI').sort((a, b) => b.year - a.year).map((entry, idx) => (
+                      {pucharWinner.sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
@@ -300,7 +443,7 @@ export const MatchHistoryView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {supercupWinnersFromHistory.sort((a, b) => b.year - a.year).map((entry, idx) => (
+                      {supercupWinnersFromMatches.sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
@@ -323,13 +466,15 @@ export const MatchHistoryView: React.FC = () => {
                       <tr className="bg-indigo-600/20 border-b border-white/5">
                         <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Sezon</th>
                         <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Zwycięzca</th>
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Finalista</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {championshipHistory.filter(c => c.competition === 'LIGA_MISTRZOW').sort((a, b) => b.year - a.year).map((entry, idx) => (
+                      {clWinner.sort((a, b) => b.year - a.year).map((entry, idx) => (
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
                           <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
+                          <td className="px-6 py-3 text-sm font-black text-slate-400">{entry.runner || '-'}</td>
                         </tr>
                       ))}
                     </tbody>

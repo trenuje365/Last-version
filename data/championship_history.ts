@@ -1,5 +1,4 @@
 // Historia zwycięzców konkurencji - SERWIS
-import SUPERCUP_WINNERS from './supercup_winners.json';
 
 export interface ChampionshipEntry {
   season: string;
@@ -16,8 +15,11 @@ export class ChampionshipHistoryService {
   private static getHistory(): ChampionshipEntry[] {
     try {
       const stored = localStorage?.getItem(STORAGE_KEY);
+      console.log('📂 ChampionshipHistoryService.getHistory() - localStorage data:', stored);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        console.log('✓ Parsed from localStorage:', parsed);
+        return parsed;
       }
     } catch (e) {
       console.error('Failed to load championship history:', e);
@@ -66,19 +68,26 @@ export class ChampionshipHistoryService {
         winner: 'Paris Saint-Germain',
         runnerUp: 'Inter Mediolan',
         year: 2025
+      },
+      // Superpuchar domyślny (będzie zastąpiony gdy gracz wygra mecz)
+      {
+        season: '2023/2024',
+        competition: 'SUPERPUCHAR_POLSKI',
+        winner: 'Jagiellonia Białystok',
+        year: 2024
       }
     ];
 
-    // Dodaj dane SuperPucharu z JSON
-    const supercupData = (SUPERCUP_WINNERS as any[]) || [];
-    const allData = [...defaultData, ...supercupData];
-    
-    return allData;
+    // Wszystkie dane - ze localStorage będą automatycznie dodane gdy się zapisze nowy zwycięzca
+    return defaultData;
   }
 
   private static saveHistory(history: ChampionshipEntry[]): void {
     try {
-      localStorage?.setItem(STORAGE_KEY, JSON.stringify(history));
+      const json = JSON.stringify(history);
+      console.log('💾 saveHistory - saving to localStorage:', json);
+      localStorage?.setItem(STORAGE_KEY, json);
+      console.log('   ✓ Saved successfully');
     } catch (e) {
       console.error('Failed to save championship history:', e);
     }
@@ -95,7 +104,9 @@ export class ChampionshipHistoryService {
   }
 
   static addChampion(entry: ChampionshipEntry): void {
+    console.log('🔹 addChampion called:', entry);
     const history = this.getHistory();
+    console.log('   Current history before add:', history);
     
     // Sprawdź czy już istnieje wpis na ten sezon i konkurencję
     const existingIndex = history.findIndex(
@@ -103,12 +114,16 @@ export class ChampionshipHistoryService {
     );
     
     if (existingIndex >= 0) {
+      console.log('   Updating existing entry at index', existingIndex);
       history[existingIndex] = entry;
     } else {
+      console.log('   Adding new entry');
       history.push(entry);
     }
     
+    console.log('   History after add:', history);
     this.saveHistory(history.sort((a, b) => b.year - a.year));
+    console.log('   ✓ Saved');
   }
 
   static addEkstraklasaChampion(season: string, winner: string, runnerUp: string, year: number): void {
@@ -122,6 +137,7 @@ export class ChampionshipHistoryService {
   }
 
   static addCupChampion(season: string, competition: 'PUCHAR_POLSKI' | 'SUPERPUCHAR_POLSKI', winner: string, year: number): void {
+    console.log('🔸 addCupChampion called:', { season, competition, winner, year });
     this.addChampion({
       season,
       competition,

@@ -41,7 +41,7 @@ export const SuperCupService = {
     }
 
     return {
-      id: `SUPER_CUP_${year}`,
+      id: `SUPER_CUP_${year}_${homeId}_${awayId}`,
       leagueId: CompetitionType.SUPER_CUP,
       homeTeamId: homeId,
       awayTeamId: awayId,

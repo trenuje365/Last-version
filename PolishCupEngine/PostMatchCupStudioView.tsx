@@ -10,16 +10,26 @@ const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 sha
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
 export const PostMatchCupStudioView: React.FC = () => {
+  console.log('🎬 PostMatchCupStudioView RENDERED');
+  
   const { lastMatchSummary, navigateTo, processBackgroundCupMatches, jumpToNextEvent, players, currentDate, addSupercupWinner } = useGame();
   const savedMatchesRef = useRef<Set<string>>(new Set());
 
-  if (!lastMatchSummary) return null;
+  if (!lastMatchSummary) {
+    console.log('❌ PostMatchCupStudioView - NO lastMatchSummary, exiting');
+    return null;
+  }
 
-  const { 
+  console.log('✓ PostMatchCupStudioView - lastMatchSummary exists'); 
+
+  const {
     homeClub, awayClub, homeScore, awayScore, homeStats, awayStats, 
     homeGoals, awayGoals, homePenaltyScore, awayPenaltyScore,
     timeline, matchId
   } = lastMatchSummary;
+
+  // DEBUG - wypisz pełne dane matchSummary
+  console.log('📋 FULL lastMatchSummary:', lastMatchSummary);
 
   const isSuperCup = matchId.includes('SUPER_CUP');
   const isFinal = matchId.includes('FINAŁ');
@@ -41,10 +51,27 @@ export const PostMatchCupStudioView: React.FC = () => {
 
   // 2. Logika Zwycięzcy (ZASTĄP TEN KOD - Poprawiona hierarchia zwycięstwa)
   const winner = useMemo(() => {
-    if (homeScore > awayScore) return homeClub;
-    if (awayScore > homeScore) return awayClub;
+    console.log('⚔️ Winner calculation:', {
+      homeScore,
+      awayScore,
+      homeClub: homeClub.name,
+      awayClub: awayClub.name,
+      homePenaltyScore,
+      awayPenaltyScore
+    });
+    
+    if (homeScore > awayScore) {
+      console.log('✓ Winner: homeClub', homeClub.name);
+      return homeClub;
+    }
+    if (awayScore > homeScore) {
+      console.log('✓ Winner: awayClub', awayClub.name);
+      return awayClub;
+    }
     // Remis - decydują rzuty karne
-    return (homePenaltyScore || 0) > (awayPenaltyScore || 0) ? homeClub : awayClub;
+    const winner = (homePenaltyScore || 0) > (awayPenaltyScore || 0) ? homeClub : awayClub;
+    console.log('✓ Winner (penalties):', winner.name);
+    return winner;
   }, [homeScore, awayScore, homePenaltyScore, awayPenaltyScore, homeClub, awayClub]);
   // KONIEC ZMIANY
 
@@ -66,14 +93,24 @@ export const PostMatchCupStudioView: React.FC = () => {
       const seasonEndYear = seasonStartYear + 1;
       const seasonLabel = `${seasonStartYear}/${seasonEndYear}`;
       
+      console.log('💾 Saving to ChampionshipHistoryService:', {
+        seasonLabel,
+        winner: winner.name,
+        seasonEndYear,
+        timestamp: new Date().toISOString()
+      });
+      
       addSupercupWinner(seasonLabel, winner.name, seasonEndYear);
       
       // Zapisz także do persistent storage (localStorage)
       ChampionshipHistoryService.addCupChampion(seasonLabel, 'SUPERPUCHAR_POLSKI', winner.name, seasonEndYear);
       
+      console.log('✓ After save - checking localStorage:');
+      console.log('  localStorage data:', localStorage?.getItem('fm_championship_history'));
+      
       savedMatchesRef.current.add(matchId);
     }
-  }, [isSuperCup, matchId, winner, currentDate, addSupercupWinner]);
+  }, [isSuperCup, matchId, winner, currentDate, addSupercupWinner, homeClub, awayClub, homeScore, awayScore]);
 
   const handleReturn = () => {
     if (isSuperCup) {
