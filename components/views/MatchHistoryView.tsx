@@ -3,14 +3,17 @@ import React, { useState, useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState, MatchHistoryEntry, MatchEventType, CompetitionType } from '../../types';
 import { MatchHistoryService } from '../../services/MatchHistoryService';
+import { ChampionshipHistoryService } from '../../data/championship_history';
 
 export const MatchHistoryView: React.FC = () => {
   const { navigateTo, clubs, seasonNumber } = useGame();
   const [selectedLeague, setSelectedLeague] = useState<string>('ALL');
   const [selectedSeason, setSelectedSeason] = useState<number>(seasonNumber);
   const [selectedMatch, setSelectedMatch] = useState<MatchHistoryEntry | null>(null);
+  const [viewMode, setViewMode] = useState<'matches' | 'champions'>('matches');
 
   const history = useMemo(() => MatchHistoryService.getAll(), []);
+  const championshipHistory = useMemo(() => ChampionshipHistoryService.getAll(), []);
   
   const groupedHistory = useMemo(() => {
     const base = history.filter(m => {
@@ -89,7 +92,17 @@ export const MatchHistoryView: React.FC = () => {
         {/* SIDEBAR FILTERS */}
         <div className="w-64 flex flex-col gap-3 shrink-0 bg-slate-900/40 rounded-[35px] border border-white/5 p-6 backdrop-blur-xl">
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2 px-2">Kategorie</span>
-            {[
+            <button 
+              onClick={() => { setViewMode('champions'); setSelectedLeague('ALL'); }} 
+              className={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border
+                ${viewMode === 'champions' 
+                  ? 'bg-yellow-600 border-yellow-400 text-white shadow-lg translate-x-2' 
+                  : 'bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-slate-300'}`}
+            >
+              <span className="text-lg opacity-60">👑</span>
+              ZWYCIĘZCY
+            </button>
+            {viewMode === 'matches' && [
               { id: 'ALL', label: 'WSZYSTKO', icon: '🌍' },
               { id: 'L_PL_1', label: 'EKSTRAKLASA', icon: '🏆' },
               { id: 'L_PL_2', label: '1. LIGA', icon: '🥈' },
@@ -98,9 +111,9 @@ export const MatchHistoryView: React.FC = () => {
             ].map(l => (
               <button 
                 key={l.id} 
-                onClick={() => setSelectedLeague(l.id)} 
+                onClick={() => { setViewMode('matches'); setSelectedLeague(l.id); }} 
                 className={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border
-                  ${selectedLeague === l.id 
+                  ${selectedLeague === l.id && viewMode === 'matches'
                     ? 'bg-blue-600 border-blue-400 text-white shadow-lg translate-x-2' 
                     : 'bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-slate-300'}`}
               >
@@ -110,27 +123,28 @@ export const MatchHistoryView: React.FC = () => {
             ))}
 
             <div className="mt-auto p-4 bg-black/20 rounded-2xl border border-white/5">
-               <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">Statystyka</span>
-               <span className="text-xl font-black italic text-white">{history.length} <span className="text-[10px] opacity-40">MECZÓW</span></span>
+               <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">{viewMode === 'matches' ? 'Statystyka' : 'Historia'}</span>
+               <span className="text-xl font-black italic text-white">{viewMode === 'matches' ? history.length : championshipHistory.length} <span className="text-[10px] opacity-40">{viewMode === 'matches' ? 'MECZÓW' : 'WPISÓW'}</span></span>
             </div>
         </div>
 
         {/* MATCH LIST */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/20 rounded-[40px] border border-white/5 backdrop-blur-md">
-          {/* TUTAJ WSTAW TEN KOD (Pasek zakładek sezonów): */}
-          <div className="px-8 pt-8 flex gap-4">
-             {Array.from({length: seasonNumber}, (_, i) => i + 1).map(s => (
-               <button 
-                 key={s}
-                 onClick={() => setSelectedSeason(s)}
-                 className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${selectedSeason === s ? 'bg-white text-black' : 'bg-white/5 text-slate-500'}`}
-               >
-                 SEZON {s}
-               </button>
-             ))}
-          </div>
-          <div className="p-8 space-y-10">
-            {groupedHistory.length > 0 ? groupedHistory.map((group, gIdx) => (
+          {viewMode === 'matches' ? (
+            <>
+              <div className="px-8 pt-8 flex gap-4">
+                 {Array.from({length: seasonNumber}, (_, i) => i + 1).map(s => (
+                   <button 
+                     key={s}
+                     onClick={() => setSelectedSeason(s)}
+                     className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${selectedSeason === s ? 'bg-white text-black' : 'bg-white/5 text-slate-500'}`}
+                   >
+                     SEZON {s}
+                   </button>
+                 ))}
+              </div>
+              <div className="p-8 space-y-10">
+                {groupedHistory.length > 0 ? groupedHistory.map((group, gIdx) => (
               <div key={gIdx} className="space-y-4">
                 <div className="flex items-center gap-6 px-4">
                   <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.5em] whitespace-nowrap">{group.label}</span>
@@ -183,13 +197,125 @@ export const MatchHistoryView: React.FC = () => {
                 </div>
               </div>
             )) : (
-              <div className="h-64 flex flex-col items-center justify-center opacity-20">
+                <div className="h-64 flex flex-col items-center justify-center opacity-20">
                  <span className="text-8xl mb-6">🏜️</span>
                  <p className="text-xl font-black uppercase tracking-[0.4em] italic text-center">Brak rozegranych meczów</p>
               </div>
             )}
-          </div>
-        </div>
+              </div>
+            </>
+          ) : (
+            // CHAMPIONS VIEW
+            <div className="p-8 space-y-12">
+              {/* EKSTRAKLASA */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">🏆</span>
+                  <h3 className="text-lg font-black uppercase tracking-wider italic text-white">EKSTRAKLASA</h3>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-blue-600/20 border-b border-white/5">
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Sezon</th>
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Zwycięzca</th>
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">II Miejsce</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ChampionshipHistoryService.getByCompetition('EKSTRAKLASA').map((entry, idx) => (
+                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
+                          <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
+                          <td className="px-6 py-3 text-sm font-black text-slate-400">{entry.runnerUp}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* PUCHAR POLSKI */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">🛡️</span>
+                  <h3 className="text-lg font-black uppercase tracking-wider italic text-white">PUCHAR POLSKI</h3>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-purple-600/20 border-b border-white/5">
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Sezon</th>
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Zdobywca</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ChampionshipHistoryService.getByCompetition('PUCHAR_POLSKI').map((entry, idx) => (
+                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
+                          <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* SUPERPUCHAR POLSKI */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">⚡</span>
+                  <h3 className="text-lg font-black uppercase tracking-wider italic text-white">SUPERPUCHAR POLSKI</h3>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-yellow-600/20 border-b border-white/5">
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Sezon</th>
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Zwycięzca</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ChampionshipHistoryService.getByCompetition('SUPERPUCHAR_POLSKI').map((entry, idx) => (
+                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
+                          <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* LIGA MISTRZÓW */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">🌟</span>
+                  <h3 className="text-lg font-black uppercase tracking-wider italic text-white">LIGA MISTRZÓW UEFA</h3>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-indigo-600/20 border-b border-white/5">
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Sezon</th>
+                        <th className="px-6 py-3 text-left text-xs font-black text-white uppercase tracking-widest">Zwycięzca</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ChampionshipHistoryService.getByCompetition('LIGA_MISTRZOW').map((entry, idx) => (
+                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-3 text-sm font-black text-slate-300">{entry.season}</td>
+                          <td className="px-6 py-3 text-sm font-black text-yellow-400">{entry.winner}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+      </div>
+
       </div>
 
       {/* DETAIL MODAL */}

@@ -35,6 +35,7 @@ import { FreeAgentService } from '../services/FreeAgentService';
 import { AiContractService } from '@/services/AiContractService';
 import { BackgroundMatchProcessorCL } from '../services/BackgroundMatchProcessorCL';
 import { ScoutAssistantService } from '../services/ScoutAssistantService';
+import { ChampionshipHistoryService } from '../data/championship_history';
 
 interface SimulationOutput {
   updatedFixtures: Fixture[];
@@ -595,6 +596,28 @@ if (userTeamId) {
     }
     RefereeService.applyEndOfSeasonAdjustments();
     RefereeService.resetSeasonStats();
+    
+    // Zapisz zwycięzców do historii
+    const seasonKey = `${newYear - 1}/${newYear}`;
+    if (champion?.name) {
+      // Znajdź drugie miejsce w Ekstraklasie
+      const secondPlace = standingsL1[1];
+      ChampionshipHistoryService.addEkstraklasaChampion(
+        seasonKey,
+        champion.name,
+        secondPlace?.name || 'Nieznany',
+        newYear
+      );
+    }
+    
+    if (cupWinnerId) {
+      const cupWinner = updatedClubs.find(c => c.id === cupWinnerId);
+      if (cupWinner?.name) {
+        ChampionshipHistoryService.addCupChampion(seasonKey, 'PUCHAR_POLSKI', cupWinner.name, newYear);
+      }
+    }
+    // Superpuchar będzie uzupełniany po meczu (na razie tylko zwycięzcy ligi i pucharu)
+    
     setRoundResults({});
     sentMailIdsRef.current = new Set();
     lastProcessedLeagueDateRef.current = null;
