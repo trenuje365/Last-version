@@ -80,7 +80,7 @@ export const MatchLiveView = () => {
   
   const [isTacticsOpen, setIsTacticsOpen] = useState(false);
   const [isCelebratingGoal, setIsCelebratingGoal] = useState(false);
-  
+    const [showCommentHistory, setShowCommentHistory] = useState(false);
   const [activePenalty, setActivePenalty] = useState<{
     side: 'HOME' | 'AWAY',
     kicker: Player,
@@ -90,6 +90,28 @@ export const MatchLiveView = () => {
   } | null>(null);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  const getContrastColor = (hexColor: string): string => {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  };
+
+  const hexToRgba = (hex: string, alpha: number) => {
+    try {
+      const h = (hex || '#000000').replace('#', '');
+      const r = parseInt(h.substring(0, 2), 16);
+      const g = parseInt(h.substring(2, 4), 16);
+      const b = parseInt(h.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } catch (e) {
+      return `rgba(15, 23, 42, ${alpha})`;
+    }
+  };
+
 
   const ctx = useMemo(() => {
     const fixture = fixtures.find(f => 
@@ -172,13 +194,20 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
         sessionSeed,
       ////// DO ZAIMPLEMENTOWANIA PRZYCISKI TEMPO NASTAWIENIE I INTESNYWNOSC ...
         tacticalImpact: 1.0,
-        userInstructions: {
+       userInstructions: {
           tempo: 'NORMAL',
           mindset: 'NEUTRAL',
           intensity: 'NORMAL',
-          lastChangeMinute: -5
-        }
-      });
+          expiryMinute: -1,
+         lastChangeMinute: -5,},
+          playedPlayerIds: [],
+        aiActiveShout: null,
+        lastGoalBoostMinute: -1,
+        activeTacticalBoost: null,
+        tacticalBoostExpiry: -1
+        
+        
+     });
     }
   }, [ctx, lineups, matchState, setMatchState]);
 
@@ -751,10 +780,15 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
 
         const momentumUpdate = MomentumService.computeMomentum(ctx, { ...prev, minute: nextMinute, momentum: prev.momentum, homeLineup: nextHomeLineup, awayLineup: nextAwayLineup }, immediateEventType, activeSide);
 
-        if (priorityAiTrigger) {
-           const aiSide: 'HOME' | 'AWAY' = userSide === 'HOME' ? 'AWAY' : 'HOME';
+     if (priorityAiTrigger) {
            const decision = AiMatchDecisionService.makeDecisions({ ...prev, minute: nextMinute, homeScore: nextHomeScore, awayScore: nextAwayScore, sentOffIds: nextSentOffIds, homeLineup: nextHomeLineup, awayLineup: nextAwayLineup, homeInjuries: nextHomeInjuries, awayInjuries: nextAwayInjuries, homeFatigue: localHomeFatigue, awayFatigue: localAwayFatigue, lastAiActionMinute: nextLastAiActionMinute, homeSubsHistory: nextHomeSubsHistory, awaySubsHistory: nextAwaySubsHistory }, ctx, aiSide, true);
            
+           // TUTAJ WSTAW TEN KOD - Obsługa wewnętrznych przesunięć (np. gracz z pola na bramkę)
+           if (decision.newLineup) {
+              if (aiSide === 'HOME') nextHomeLineup = decision.newLineup;
+              else nextAwayLineup = decision.newLineup;
+           }
+
            let aiFixedSevere = false;
            if (decision.subRecord) {
               const subbedId = decision.subRecord.playerOutId;
@@ -967,7 +1001,7 @@ return {
 
     const updatedFixtures = simResult.updatedFixtures.map(f => f.id === ctx.fixture.id ? { ...f, status: 'FINISHED' as any, homeScore: matchState.homeScore, awayScore: matchState.awayScore } : f);
 
-    applySimulationResult({ ...simResult, updatedClubs, updatedFixtures, updatedPlayers, roundResults: finalRoundResults, seasonNumber });
+    
 
     const timeline: MatchSummaryEvent[] = [];
     let hCounter = 0, aCounter = 0;
@@ -1025,12 +1059,12 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
       perfs.forEach(p => {
         // 1. Bonus dla pomocników za bramki drużyny
         if (p.position === PlayerPosition.MID) {
-          p.rating! += teamGoalsCount * (0.5 + Math.random() * 0.5);
+          p.rating! += teamGoalsCount * (0.5 + Math.random() * 0.3);
         }
 
         // 2. Bonus za asysty
         if (p.assists > 0) {
-          p.rating! += p.assists * (0.5 + Math.random() * 0.7);
+          p.rating! += p.assists * (0.5 + Math.random() * 0.5);
         }
 
         // 3. Bonus za gole (Pozycyjny)
@@ -1040,14 +1074,14 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
           else if (p.position === PlayerPosition.DEF) p.rating! += p.goals * 1.3;
 
           // Premia za więcej niż 2 bramki
-          if (p.goals > 2) p.rating! += 1.6;
+          if (p.goals > 2) p.rating! += 1.4;
         }
 
         // 4. Bonusy/Kary drużynowe za wynik
         if (scoreDifference > 0) {
-          if (scoreDifference === 1) p.rating! += 0.6;
-          else if (scoreDifference === 2) p.rating! += 1.0;
-          else if (scoreDifference >= 3) p.rating! += 1.5;
+          if (scoreDifference === 1) p.rating! += 0.5;
+          else if (scoreDifference === 2) p.rating! += 0.9;
+          else if (scoreDifference >= 3) p.rating! += 1.2;
         } else if (scoreDifference < 0) {
           const absoluteLoss = Math.abs(scoreDifference);
           if (absoluteLoss === 1) p.rating! -= 0.5;
@@ -1067,7 +1101,7 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
       const defenders = perfs.filter(p => p.position === PlayerPosition.DEF);
       if (defenders.length > 0) {
         if (conceded === 0) {
-          defenders.forEach(d => d.rating! += (Math.random() * 1.3 + 0.5));
+          defenders.forEach(d => d.rating! += (Math.random() * 1.1 + 0.5));
         } else if (conceded === 1) {
           const sorted = [...defenders].sort((a,b) => {
              const pa = teamPlayers.find(x => x.id === a.playerId)!;
@@ -1080,7 +1114,7 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
           const shuffled = [...defenders].sort(() => Math.random() - 0.5);
           shuffled.slice(0, 2).forEach(d => d.rating! -= (Math.random() * 0.5 + 0.5));
         } else if (conceded >= 4) {
-          defenders.forEach(d => d.rating! -= (Math.random() * 1.3 + 0.5));
+          defenders.forEach(d => d.rating! -= (Math.random() * 1.1 + 0.5));
         }
       }
 
@@ -1089,7 +1123,7 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
       return perfs;
     };
 
-    const summary: MatchSummary = {
+const summary: MatchSummary = {
       matchId: ctx.fixture.id, userTeamId: userTeamId!, homeClub: ctx.homeClub, awayClub: ctx.awayClub, 
       homeScore: matchState.homeScore, awayScore: matchState.awayScore, homeGoals: matchState.homeGoals, awayGoals: matchState.awayGoals,
       attendance: attendance,
@@ -1100,17 +1134,22 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
       timeline
     };
 
- const allMatchPerfs = [...summary.homePlayers, ...summary.awayPlayers];
-    for (const clubId in updatedPlayers) {
-      updatedPlayers[clubId] = updatedPlayers[clubId].map(p => {
-        const matchPerf = allMatchPerfs.find(mp => mp.playerId === p.id);
-        if (matchPerf && matchPerf.rating) {
-          const hist = p.stats.ratingHistory || [];
-          return { ...p, stats: { ...p.stats, ratingHistory: [...hist, matchPerf.rating] } };
-        }
-        return p;
-      });
-    }
+    // TUTAJ WSTAW TEN KOD - Mapowanie ocen zawodników
+    const finalRatingsMap: Record<string, number> = {};
+    [...summary.homePlayers, ...summary.awayPlayers].forEach(perf => {
+      if (perf.rating) finalRatingsMap[perf.playerId] = perf.rating;
+    });
+    // KONIEC WSTAWKI
+
+    applySimulationResult({ 
+      ...simResult, 
+      updatedClubs, 
+      updatedFixtures, 
+      updatedPlayers, 
+      roundResults: finalRoundResults, 
+      seasonNumber, 
+      ratings: finalRatingsMap 
+    });
 
 
 
@@ -1168,11 +1207,16 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
     return (
       <div className={`flex flex-wrap gap-2 mt-1 ${side === 'AWAY' ? 'justify-end' : 'justify-start'}`}>
         
-         {goals.map((g, i) => (
-          <span key={`g-${i}`} className={`text-[9px] font-bold flex items-center gap-1 ${g.isMiss ? 'text-rose-500' : 'text-white'}`}>
-            {g.isMiss ? '❌' : '⚽'} {g.playerName} ({g.minute}'{g.isPenalty ? ' k.' : ''}{g.isMiss ? ' - pudło' : ''})
-          </span>
-        ))}
+      {goals.map((g, i) => {
+          // TUTAJ WSTAW TEN KOD - Inteligentne formatowanie nazwiska strzelca
+          const nameToDisplay = g.playerName.includes('.') ? g.playerName : g.playerName; 
+          // KONIEC WSTAWKI
+          return (
+            <span key={`g-${i}`} className={`text-[9px] font-bold flex items-center gap-1 ${g.isMiss ? 'text-rose-500' : 'text-white'}`}>
+              {g.isMiss ? '❌' : '⚽'} {nameToDisplay} ({g.minute}'{g.isPenalty ? ' k.' : ''}{g.isMiss ? ' - pudło' : ''})
+            </span>
+          );
+        })}
 
         {cards.map((c, i) => <span key={`c-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">{c.type === MatchEventType.RED_CARD ? '🟥' : '🟨'} {c.playerName}</span>)}
         {injs.map((j, i) => <span key={`j-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1"><span className={j.type === MatchEventType.INJURY_SEVERE ? 'text-red-500' : 'text-white'}>✚</span> {j.playerName}</span>)}
@@ -1181,7 +1225,10 @@ const calculateUnitRatings = (teamPlayers: Player[], playedIds: Set<string>, sid
   };
 
 const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side: 'HOME' | 'AWAY', lineup: (string | null)[], players: Player[], fatigue: Record<string, number>, injs: Record<string, InjurySeverity>, subsHistory: SubstitutionRecord[] }) => (
-    <div className="w-96 shrink-0 bg-slate-900/45 backdrop-blur-3xl p-4 rounded-[40px] border border-white/10 flex flex-col gap-2 overflow-hidden h-full shadow-2xl relative">
+    <div
+      className="w-96 shrink-0  p-4 rounded-[40px] border border-white/10 flex flex-col gap-2 overflow-hidden h-full shadow-2xl relative"
+      style={{ backgroundColor: kitColors ? (side === 'HOME' ? hexToRgba(kitColors.home.primary, 0.12) : hexToRgba(kitColors.away.primary, 0.12)) : 'rgba(15,23,42,0.20)'}}
+    >
       <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: side === 'HOME' ? kitColors!.home.primary : kitColors!.away.primary }} />
        <h4 className="text-[10px] font-black text-slate-100 uppercase tracking-[0.3em] mb-4 text-center">
         {TacticRepository.getById(side === 'HOME' ? matchState!.homeLineup.tacticId : matchState!.awayLineup.tacticId).name}
@@ -1254,18 +1301,18 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
         })}
         {subsHistory.length > 0 && (
           <div className="mt-4 border-t border-white/5 pt-3 space-y-1.5">
-            <h5 className="text-[7px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2 px-2">ZMIENIENI</h5>
+            <h5 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-2 px-2">ZMIANY</h5>
             {subsHistory.map((sub, sIdx) => {
               const p = players.find(px => px.id === sub.playerOutId);
               if (!p) return null;
               return (
-                <div key={`sub-off-${p.id}-${sIdx}`} className={`flex items-center gap-3 py-1.5 px-3 rounded-xl bg-black/20 opacity-40 grayscale transition-all ${side === 'AWAY' ? 'flex-row-reverse text-right' : ''}`}>
-                  <span className={`w-8 font-mono font-black text-[8px] text-slate-500 ${side === 'AWAY' ? 'text-right' : ''}`}>{p.position}</span>
+                <div key={`sub-off-${p.id}-${sIdx}`} className={`flex items-center gap-3 py-1.5 px-3 rounded-xl bg-black/50 opacity-80 transition-all ${side === 'AWAY' ? 'flex-row-reverse text-right' : ''}`}>
+                  <span className={`w-8 font-mono font-black text-[8px] text-slate-200 ${side === 'AWAY' ? 'text-right' : ''}`}>{p.position}</span>
                   <div className="flex-1 flex flex-col min-w-0">
-                    <span className="text-slate-400 truncate font-bold uppercase italic tracking-tight">{p.lastName}</span>
+                     <span className="text-red-100 grayscale-0 truncate font-bold uppercase italic tracking-tight text-[10px]">{p.firstName.charAt(0)}. ${p.lastName}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-slate-600 italic">{sub.minute}' OUT</span>
+                    <span className="text-[11px] font-black text-slate-600 italic">{sub.minute} min 🔄</span>
                   </div>
                 </div>
               );
@@ -1287,7 +1334,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
   />
 
   {/* przyciemnienie żeby UI było czytelne */}
-  <div className="absolute inset-0 bg-slate-950/65" />
+  <div className="absolute inset-0 bg-slate-950/85" />
 
   {/* opcjonalnie delikatny grid */}
   <div
@@ -1371,7 +1418,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
       )}
 
 
-      <header className="flex items-stretch justify-between h-36 bg-slate-900/60 backdrop-blur-3xl rounded-[45px] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/10 shrink-0">
+      <header className="flex items-stretch justify-between h-36 bg-slate-900/60 rounded-[45px] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/10 shrink-0">
          <div className="flex-1 flex flex-col justify-center px-12 relative overflow-hidden group">
             <div className="absolute inset-0 opacity-10" style={{ backgroundColor: kitColors.home.primary }} />
 
@@ -1381,7 +1428,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
    </div>
             <div className="relative z-10 flex items-center gap-10">
                <BigJerseyIcon primary={kitColors.home.primary} secondary={kitColors.home.secondary} />
-               <h1 className="text-4xl font-black italic uppercase tracking-tighter truncate leading-tight drop-shadow-2xl">{ctx.homeClub.name}</h1>
+               <h1 className="text-6xl font-black italic uppercase tracking-tighter truncate leading-tight drop-shadow-2xl">{ctx.homeClub.name}</h1>
             </div>
             <div className="relative z-10 pl-24">{renderTicker('HOME')}</div>
          </div>
@@ -1392,7 +1439,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
                   <span className="text-6xl font-black italic text-yellow-400 tracking-tighter drop-shadow-[0_0_30px_rgba(250,204,21,1)]">GOL!</span>
                </div>
             ) : (
-               <><div className="text-6xl font-mono font-black text-white tracking-tighter tabular-nums leading-none mb-1">{matchState.homeScore} <span className="text-slate-700 mx-1">:</span> {matchState.awayScore}</div>
+               <><div className="text-6xl font-black text-white tracking-tighter leading-none mb-1">{matchState.homeScore} <span className="text-slate-700 mx-1">:</span> {matchState.awayScore}</div>
                   <div className="flex items-center gap-3"><div className="text-xl font-mono font-bold text-emerald-400 animate-pulse bg-emerald-500/10 px-3 py-0.5 rounded-lg border border-emerald-500/20">{matchState.isFinished ? 'KONIEC' : `${matchState.minute}'`}</div>
                   {matchState.addedTime > 0 && !matchState.isFinished && <div className="text-[11px] font-black text-red-500 font-mono">+{matchState.addedTime}</div>}</div></>
             )}
@@ -1404,7 +1451,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
    </div>
 
             <div className="relative z-10 flex items-center gap-10 justify-end">
-               <h1 className="text-4xl font-black italic uppercase tracking-tighter truncate leading-tight drop-shadow-2xl">{ctx.awayClub.name}</h1>
+               <h1 className="text-6xl font-black italic uppercase tracking-tighter truncate leading-tight drop-shadow-2xl">{ctx.awayClub.name}</h1>
                <BigJerseyIcon primary={kitColors.away.primary} secondary={kitColors.away.secondary} />
 
             </div>
@@ -1443,7 +1490,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
 
 <div className="flex-1 relative p-2 overflow-visible">
   <div 
-    className="w-full max-w-[75%] h-[100%] mx-auto bg-emerald-950/20 border-4 border-emerald-900/30 relative overflow-hidden"
+    className="w-full max-w-[475px] h-[420px] mx-auto bg-emerald-950/20 border-4 border-emerald-900/30 relative overflow-hidden"
     style={{
       aspectRatio: '105 / 68',
       transform: 'perspective(950px) rotateX(24deg) scale(1.12)',
@@ -1625,53 +1672,9 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
       {/* Dolna bramka */}
       <div className="absolute bottom-4 left-1/2 w-[10%] h-1 bg-white/70 -translate-x-1/2" />
 
- {/* Etykieta Przerwy */}
-    {matchState.isHalfTime && (
-      <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
-         <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-rose-500 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(225,29,72,0.4)] animate-pulse">
-            <div className="flex flex-col items-center">
-               <span className="text-[10px] font-black text-rose-500 tracking-[0.5em] mb-2">PIŁKARZE SCHODZĄ DO SZATNI</span>
-               <span className="text-6xl font-black italic text-white uppercase tracking-[0.2em] drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">PRZERWA</span>
-            </div>
-         </div>
-      </div>
-    )}
 
-    {/* Etykieta Kontuzji */}
-    {isPausedForSevereInjury && (
-      <div className="absolute inset-0 z-[70] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
-        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-red-600 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(220,38,38,0.5)] animate-pulse">
-          <div className="flex flex-col items-center gap-4">
-            <div className="text-7xl filter drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">➕</div>
-            <div className="text-center">
-              <span className="text-[10px] font-black text-red-500 tracking-[0.5em] mb-2 uppercase block">Zawodnik leży na murawie</span>
-              <h2 className="text-4xl font-black italic text-white uppercase tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                PRZERWA MEDYCZNA<br/>
-                <span className="text-2xl text-red-500 font-bold not-italic">KONTUZJA</span>
-              </h2>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
 
-    {/* Etykieta Końca Meczu */}
-    {matchState.isFinished && (
-      <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
-        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-emerald-500 px-20 py-12 rounded-[50px] shadow-[0_0_120px_rgba(34,197,94,0.6)] animate-pulse">
-          <div className="flex flex-col items-center gap-4">
-            <span className="text-sm font-black text-emerald-400 tracking-[0.6em] uppercase">KONIEC MECZU</span>
-            <span className="text-7xl font-black italic text-white uppercase tracking-wider drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
-              
-            </span>
-            <span className="text-4xl font-bold text-emerald-300 mt-2">
-              {matchState.homeScore} – {matchState.awayScore}
-            </span>
-          </div>
-        </div>
-      </div>
-    )}
-
+   
     </div>
 
 
@@ -1691,12 +1694,13 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
   style={{
     left: `${slot.x * 100}%`,
     top: `${(slot.y * 0.42 + 0.54) * 100}%`,
+
     transform: 'translate(-50%, -50%) rotateX(-24deg) scale(1.15)'
   }}
         >
           <div className="relative group/player">
             <div
-              className={`w-6 h-6 rounded-2xl border-2 border-white/50 shadow-2xl flex flex-col overflow-hidden transform -rotate-3 transition-transform group-hover/player:rotate-0 group-hover/player:scale-110 ${injury === InjurySeverity.SEVERE ? 'grayscale opacity-50' : ''}`}
+              className={`w-5 h-5 rounded-2xl border-2 border-white/50 shadow-2xl flex flex-col overflow-hidden transform -rotate-3 transition-transform group-hover/player:rotate-0 group-hover/player:scale-110 ${injury === InjurySeverity.SEVERE ? 'grayscale opacity-50' : ''}`}
               style={{ backgroundColor: kitColors.home.primary }}
             >
               <div className="flex-1 flex items-center justify-center text-[8px] font-black" style={{ color: kitColors.home.text }}>
@@ -1744,7 +1748,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
     >
       <div className="relative group/player">
         <div
-          className={`w-6 h-6 rounded-2xl border-2 border-white/50 shadow-2xl flex flex-col overflow-hidden transform rotate-3 transition-transform group-hover/player:rotate-0 group-hover/player:scale-110 ${injury === InjurySeverity.SEVERE ? 'grayscale opacity-50' : ''}`}
+          className={`w-5 h-5 rounded-2xl border-2 border-white/50 shadow-2xl flex flex-col overflow-hidden transform rotate-3 transition-transform group-hover/player:rotate-0 group-hover/player:scale-110 ${injury === InjurySeverity.SEVERE ? 'grayscale opacity-50' : ''}`}
           style={{ backgroundColor: kitColors.away.primary }}
         >
           <div className="flex-1 flex items-center justify-center text-[7px] font-black" style={{ color: kitColors.away.text }}>
@@ -1770,7 +1774,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
   </div>
 </div>
               
-          <div className="flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[28px] shadow-2xl mx-auto shrink-0 mt-32 mb-6">
+                              <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[1100] flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 rounded-[28px] shadow-2xl max-w-5xl">
   {matchState.isFinished ? (
     <button
       onClick={handleFinishMatch}
@@ -1811,27 +1815,50 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
       </button>
     </>
   )}
+
+
+
+      <button
+        onClick={() => setShowCommentHistory(!showCommentHistory)}
+        className="min-w-[60px] py-3 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-black italic uppercase tracking-widest text-xs hover:bg-white/10 hover:text-white transition-all hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-2"
+      >
+        📋 HISTORIA
+      </button>
 </div>
+
+
         </div>
 
        <SquadList side="AWAY" lineup={matchState.awayLineup.startingXI} players={ctx.awayPlayers} fatigue={matchState.awayFatigue} injs={matchState.awayInjuries} subsHistory={matchState.awaySubsHistory} />
       </div>
 
-      <footer className="h-32 bg-slate-900/45 backdrop-blur-3xl rounded-[32px] border border-white/10 flex flex-col shrink-0 overflow-hidden shadow-2xl relative">
-         <div className="bg-black/40 px-8 py-2 border-b border-white/5 flex justify-between items-center relative z-10">
-            <div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /><span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">CENTRUM KOMUNIKATÓW MECZOWYCH</span></div>
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">SĘDZIA: {env.ref.lastName.toUpperCase()}</span>
-         </div>
-         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2 relative z-10">
-            {matchState.logs.map(log => (
-              <div key={log.id} className="text-xs font-medium p-3 rounded-2xl bg-white/5 border-l-4 border-blue-500 animate-slide-up flex gap-5 group hover:bg-white/10 transition-colors">
-                <span className="text-blue-400 font-black shrink-0 w-8 font-mono">{log.minute}'</span>
-                <span className="text-slate-200 leading-relaxed italic">"{log.text}"</span>
-              </div>
-            ))}
-            <div ref={logsEndRef} />
-         </div>
-      </footer>
+    {matchState.logs.length > 0 && (
+          
+      <div className="fixed left-1/2 -translate-x-1/2 z-30 flex justify-center" style={{ bottom: 'calc(15rem - 55px)' }}>
+        {(() => {
+          const latestLog = matchState.logs[0];
+          const isHome = latestLog.teamSide === 'HOME';
+          const bgColor = isHome ? kitColors!.home.primary : kitColors!.away.primary;
+          const textColor = getContrastColor(bgColor);
+          
+          return (
+            <div 
+              className="px-8 py-8 rounded-[35px] shadow-2xl border border-white/20 backdrop-blur-md max-w-7xl"
+              style={{ backgroundColor: bgColor }}
+            >
+              <span 
+                className="text-lg font-black italic uppercase tracking-tight"
+                style={{ color: textColor }}
+              >
+                {latestLog.text}
+              </span>
+            </div>
+          );
+        })()}
+      </div>
+    )}
+
+
 
       <MatchTacticsModal isOpen={isTacticsOpen} onClose={handleTacticsClose} club={userSide === 'HOME' ? ctx.homeClub : ctx.awayClub} lineup={userSide === 'HOME' ? matchState.homeLineup : matchState.awayLineup} players={userSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers} fatigue={userSide === 'HOME' ? matchState.homeFatigue : matchState.awayFatigue} subsCount={userSide === 'HOME' ? matchState.subsCountHome : matchState.subsCountAway} subsHistory={userSide === 'HOME' ? matchState.homeSubsHistory : matchState.awaySubsHistory} minute={matchState.minute} sentOffIds={matchState.sentOffIds} />
       <style>{`
@@ -1850,6 +1877,78 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
         .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>
+
+      {showCommentHistory && (
+      <div className="fixed right-0 top-0 bottom-0 w-96 bg-slate-900/95 border-l border-white/10  z-[400] overflow-y-auto p-4 space-y-2">
+        <div className="sticky top-0 bg-slate-900/95 p-2 mb-4 flex justify-between items-center">
+          <h3 className="text-white font-black uppercase tracking-widest text-sm">HISTORIA</h3>
+          <button 
+            onClick={() => setShowCommentHistory(false)} 
+            className="text-white text-2xl hover:text-slate-300 transition-colors"
+          >
+            ×
+          </button>
+        </div>
+        
+        {matchState.logs.map((log) => (
+          <div key={log.id} className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 hover:bg-white/10 transition-colors">
+            <span className="font-black text-blue-400">{log.minute}'</span> - {log.text}
+          </div>
+        ))}
+      </div>
+    )}
+
+///Etykieta przerwa w meczu ///
+     {matchState.isHalfTime && !isTacticsOpen && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
+        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-rose-500 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(225,29,72,0.4)] animate-pulse">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black text-rose-500 tracking-[0.5em] mb-2">PIŁKARZE SCHODZĄ DO SZATNI</span>
+            <span className="text-6xl font-black italic text-white uppercase tracking-[0.2em] drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">PRZERWA</span>
+          </div>
+        </div>
+      </div>
+    )}
+
+ {/* Etykieta Kontuzji */}
+    {isPausedForSevereInjury && !isTacticsOpen &&(
+      <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
+        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-red-600 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(220,38,38,0.5)] animate-pulse">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-7xl filter drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">➕</div>
+            <div className="text-center">
+              <span className="text-[10px] font-black text-red-500 tracking-[0.5em] mb-2 uppercase block">Zawodnik leży na murawie</span>
+              <h2 className="text-4xl font-black italic text-white uppercase tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                PRZERWA MEDYCZNA<br/>
+                <span className="text-2xl text-red-500 font-bold not-italic">KONTUZJA</span>
+              </h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Etykieta Końca Meczu */}
+    {matchState.isFinished && (
+      <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
+        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-emerald-500 px-20 py-12 rounded-[50px] shadow-[0_0_120px_rgba(34,197,94,0.6)] animate-pulse">
+          <div className="flex flex-col items-center gap-4">
+            <span className="text-sm font-black text-emerald-400 tracking-[0.6em] uppercase">KONIEC MECZU</span>
+            <span className="text-7xl font-black italic text-white uppercase tracking-wider drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+              
+            </span>
+            <span className="text-4xl font-bold text-emerald-300 mt-2">
+              {matchState.homeScore} – {matchState.awayScore}
+            </span>
+          </div>
+        </div>
+      </div>
+    )}
+
+
+
+
   </div>
   );
 };
+   

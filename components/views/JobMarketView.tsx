@@ -241,7 +241,7 @@ export const JobMarketView: React.FC = () => {
                           </span>
                           <div className={`w-0.5 h-6 rounded-full ${theme.bg} ${theme.glow} shrink-0`} />
                           <div className="min-w-0">
-                             <span className="block text-sm font-black text-white uppercase italic truncate max-w-[130px] group-hover:text-emerald-400 transition-colors leading-tight">
+                             <span className="block text-sm font-black text-white uppercase italic truncate max-w-[210px] group-hover:text-emerald-400 transition-colors leading-tight">
                                {player.lastName} {player.firstName}
                              </span>
                              <span className={`text-[12px] font-black uppercase tracking-tighter ${theme.color}`}>
@@ -250,7 +250,7 @@ export const JobMarketView: React.FC = () => {
                           </div>
                        </div>
                        <div className="text-right">
-                          <span className="block text-xs font-black font-mono text-emerald-400 tabular-nums leading-none tracking-tighter">{player.age}L</span>
+                          <span className="block text-[12px] font-black font-mono text-emerald-400 tabular-nums leading-none tracking-tighter">{player.age}LAT</span>
                        </div>
                     </div>
                   </div>
@@ -304,11 +304,11 @@ export const JobMarketView: React.FC = () => {
                            <div className="flex items-center gap-4">
                               <div className={`w-0.5 h-8 rounded-full ${theme.bg} ${theme.glow} shrink-0`} />
                               <div className="min-w-0">
-                                 <span className="block text-sm font-black text-white uppercase italic truncate max-w-[130px] group-hover:text-amber-400 transition-colors leading-tight">
+                                 <span className="block text-sm font-black text-white uppercase italic truncate max-w-[200px] group-hover:text-amber-400 transition-colors leading-tight">
                                    {player.lastName} {player.firstName}
                                  </span>
                                  <div className="flex items-center gap-2">
-                                   <span className={`text-[10px] font-black uppercase tracking-tighter ${theme.color}`}>
+                                   <span className={`text-[12px] font-black uppercase tracking-tighter ${theme.color}`}>
                                      {player.position} • {player.overallRating} OVR
                                    </span>
                                    <span className="text-[12px] text-slate-500 uppercase tracking-widest">• {club?.name || 'Bez klubu'}</span>
@@ -327,7 +327,7 @@ export const JobMarketView: React.FC = () => {
                            </div>
                            <div className="flex flex-col items-end">
                               <span className="text-[10px] font-black text-amber-500 italic tabular-nums animate-pulse">LISTA</span>
-                              <span className="text-[8px] font-black text-slate-600 uppercase">{player.age}L</span>
+                              <span className="text-[12px] font-black text-slate-600 uppercase">{player.age}LAT</span>
                            </div>
                         </div>
                       </div>

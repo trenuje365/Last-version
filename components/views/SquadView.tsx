@@ -6,6 +6,7 @@ import { Card } from '../ui/Card';
 import { TacticRepository } from '../../resources/tactics_db';
 import { LineupService } from '../../services/LineupService';
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
+import szatnia from '../../Graphic/themes/szatnia.png';
 
 export const SquadView: React.FC = () => {
   const { players, userTeamId, clubs, navigateTo, lineups, updateLineup, viewPlayerDetails } = useGame();
@@ -196,9 +197,10 @@ export const SquadView: React.FC = () => {
       
       {/* 1. KINETYCZNE TŁO (BEZ ZMIAN URL) */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div 
-          className="absolute inset-0 bg-[url('https://i.ibb.co/C3YtBnv4/team-retro.png')] bg-cover bg-center opacity-[0.15] mix-blend-screen scale-110"
-        />
+       <div 
+  className="absolute inset-0 bg-cover bg-center opacity-[0.15] mix-blend-screen scale-110"
+  style={{ backgroundImage: `url(${szatnia})` }}
+/>
         <div 
           className="absolute top-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full blur-[180px] opacity-25 animate-pulse-slow transition-all duration-[3000ms]" 
           style={{ background: myClub.colorsHex[0] }} 

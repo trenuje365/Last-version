@@ -80,7 +80,7 @@ export const MatchLiveView = () => {
   
   const [isTacticsOpen, setIsTacticsOpen] = useState(false);
   const [isCelebratingGoal, setIsCelebratingGoal] = useState(false);
-  
+    const [showCommentHistory, setShowCommentHistory] = useState(false);
   const [activePenalty, setActivePenalty] = useState<{
     side: 'HOME' | 'AWAY',
     kicker: Player,
@@ -90,6 +90,28 @@ export const MatchLiveView = () => {
   } | null>(null);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  const getContrastColor = (hexColor: string): string => {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  };
+
+  const hexToRgba = (hex: string, alpha: number) => {
+    try {
+      const h = (hex || '#000000').replace('#', '');
+      const r = parseInt(h.substring(0, 2), 16);
+      const g = parseInt(h.substring(2, 4), 16);
+      const b = parseInt(h.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } catch (e) {
+      return `rgba(15, 23, 42, ${alpha})`;
+    }
+  };
+
 
   const ctx = useMemo(() => {
     const fixture = fixtures.find(f => 
@@ -172,14 +194,20 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
         sessionSeed,
       ////// DO ZAIMPLEMENTOWANIA PRZYCISKI TEMPO NASTAWIENIE I INTESNYWNOSC ...
         tacticalImpact: 1.0,
-        userInstructions: {
+       userInstructions: {
           tempo: 'NORMAL',
           mindset: 'NEUTRAL',
           intensity: 'NORMAL',
-          lastChangeMinute: -5,
-          
-        }
-      });
+          expiryMinute: -1,
+         lastChangeMinute: -5,},
+          playedPlayerIds: [],
+        aiActiveShout: null,
+        lastGoalBoostMinute: -1,
+        activeTacticalBoost: null,
+        tacticalBoostExpiry: -1
+        
+        
+     });
     }
   }, [ctx, lineups, matchState, setMatchState]);
 
@@ -1197,7 +1225,10 @@ const summary: MatchSummary = {
   };
 
 const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side: 'HOME' | 'AWAY', lineup: (string | null)[], players: Player[], fatigue: Record<string, number>, injs: Record<string, InjurySeverity>, subsHistory: SubstitutionRecord[] }) => (
-    <div className="w-96 shrink-0 bg-slate-900/45 backdrop-blur-3xl p-4 rounded-[40px] border border-white/10 flex flex-col gap-2 overflow-hidden h-full shadow-2xl relative">
+    <div
+      className="w-96 shrink-0  p-4 rounded-[40px] border border-white/10 flex flex-col gap-2 overflow-hidden h-full shadow-2xl relative"
+      style={{ backgroundColor: kitColors ? (side === 'HOME' ? hexToRgba(kitColors.home.primary, 0.12) : hexToRgba(kitColors.away.primary, 0.12)) : 'rgba(15,23,42,0.20)'}}
+    >
       <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: side === 'HOME' ? kitColors!.home.primary : kitColors!.away.primary }} />
        <h4 className="text-[10px] font-black text-slate-100 uppercase tracking-[0.3em] mb-4 text-center">
         {TacticRepository.getById(side === 'HOME' ? matchState!.homeLineup.tacticId : matchState!.awayLineup.tacticId).name}
@@ -1303,7 +1334,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
   />
 
   {/* przyciemnienie żeby UI było czytelne */}
-  <div className="absolute inset-0 bg-slate-950/65" />
+  <div className="absolute inset-0 bg-slate-950/85" />
 
   {/* opcjonalnie delikatny grid */}
   <div
@@ -1387,7 +1418,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
       )}
 
 
-      <header className="flex items-stretch justify-between h-36 bg-slate-900/60 backdrop-blur-3xl rounded-[45px] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/10 shrink-0">
+      <header className="flex items-stretch justify-between h-36 bg-slate-900/60 rounded-[45px] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/10 shrink-0">
          <div className="flex-1 flex flex-col justify-center px-12 relative overflow-hidden group">
             <div className="absolute inset-0 opacity-10" style={{ backgroundColor: kitColors.home.primary }} />
 
@@ -1641,53 +1672,9 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
       {/* Dolna bramka */}
       <div className="absolute bottom-4 left-1/2 w-[10%] h-1 bg-white/70 -translate-x-1/2" />
 
- {/* Etykieta Przerwy */}
-    {matchState.isHalfTime && (
-      <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
-         <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-rose-500 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(225,29,72,0.4)] animate-pulse">
-            <div className="flex flex-col items-center">
-               <span className="text-[10px] font-black text-rose-500 tracking-[0.5em] mb-2">PIŁKARZE SCHODZĄ DO SZATNI</span>
-               <span className="text-6xl font-black italic text-white uppercase tracking-[0.2em] drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">PRZERWA</span>
-            </div>
-         </div>
-      </div>
-    )}
 
-    {/* Etykieta Kontuzji */}
-    {isPausedForSevereInjury && (
-      <div className="absolute inset-0 z-[70] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
-        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-red-600 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(220,38,38,0.5)] animate-pulse">
-          <div className="flex flex-col items-center gap-4">
-            <div className="text-7xl filter drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">➕</div>
-            <div className="text-center">
-              <span className="text-[10px] font-black text-red-500 tracking-[0.5em] mb-2 uppercase block">Zawodnik leży na murawie</span>
-              <h2 className="text-4xl font-black italic text-white uppercase tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                PRZERWA MEDYCZNA<br/>
-                <span className="text-2xl text-red-500 font-bold not-italic">KONTUZJA</span>
-              </h2>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
 
-    {/* Etykieta Końca Meczu */}
-    {matchState.isFinished && (
-      <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
-        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-emerald-500 px-20 py-12 rounded-[50px] shadow-[0_0_120px_rgba(34,197,94,0.6)] animate-pulse">
-          <div className="flex flex-col items-center gap-4">
-            <span className="text-sm font-black text-emerald-400 tracking-[0.6em] uppercase">KONIEC MECZU</span>
-            <span className="text-7xl font-black italic text-white uppercase tracking-wider drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
-              
-            </span>
-            <span className="text-4xl font-bold text-emerald-300 mt-2">
-              {matchState.homeScore} – {matchState.awayScore}
-            </span>
-          </div>
-        </div>
-      </div>
-    )}
-
+   
     </div>
 
 
@@ -1787,7 +1774,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
   </div>
 </div>
               
-                              <div className="fixed bottom-48 left-1/2 -translate-x-1/2 z-40 flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[28px] shadow-2xl max-w-5xl">
+                              <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[1100] flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 rounded-[28px] shadow-2xl max-w-5xl">
   {matchState.isFinished ? (
     <button
       onClick={handleFinishMatch}
@@ -1828,27 +1815,50 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
       </button>
     </>
   )}
+
+
+
+      <button
+        onClick={() => setShowCommentHistory(!showCommentHistory)}
+        className="min-w-[60px] py-3 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-black italic uppercase tracking-widest text-xs hover:bg-white/10 hover:text-white transition-all hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-2"
+      >
+        📋 HISTORIA
+      </button>
 </div>
+
+
         </div>
 
        <SquadList side="AWAY" lineup={matchState.awayLineup.startingXI} players={ctx.awayPlayers} fatigue={matchState.awayFatigue} injs={matchState.awayInjuries} subsHistory={matchState.awaySubsHistory} />
       </div>
 
-                       <footer className="h-40 bg-slate-900/45 backdrop-blur-3xl rounded-[32px] border border-white/10 flex flex-col shrink-0 overflow-hidden shadow-2xl relative max-w-5xl mx-auto mb-32 flex-shrink-0">
-         <div className="bg-black/40 px-8 py-2 border-b border-white/5 flex justify-between items-center relative z-10">
-            <div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /><span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">KOMENTARZ NA ŻYWO</span></div>
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">SĘDZIA: {env.ref.lastName.toUpperCase()}</span>
-         </div>
-         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2 relative z-10">
-            {matchState.logs.map(log => (
-              <div key={log.id} className="text-12px font-medium p-3 rounded-2xl bg-white/5 border-l-4 border-blue-500 animate-slide-up flex gap-5 group hover:bg-white/10 transition-colors">
-                <span className="text-blue-400 font-black shrink-0 w-8 font-mono">{log.minute}'</span>
-                <span className="text-slate-200 leading-relaxed italic">"{log.text}"</span>
-              </div>
-            ))}
-            <div ref={logsEndRef} />
-         </div>
-      </footer>
+    {matchState.logs.length > 0 && (
+          
+      <div className="fixed left-1/2 -translate-x-1/2 z-30 flex justify-center" style={{ bottom: 'calc(15rem - 55px)' }}>
+        {(() => {
+          const latestLog = matchState.logs[0];
+          const isHome = latestLog.teamSide === 'HOME';
+          const bgColor = isHome ? kitColors!.home.primary : kitColors!.away.primary;
+          const textColor = getContrastColor(bgColor);
+          
+          return (
+            <div 
+              className="px-8 py-8 rounded-[35px] shadow-2xl border border-white/20 backdrop-blur-md max-w-7xl"
+              style={{ backgroundColor: bgColor }}
+            >
+              <span 
+                className="text-lg font-black italic uppercase tracking-tight"
+                style={{ color: textColor }}
+              >
+                {latestLog.text}
+              </span>
+            </div>
+          );
+        })()}
+      </div>
+    )}
+
+
 
       <MatchTacticsModal isOpen={isTacticsOpen} onClose={handleTacticsClose} club={userSide === 'HOME' ? ctx.homeClub : ctx.awayClub} lineup={userSide === 'HOME' ? matchState.homeLineup : matchState.awayLineup} players={userSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers} fatigue={userSide === 'HOME' ? matchState.homeFatigue : matchState.awayFatigue} subsCount={userSide === 'HOME' ? matchState.subsCountHome : matchState.subsCountAway} subsHistory={userSide === 'HOME' ? matchState.homeSubsHistory : matchState.awaySubsHistory} minute={matchState.minute} sentOffIds={matchState.sentOffIds} />
       <style>{`
@@ -1867,6 +1877,78 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
         .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>
+
+      {showCommentHistory && (
+      <div className="fixed right-0 top-0 bottom-0 w-96 bg-slate-900/95 border-l border-white/10  z-[400] overflow-y-auto p-4 space-y-2">
+        <div className="sticky top-0 bg-slate-900/95 p-2 mb-4 flex justify-between items-center">
+          <h3 className="text-white font-black uppercase tracking-widest text-sm">HISTORIA</h3>
+          <button 
+            onClick={() => setShowCommentHistory(false)} 
+            className="text-white text-2xl hover:text-slate-300 transition-colors"
+          >
+            ×
+          </button>
+        </div>
+        
+        {matchState.logs.map((log) => (
+          <div key={log.id} className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 hover:bg-white/10 transition-colors">
+            <span className="font-black text-blue-400">{log.minute}'</span> - {log.text}
+          </div>
+        ))}
+      </div>
+    )}
+
+///Etykieta przerwa w meczu ///
+     {matchState.isHalfTime && !isTacticsOpen && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
+        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-rose-500 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(225,29,72,0.4)] animate-pulse">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black text-rose-500 tracking-[0.5em] mb-2">PIŁKARZE SCHODZĄ DO SZATNI</span>
+            <span className="text-6xl font-black italic text-white uppercase tracking-[0.2em] drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">PRZERWA</span>
+          </div>
+        </div>
+      </div>
+    )}
+
+ {/* Etykieta Kontuzji */}
+    {isPausedForSevereInjury && !isTacticsOpen &&(
+      <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
+        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-red-600 px-16 py-8 rounded-[40px] shadow-[0_0_100px_rgba(220,38,38,0.5)] animate-pulse">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-7xl filter drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">➕</div>
+            <div className="text-center">
+              <span className="text-[10px] font-black text-red-500 tracking-[0.5em] mb-2 uppercase block">Zawodnik leży na murawie</span>
+              <h2 className="text-4xl font-black italic text-white uppercase tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                PRZERWA MEDYCZNA<br/>
+                <span className="text-2xl text-red-500 font-bold not-italic">KONTUZJA</span>
+              </h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Etykieta Końca Meczu */}
+    {matchState.isFinished && (
+      <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none" style={{ transform: 'rotateX(-24deg)' }}>
+        <div className="bg-slate-950/90 backdrop-blur-2xl border-y-4 border-emerald-500 px-20 py-12 rounded-[50px] shadow-[0_0_120px_rgba(34,197,94,0.6)] animate-pulse">
+          <div className="flex flex-col items-center gap-4">
+            <span className="text-sm font-black text-emerald-400 tracking-[0.6em] uppercase">KONIEC MECZU</span>
+            <span className="text-7xl font-black italic text-white uppercase tracking-wider drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+              
+            </span>
+            <span className="text-4xl font-bold text-emerald-300 mt-2">
+              {matchState.homeScore} – {matchState.awayScore}
+            </span>
+          </div>
+        </div>
+      </div>
+    )}
+
+
+
+
   </div>
   );
 };
+   
