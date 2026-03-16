@@ -110,7 +110,30 @@ export const PostMatchCupStudioView: React.FC = () => {
       
       savedMatchesRef.current.add(matchId);
     }
-  }, [isSuperCup, matchId, winner, currentDate, addSupercupWinner, homeClub, awayClub, homeScore, awayScore]);
+    
+    // Zapisz zwycięzcę Pucharu Polskiego do historii (tylko raz dla każdego meczu)
+    if (isFinal && !savedMatchesRef.current.has(matchId)) {
+      const month = currentDate.getMonth();
+      const year = currentDate.getFullYear();
+      const seasonStartYear = month >= 6 ? year : year - 1;
+      const seasonEndYear = seasonStartYear + 1;
+      const seasonLabel = `${seasonStartYear}/${seasonEndYear}`;
+      
+      console.log('💾 Saving Puchar Polski to ChampionshipHistoryService:', {
+        seasonLabel,
+        winner: winner.name,
+        seasonEndYear,
+        timestamp: new Date().toISOString()
+      });
+      
+      ChampionshipHistoryService.addCupChampion(seasonLabel, 'PUCHAR_POLSKI', winner.name, seasonEndYear);
+      
+      console.log('✓ After save - checking localStorage:');
+      console.log('  localStorage data:', localStorage?.getItem('fm_championship_history'));
+      
+      savedMatchesRef.current.add(matchId);
+    }
+  }, [isSuperCup, isFinal, matchId, winner, currentDate, addSupercupWinner, homeClub, awayClub, homeScore, awayScore]);
 
   const handleReturn = () => {
     if (isSuperCup) {

@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../../types';
+import { ChampionshipHistoryService } from '../../data/championship_history';
 import ligaMistrzowBg from '../../Graphic/themes/liga_mistrzow.png';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
@@ -8,6 +9,7 @@ const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-tr
 
 export const PostMatchCLFinalView: React.FC = () => {
   const { fixtures, clubs, currentDate, navigateTo, advanceDay } = useGame();
+  const savedMatchesRef = useRef<Set<string>>(new Set());
 
   const finalFixture = useMemo(() => {
     return fixtures.find(f =>
@@ -18,11 +20,6 @@ export const PostMatchCLFinalView: React.FC = () => {
   }, [fixtures, currentDate]);
 
   const getClub = (id: string) => clubs.find(c => c.id === id);
-
-  const handleContinue = () => {
-    advanceDay();
-    navigateTo(ViewState.DASHBOARD);
-  };
 
   const getWinnerId = () => {
     if (!finalFixture) return null;
@@ -36,6 +33,35 @@ export const PostMatchCLFinalView: React.FC = () => {
         : finalFixture.awayTeamId;
     }
     return null;
+  };
+
+  // Zapisz zwycięzcę finału Ligi Mistrzów do historii (tylko raz dla każdego meczu)
+  useEffect(() => {
+    if (finalFixture && !savedMatchesRef.current.has(finalFixture.id)) {
+      const winnerId = getWinnerId();
+      if (winnerId) {
+        const winnerClub = clubs.find(c => c.id === winnerId);
+        const month = currentDate.getMonth();
+        const year = currentDate.getFullYear();
+        const seasonLabel = `${year}/${year + 1}`;
+
+        if (winnerClub) {
+          console.log('💾 Saving CL Final winner:', {
+            seasonLabel,
+            winner: winnerClub.name,
+            timestamp: new Date().toISOString()
+          });
+
+          ChampionshipHistoryService.addCLChampion(seasonLabel, winnerClub.name, year + 1);
+          savedMatchesRef.current.add(finalFixture.id);
+        }
+      }
+    }
+  }, [finalFixture, clubs, currentDate]);
+
+  const handleContinue = () => {
+    advanceDay();
+    navigateTo(ViewState.DASHBOARD);
   };
 
   return (

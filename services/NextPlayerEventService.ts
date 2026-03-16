@@ -77,7 +77,7 @@ export const NextPlayerEventService = {
  // ZASTĄP GO TYM KODEM:
           case CompetitionType.SUPER_CUP:
             const currentYear = currentDate.getFullYear();
-            const foundSuperCup = fixtures.find(f => f.id === `SUPER_CUP_${currentYear}`);
+            const foundSuperCup = fixtures.find(f => f.id.startsWith(`SUPER_CUP_${currentYear}`));
             const stillToPlay = foundSuperCup ? foundSuperCup.status !== MatchStatus.FINISHED : true;
             // Sprawdzamy sztywną datę 12 lipca
             const isSuperCupDay = new Date(currentYear, 6, 12).setHours(0,0,0,0) === slotStart;

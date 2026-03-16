@@ -218,7 +218,7 @@ export const CalendarEngine = {
       case CompetitionType.SUPER_CUP: {
         const year = date.getFullYear();
         const fixture = allFixtures.find(
-          f => f.id === `SUPER_CUP_${year}` && f.status === MatchStatus.SCHEDULED,
+          f => f.id.startsWith(`SUPER_CUP_${year}`) && f.status === MatchStatus.SCHEDULED,
         );
         const isUserIn = !!fixture &&
           (fixture.homeTeamId === userTeamId || fixture.awayTeamId === userTeamId);

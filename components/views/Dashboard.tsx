@@ -151,7 +151,7 @@ const boardConfidence = useMemo(() => {
 
       // ── Superpuchar Polski ─────────────────────────────────────────────────
       case EventKind.MATCH_SUPER_CUP: {
-        const scFix = fixtures.find(f => f.id === `SUPER_CUP_${currentDate.getFullYear()}`);
+        const scFix = fixtures.find(f => f.id.startsWith(`SUPER_CUP_${currentDate.getFullYear()}`));
         const isUserPlaying = !!scFix &&
           (scFix.homeTeamId === userTeamId || scFix.awayTeamId === userTeamId);
         return {

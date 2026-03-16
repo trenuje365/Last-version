@@ -3,7 +3,7 @@ import { Fixture, MatchStatus, ViewState } from '../types';
 export const SuperCupManagerService = {
   // Pobiera fixture dla aktualnego sezonu
   getCurrentFixture: (fixtures: Fixture[], year: number) => {
-    return fixtures.find(f => f.id === `SUPER_CUP_${year}`);
+    return fixtures.find(f => f.id.startsWith(`SUPER_CUP_${year}`));
   },
 
   // Sprawdza czy gracz gra w tym meczu
