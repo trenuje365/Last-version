@@ -12,7 +12,7 @@ import { FIXED_SEASON_EVENTS } from '../resources/FixedSeasonDates';
 
 export const SeasonTemplateGenerator = {
   generate: (seasonStartYear: number): SeasonTemplate => {
-    const careerStartDate = new Date(seasonStartYear, 6, 9);
+    const careerStartDate = new Date(seasonStartYear, 6, 1);
     
     const slots: CalendarSlot[] = FIXED_SEASON_EVENTS.map((event, index) => {
       // Logika mijania lat: miesiące 0-5 (styczeń-czerwiec) to rok następny

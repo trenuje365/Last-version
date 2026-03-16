@@ -19,6 +19,16 @@ export const ScoreResultsPolishCup: React.FC = () => {
 
   const getClub = (id: string) => clubs.find(c => c.id === id);
 
+  const getTierBadge = (leagueId: string): { label: string; color: string } => {
+    switch (leagueId) {
+      case 'L_PL_1': return { label: 'EKS', color: '#f59e0b' }; // amber — Ekstraklasa
+      case 'L_PL_2': return { label: '1L',  color: '#60a5fa' }; // blue  — 1. Liga
+      case 'L_PL_3': return { label: '2L',  color: '#a3e635' }; // lime  — 2. Liga
+      case 'L_PL_4': return { label: '3L',  color: '#94a3b8' }; // slate — 3. Liga/Regional
+      default:       return { label: '?',   color: '#64748b' };
+    }
+  };
+
   const handleNext = () => {
     setMatchState(null); 
     jumpToNextEvent();
@@ -76,8 +86,11 @@ export const ScoreResultsPolishCup: React.FC = () => {
                     key={result.id} 
                     className="flex items-center justify-between py-2.5 px-8 border-b border-white/[0.03] hover:bg-white/[0.03] transition-colors group"
                   >
-                     <div className={`flex-1 text-right truncate text-[11px] uppercase italic tracking-tight transition-colors ${isHomeWinner ? 'text-amber-400 font-black' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                        {home.name}
+                     <div className={`flex-1 flex items-center justify-end gap-2 truncate transition-colors ${isHomeWinner ? 'text-amber-400 font-black' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                        <span className="text-[11px] uppercase italic tracking-tight truncate">{home.name}</span>
+                        {(() => { const b = getTierBadge(home.leagueId); return (
+                          <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded leading-none border" style={{ color: b.color, borderColor: `${b.color}55`, backgroundColor: `${b.color}18` }}>{b.label}</span>
+                        ); })()}
                      </div>
 
                      <div className="w-40 flex flex-col items-center shrink-0">
@@ -99,8 +112,11 @@ export const ScoreResultsPolishCup: React.FC = () => {
                         )}
                      </div>
 
-                     <div className={`flex-1 text-left truncate text-[11px] uppercase italic tracking-tight transition-colors ${isAwayWinner ? 'text-amber-400 font-black' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                        {away.name}
+                     <div className={`flex-1 flex items-center justify-start gap-2 truncate transition-colors ${isAwayWinner ? 'text-amber-400 font-black' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                        {(() => { const b = getTierBadge(away.leagueId); return (
+                          <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded leading-none border" style={{ color: b.color, borderColor: `${b.color}55`, backgroundColor: `${b.color}18` }}>{b.label}</span>
+                        ); })()}
+                        <span className="text-[11px] uppercase italic tracking-tight truncate">{away.name}</span>
                      </div>
                   </div>
                 );

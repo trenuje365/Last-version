@@ -8,7 +8,7 @@ export const LeagueTables: React.FC = () => {
   const { leagues, clubs, leagueSchedules, navigateTo, viewClubDetails, userTeamId, seasonTemplate } = useGame();
 
   const myClub = clubs.find(c => c.id === userTeamId);
-  const displayLeagues = leagues.filter(l => l.level !== LeagueLevel.TIER_4_HIDDEN);
+  const displayLeagues = leagues.filter(l => l.level !== LeagueLevel.TIER_4_HIDDEN && l.level !== LeagueLevel.EUROPEAN);
   
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>(displayLeagues[0]?.id || 'L_PL_1');
   const [viewMode, setViewMode] = useState<'TABLE' | 'SCHEDULE'>('TABLE');
@@ -71,6 +71,22 @@ export const LeagueTables: React.FC = () => {
          {/* NAVIGATION CONTROLS */}
          <div className="flex items-center gap-4">
             <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5 shadow-inner">
+<button 
+  onClick={() => navigateTo(ViewState.CL_HISTORY)}
+  className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
+>
+  Liga Mistrzów
+</button>
+
+
+<button 
+  onClick={() => navigateTo(ViewState.POLISH_CUP_BRACKET)}
+  className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
+>
+  Puchar Polski
+</button>
+
+
                <button 
                   onClick={() => setViewMode('TABLE')}
                   className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all

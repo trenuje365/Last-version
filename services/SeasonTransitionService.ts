@@ -7,13 +7,15 @@ export const SeasonTransitionService = {
   /**
    * Przetwarza przejście zawodników między sezonami: emerytury i nowi gracze.
    */
-  processSquadTransition: (
+    processSquadTransition: (
     playersMap: Record<string, Player[]>,
-    clubs: Club[]
-  ): { updatedPlayers: Record<string, Player[]>, retirementLogs: RetirementInfo[] } => {
+    clubs: Club[],
+    seasonEndDate: Date,
+    userTeamId: string | null
+  ): { updatedPlayers: Record<string, Player[]>, retirementLogs: RetirementInfo[], releasedPlayers: Player[] } => {
     const updatedMap = { ...playersMap };
     const logs: RetirementInfo[] = [];
-
+const releasedPlayers: Player[] = [];  // ← NOWA LINIA
     for (const clubId in updatedMap) {
       const club = clubs.find(c => c.id === clubId);
       if (!club) continue;
@@ -27,11 +29,28 @@ export const SeasonTransitionService = {
       const currentSquad = updatedMap[clubId];
       const nextSquad: Player[] = [];
 
-      currentSquad.forEach(player => {
+           currentSquad.forEach(player => {
+        // NOWA LOGIKA: Wygasły kontrakt → wolny agent (tylko AI-kluby)
+        const contractExpired = player.contractEndDate && new Date(player.contractEndDate) <= seasonEndDate;
+        if (contractExpired && clubId !== userTeamId && nextSquad.length > 22) {
+          const released = {
+            ...player,
+            clubId: 'FREE_AGENTS',
+            annualSalary: 0,
+            history: [
+              ...player.history.slice(0, -1),
+              { ...player.history[player.history.length - 1], toYear: seasonEndDate.getFullYear(), toMonth: 7 },
+              { clubName: 'BEZ KLUBU', clubId: 'FREE_AGENTS', fromYear: seasonEndDate.getFullYear(), fromMonth: 7, toYear: null, toMonth: null }
+            ]
+          };
+          releasedPlayers.push(released);
+          return; // nie trafia do nextSquad
+        }
+
         // Logika emerytury: > 35 lat + losowa decyzja (0,1)
         if (player.age >= 35 && Math.random() < 0.5) {
           // Zawodnik odchodzi - generujemy Newgena na jego miejsce
-        const newgen = SeasonTransitionService.generateNewgen(
+          const newgen = SeasonTransitionService.generateNewgen(
             clubId, 
             player.position, 
             leagueTier, 
@@ -73,7 +92,7 @@ export const SeasonTransitionService = {
       updatedMap[clubId] = nextSquad;
     }
 
-    return { updatedPlayers: updatedMap, retirementLogs: logs };
+        return { updatedPlayers: updatedMap, retirementLogs: logs, releasedPlayers };
   },
 
   /**

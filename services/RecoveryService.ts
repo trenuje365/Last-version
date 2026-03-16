@@ -50,8 +50,17 @@ export const RecoveryService = {
         }
 
         // Skalowanie przez liczbę dni (Delta)
-        const totalConditionChange = dailyRate * ageModifier * injuryModifier * daysCount;
-        updated.condition = Math.max(0, Math.min(maxConditionCap, updated.condition + totalConditionChange* 0.88));
+        if (updated.health.status === HealthStatus.INJURED && updated.health.injury?.injuryDate && (updated.health.injury.totalDays || 0) > 1) {
+          const condAtInjury = updated.health.injury.conditionAtInjury ?? updated.condition;
+          const injStart = new Date(updated.health.injury.injuryDate).setHours(0,0,0,0);
+          const simDay   = new Date(currentDate).setHours(0,0,0,0);
+          const daysPassed = Math.floor((simDay - injStart) / (1000 * 60 * 60 * 24));
+          const targetCond = condAtInjury + (99 - condAtInjury) * (daysPassed / ((updated.health.injury.totalDays || 1) - 1));
+          updated.condition = Math.min(99, Math.max(condAtInjury, targetCond));
+        } else {
+          const totalConditionChange = dailyRate * ageModifier * injuryModifier * daysCount;
+          updated.condition = Math.max(0, Math.min(maxConditionCap, updated.condition + totalConditionChange* 0.88));
+        }
 
         // 2. BEZWZGLĘDNA REGENERACJA URAZU (Absolute Recovery Logic - STAGE 1 PRO)
         if (updated.health.status === HealthStatus.INJURED && updated.health.injury?.injuryDate) {

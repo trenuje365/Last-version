@@ -14,6 +14,14 @@ const TIER_CONFIG: Record<number, { minBase: number; maxBase: number; hardCap: n
   4: { minBase: 30, maxBase: 48, hardCap: 56 },
 };
 
+export const EUROPEAN_TIER_CONFIG: Record<number, { minBase: number; maxBase: number; hardCap: number }> = {
+  1: { minBase: 80, maxBase: 92, hardCap: 99 },
+  2: { minBase: 65, maxBase: 82, hardCap: 95 },
+  3: { minBase: 45, maxBase: 68, hardCap: 85 },
+  4: { minBase: 20, maxBase: 52, hardCap: 65 },
+};
+
+
 // Attribute Profiles (Weights for generation 0.0 - 1.0)
 const PROFILES: Record<PlayerPosition, Partial<Record<keyof PlayerAttributes, number>>> = {
   [PlayerPosition.GK]: {
@@ -46,11 +54,14 @@ const OVR_WEIGHTS: Record<PlayerPosition, Partial<Record<keyof PlayerAttributes,
 
 export const PlayerAttributesGenerator = {
   
-   generateAttributes: (position: PlayerPosition, leagueTier: number, clubReputation: number, age: number): { attributes: PlayerAttributes, overall: number } => {
+   generateAttributes: (position: PlayerPosition, leagueTier: number, clubReputation: number, age: number, isEuropean: boolean = false): { attributes: PlayerAttributes, overall: number } => {
     
     // 1. Determine Base Level based on Tier
-    const config = TIER_CONFIG[leagueTier] || TIER_CONFIG[4];
+    const configTable = isEuropean ? EUROPEAN_TIER_CONFIG : TIER_CONFIG;
+    const config = configTable[leagueTier] || configTable[4];
     
+
+
     // Reputation Bonus (0 to 5)
     const repBonus = Math.min(5, Math.max(0, clubReputation - 2)); 
     const tierBase = config.minBase + Math.random() * (config.maxBase - config.minBase) + repBonus;

@@ -61,12 +61,12 @@ export const TACTICS_DB: Tactic[] = [
       createSlot(2, PlayerPosition.DEF, 0.38, 0.75),
       createSlot(3, PlayerPosition.DEF, 0.62, 0.75),
       createSlot(4, PlayerPosition.DEF, 0.85, 0.75),
-      createSlot(5, PlayerPosition.MID, 0.15, 0.55), // LM (Cofnięty)
-      createSlot(6, PlayerPosition.MID, 0.40, 0.65), // CDM
-      createSlot(7, PlayerPosition.MID, 0.60, 0.65), // CDM
-      createSlot(8, PlayerPosition.MID, 0.85, 0.55), // RM (Cofnięty)
-      createSlot(9, PlayerPosition.FWD, 0.45, 0.30), // ST
-      createSlot(10, PlayerPosition.FWD, 0.55, 0.30), // ST
+      createSlot(5, PlayerPosition.MID, 0.15, 0.51), // LM (Cofnięty)
+      createSlot(6, PlayerPosition.MID, 0.40, 0.61), // CDM
+      createSlot(7, PlayerPosition.MID, 0.60, 0.61), // CDM
+      createSlot(8, PlayerPosition.MID, 0.85, 0.51), // RM (Cofnięty)
+      createSlot(9, PlayerPosition.FWD, 0.43, 0.30), // ST
+      createSlot(10, PlayerPosition.FWD, 0.57, 0.30), // ST
     ]
   },
   {

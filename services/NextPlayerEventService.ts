@@ -1,3 +1,8 @@
+/**
+ * @deprecated Zastąpiony przez CalendarEngine.getNextPlayerEvent (services/CalendarEngine.ts).
+ * Plik zachowany jako archiwum. Nie używać w nowym kodzie.
+ * Ostatnio używany w: GameContext.tsx (do 2026-03-02, zastąpiony przez CalendarEngine).
+ */
 import { 
   PlayerNextEvent, 
   MatchStatus,
@@ -21,90 +26,18 @@ export const NextPlayerEventService = {
     const potentialEvents: PlayerNextEvent[] = [];
     const now = new Date(currentDate).setHours(0, 0, 0, 0);
     // --- PRE-SEASON PREPARATION (STAGE 1 PRO) ---
-    const prepDate = new Date(currentDate.getFullYear(), 6, 9).setHours(0, 0, 0, 0);
+    const prepDate = new Date(currentDate.getFullYear(), 6, 1).setHours(0, 0, 0, 0);
     if (prepDate >= now) {
       potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 6, 9),
-        endDate: new Date(currentDate.getFullYear(), 6, 9),
+        startDate: new Date(currentDate.getFullYear(), 6, 1),
+        endDate: new Date(currentDate.getFullYear(), 5, 30),
         kind: EventKind.NONE, // Dzień informacyjny, nie wymaga meczu
         label: "Przygotowanie do sezonu"
       });
     }
     
     
-    // --- TWOJA NOWA LOGIKA (STAGE 1 PRO) ---
-    // Definiujemy 16 sierpnia jako "twardą datę" pucharową
-    const cupDate = new Date(currentDate.getFullYear(), 7, 16).setHours(0, 0, 0, 0);
-    if (cupDate >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 7, 16),
-        endDate: new Date(currentDate.getFullYear(), 7, 16),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: 1/64"
-      });
-    }
-    // --- 1/32 Pucharu Polski Twarda data
-    const cupDate2 = new Date(currentDate.getFullYear(), 8, 20).setHours(0, 0, 0, 0);
-    if (cupDate2 >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 8, 20),
-        endDate: new Date(currentDate.getFullYear(), 8, 20),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: 1/32"
-      });
-    }
-// --- 1/16 Pucharu Polski Twarda data
-    const cupDate3 = new Date(currentDate.getFullYear(), 9, 18).setHours(0, 0, 0, 0); // Miesiąc 9 = Październik
-    if (cupDate3 >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 9, 18),
-        endDate: new Date(currentDate.getFullYear(), 9, 18),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: 1/16"
-      });
-    }
-// --- 1/8 Pucharu Polski Twarda data
-    const cupDate4 = new Date(currentDate.getFullYear(), 10, 15).setHours(0, 0, 0, 0); // Miesiąc 10 = Listopad
-    if (cupDate4 >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 10, 15),
-        endDate: new Date(currentDate.getFullYear(), 10, 15),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: 1/8"
-      });
-    }
-    // --- 1/4 Pucharu Polski Twarda data
-    const cupDate5 = new Date(currentDate.getFullYear(), 2, 14).setHours(0, 0, 0, 0); // Miesiąc 2 = Marzec
-    if (cupDate5 >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 2, 14),
-        endDate: new Date(currentDate.getFullYear(), 2, 14),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: 1/4"
-      });
-    }
-
-    // --- 1/2 Pucharu Polski Twarda data
-    const cupDate6 = new Date(currentDate.getFullYear(), 3, 18).setHours(0, 0, 0, 0); // Miesiąc 3 = Kwiecień
-    if (cupDate6 >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 3, 18),
-        endDate: new Date(currentDate.getFullYear(), 3, 18),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: 1/2"
-      });
-    }
-// --- Finał Pucharu Polski Twarda data
-    const cupDateFinal = new Date(currentDate.getFullYear(), 4, 30).setHours(0, 0, 0, 0); // Miesiąc 4 = Maj
-    if (cupDateFinal >= now) {
-      potentialEvents.push({
-        startDate: new Date(currentDate.getFullYear(), 4, 30),
-        endDate: new Date(currentDate.getFullYear(), 4, 30),
-        kind: EventKind.MATCH_POLISH_CUP,
-        label: "Puchar Polski: FINAŁ"
-      });
-    }
-    // --- KONIEC WKLEJANIA ---
+  
 
     // 1. Check League Matches
     const schedule = schedules[userTier];
@@ -156,11 +89,48 @@ export const NextPlayerEventService = {
             break;
 // KONIEC ZMIANY
 
-         case CompetitionType.TRANSFER_WINDOW:
+                  case CompetitionType.CHAMPIONS_LEAGUE_DRAW:
+            relevant = true;
+            kind = EventKind.CL_DRAW;
+            break;
+          case CompetitionType.CL_R1Q:
+          case CompetitionType.CL_R1Q_RETURN:
+          case CompetitionType.CL_R2Q:
+          case CompetitionType.CL_R2Q_RETURN:
+            relevant = true;
+            kind = EventKind.MATCH_EURO;
+            break;
+          case CompetitionType.CL_GROUP_STAGE: {
+            const hasScheduledCLGs = fixtures.some(f =>
+              f.date.toDateString() === slot.start.toDateString() &&
+              f.leagueId === CompetitionType.CL_GROUP_STAGE &&
+              f.status === MatchStatus.SCHEDULED
+            );
+            if (hasScheduledCLGs) {
+              relevant = true;
+              kind = EventKind.MATCH_EURO;
+            }
+            break;
+          }
+          case CompetitionType.TRANSFER_WINDOW:
   relevant = true;
   kind = EventKind.TRANSFER_WINDOW;
   // Jeśli label zawiera "Letnie przygotowania", silnik Dashboardu może to specjalnie wyświetlić
   break;
+       case CompetitionType.POLISH_CUP:
+            if (!slot.label.includes("LOSOWANIE") && !slot.label.includes("Ogłoszenie")) {
+              const hasUserCupFixture = fixtures.some(f =>
+                f.date.toDateString() === slot.start.toDateString() &&
+                f.leagueId === CompetitionType.POLISH_CUP &&
+                (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
+                f.status === MatchStatus.SCHEDULED
+              );
+              if (hasUserCupFixture) {
+                relevant = true;
+                kind = EventKind.MATCH_POLISH_CUP;
+              }
+            }
+            break;
           case CompetitionType.FRIENDLY:
             relevant = true;
             kind = EventKind.MATCH_FRIENDLY;
@@ -201,10 +171,12 @@ export const NextPlayerEventService = {
         [EventKind.MATCH_SUPER_CUP]: 10,
         [EventKind.MATCH_LEAGUE]: 9,
         [EventKind.MATCH_FRIENDLY]: 8,
+        [EventKind.CL_DRAW]: 8,
+        [EventKind.CUP_DRAW]: 7,
         [EventKind.TRANSFER_WINDOW]: 7,
         [EventKind.OFF_SEASON]: 6,
-        [EventKind.MATCH_POLISH_CUP]: 5, // Not used yet
-        [EventKind.MATCH_EURO]: 4,       // Not used yet
+        [EventKind.MATCH_POLISH_CUP]: 5,
+        [EventKind.MATCH_EURO]: 4,
         [EventKind.NONE]: 0
       };
 

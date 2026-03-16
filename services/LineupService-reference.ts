@@ -110,8 +110,14 @@ repairLineup: (lineup: Lineup, players: Player[]): Lineup => {
     const newXI: (string | null)[] = new Array(11).fill(null);
 
     // Faza 0: Bramkarz (Bezwzględny priorytet pozycji)
-    const bestGk = allAvailable.filter(p => p.position === PlayerPosition.GK).sort((a,b) => b.overallRating - a.overallRating)[0];
-    if (bestGk) { newXI[0] = bestGk.id; usedIds.add(bestGk.id); }
+ // Faza 0: Bramkarz (Kaskada: Świeżość > Pozycja > Rating)
+    const freshGk = freshPool.find(p => p.position === PlayerPosition.GK);
+    const bestGk = freshGk || tiredPool.find(p => p.position === PlayerPosition.GK);
+
+    if (bestGk) { 
+      newXI[0] = bestGk.id; 
+      usedIds.add(bestGk.id); 
+    }
 
     // Faza 1: Pole - Świeży na swojej pozycji
     for (let i = 1; i < 11; i++) {

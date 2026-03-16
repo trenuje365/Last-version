@@ -8,6 +8,19 @@ import { FinanceService } from './FinanceService';
 export const MIN_SQUAD_SIZE = 29;
 export const MAX_SQUAD_SIZE = 35;
 const FOREIGNER_COUNT = 10;
+
+// Regiony dozwolone dla cudzoziemców w polskich klubach (bez Francji, Niemiec, Anglii, Włoch)
+const POLISH_CLUB_FOREIGN_REGIONS: Region[] = [
+  Region.BALKANS,
+  Region.CZ_SK,
+  Region.SSA,
+  Region.IBERIA,
+  Region.SCANDINAVIA,
+  Region.EX_USSR,
+  Region.SPAIN,
+];
+const getRandomPolishClubForeignRegion = (): Region =>
+  POLISH_CLUB_FOREIGN_REGIONS[Math.floor(Math.random() * POLISH_CLUB_FOREIGN_REGIONS.length)];
 const GK_COUNT = 4;
 const DEF_COUNT = 10;
 const MID_COUNT = 10;
@@ -85,7 +98,7 @@ export const SquadGeneratorService = {
     const squadBase = slots.map((slot, index) => {
         let namePair;
         let fullName;
-        let region = slot.isForeign ? NameGeneratorService.getRandomForeignRegion() : Region.POLAND;
+        let region = slot.isForeign ? getRandomPolishClubForeignRegion() : Region.POLAND;
 
         let attempts = 0;
         do {
@@ -164,6 +177,94 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         console.warn(`Squad size invalid for ${clubId}: ${finalSquad.length}`);
     }
 
-    return finalSquad;
+       return finalSquad;
+  },
+
+    generateEuropeanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {
+    const usedNames = new Set<string>();
+
+    // Mapa kraju → Region lokalny
+    const countryToRegion: Partial<Record<string, Region>> = {
+      'ESP': Region.SPAIN,
+      'ENG': Region.ENGLAND,
+      'GER': Region.GERMANY,
+      'ITA': Region.ITALY,
+      'FRA': Region.FRANCE,
+      'SRB': Region.BALKANS,
+      'BUL': Region.BALKANS,
+      'CRO': Region.BALKANS,
+      'BIH': Region.BALKANS,
+      'MKD': Region.BALKANS,
+      'MNE': Region.BALKANS,
+      'ALB': Region.BALKANS,
+      'SVN': Region.BALKANS,
+      'ROU': Region.BALKANS,
+      'GRE': Region.BALKANS,
+    };
+       const localRegion = countryToRegion[country] ?? null;
+    // Bałkany: stałe 70% zawodników z bałkańskimi nazwiskami; pozostałe regiony: 40–60%
+    const localRatio = localRegion === Region.BALKANS ? 0.7 : localRegion ? (0.4 + Math.random() * 0.2) : 0;
+    const localCount = Math.round(30 * localRatio);
+    console.log(`[Squad] ${clubId} | country=${country} | localRegion=${localRegion} | localCount=${localCount}/30`);
+
+    // Stały skład: 3 GK, 8 DEF, 10 MID, 9 FWD = 30
+    const slots: { pos: PlayerPosition }[] = [
+      ...Array(3).fill({ pos: PlayerPosition.GK }),
+      ...Array(8).fill({ pos: PlayerPosition.DEF }),
+      ...Array(10).fill({ pos: PlayerPosition.MID }),
+      ...Array(9).fill({ pos: PlayerPosition.FWD }),
+    ];
+
+       const squad = slots.map((slot, index) => {
+      const isLocal = localRegion !== null && index < localCount;
+      const region = isLocal ? localRegion : NameGeneratorService.getRandomForeignRegion();
+      let namePair;
+      let fullName;
+      let attempts = 0;
+      do {
+        namePair = NameGeneratorService.getRandomName(region);
+        fullName = `${namePair.firstName} ${namePair.lastName}`;
+        attempts++;
+      } while (usedNames.has(fullName) && attempts < 50);
+      usedNames.add(fullName);
+
+      const age = 17 + Math.floor(Math.random() * 18); // 17-34
+      const genData = PlayerAttributesGenerator.generateAttributes(slot.pos, tier, reputation, age, true);
+
+      return {
+        id: `EU_CL_${clubId}_${String(index).padStart(2, '0')}`,
+        firstName: namePair.firstName,
+        lastName: namePair.lastName,
+        clubId,
+        position: slot.pos,
+        nationality: region,
+        age,
+        fatigueDebt: 0,
+        overallRating: genData.overall,
+        attributes: genData.attributes,
+        stats: {
+          matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,
+          yellowCards: 0, redCards: 0, cleanSheets: 0,
+          seasonalChanges: {}, ratingHistory: []
+        },
+        health: { status: HealthStatus.HEALTHY },
+        condition: 100,
+        suspensionMatches: 0,
+        contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random() * 3), 5, 30).toISOString(),
+        annualSalary: 0,
+        marketValue: 0,
+        isUntouchable: true,
+        negotiationStep: 0,
+        negotiationLockoutUntil: null,
+        contractLockoutUntil: null,
+        boardLockoutUntil: null,
+        isNegotiationPermanentBlocked: false,
+        transferLockoutUntil: null,
+        freeAgentLockoutUntil: null,
+        history: []
+      } as Player;
+    });
+
+    return squad;
   }
 };

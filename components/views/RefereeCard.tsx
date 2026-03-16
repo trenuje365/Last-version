@@ -127,7 +127,7 @@ export const RefereeCard: React.FC = () => {
 
               <div className="space-y-4">
                  <AttrBar label="Przywilej korzyści" value={referee.advantageTendency} />
-                 <AttrBar label="Doświadczenie" value={refereeLevel + 10} />
+                 <AttrBar label="Doświadczenie" value={referee.experience} />
               </div>
 
               <div className="col-span-2 mt-6 pt-6 border-t border-white/5">
@@ -145,9 +145,12 @@ export const RefereeCard: React.FC = () => {
               </h3>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                  {[
-                   { label: 'Żółte / mecz', val: (referee.strictness / 20).toFixed(1), icon: '🟨', color: 'text-amber-400' },
-                   { label: 'Czerwone', val: Math.floor(referee.strictness / 35), icon: '🟥', color: 'text-red-500' },
-                   { label: 'Karne / mecz', val: (referee.strictness / 80).toFixed(1), icon: '⚽', color: 'text-white' },
+                   { label: 'Żółte kartki', val: referee.totalYellowCardsShown, icon: '🟨', color: 'text-amber-400' },
+                   { label: 'Czerwone kartki', val: referee.totalRedCardsShown, icon: '🟥', color: 'text-red-500' },
+                   { label: 'Mecze prowadzone', val: referee.matchRatings.length, icon: '📋', color: 'text-white' },
+                   { label: 'Śr. ocena (1-10)', val: RefereeService.getAverageRating(referee) ?? '—', icon: '⭐', color: 'text-yellow-400' },
+                   { label: 'Żółte / mecz', val: referee.matchRatings.length > 0 ? (referee.totalYellowCardsShown / referee.matchRatings.length).toFixed(1) : '—', icon: '🟨', color: 'text-amber-300' },
+                   { label: 'Czerwone / mecz', val: referee.matchRatings.length > 0 ? (referee.totalRedCardsShown / referee.matchRatings.length).toFixed(2) : '—', icon: '🟥', color: 'text-red-400' },
                  ].map((s, i) => (
                     <div key={i} className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 text-center group hover:border-white/10 transition-all">
                        <span className="text-xl mb-2 block transform group-hover:scale-125 transition-transform">{s.icon}</span>

@@ -7,6 +7,12 @@ import { PlayerPresentationService } from '../services/PlayerPresentationService
 import { KitSelectionService } from '../services/KitSelectionService';
 import { PolandWeatherService } from '../services/PolandWeatherService';
 
+// Import lokalnych zdjęć piłkarzy
+import { getPlayerCardImage } from '../resources/PlayerCardAssets';
+import { getClubLogo } from '../resources/ClubLogoAssets';
+
+import startMecz from '../Graphic/themes/PucharPolski.png';
+
 export const PreMatchCupStudioView: React.FC = () => {
   const { 
     navigateTo, 
@@ -113,9 +119,31 @@ export const PreMatchCupStudioView: React.FC = () => {
     const tierGap = Math.abs(getTierVal(data.homeClub.id) - getTierVal(data.awayClub.id));
     const tierMod = tierGap >= 3 ? 2.8 : tierGap === 2 ? 1.8 : tierGap === 1 ? 1.3 : 1.0;
 
+    const getLeagueRankMod = (cid: string): number => {
+      if (getTierVal(cid) >= 4) return 1.0;
+      const club = clubs.find(x => x.id === cid);
+      if (!club) return 1.0;
+      const leagueTeams = clubs.filter(x => x.leagueId === club.leagueId);
+      if (leagueTeams.length < 2) return 1.0;
+      const sorted = [...leagueTeams].sort((a, b) => b.stats.points - a.stats.points || b.stats.goalDifference - a.stats.goalDifference);
+      const rank = sorted.findIndex(x => x.id === cid) + 1;
+      return 0.85 + ((leagueTeams.length - rank) / (leagueTeams.length - 1)) * 0.30;
+    };
+
+    const getFormMod = (cid: string): number => {
+      if (getTierVal(cid) >= 4) return 1.0;
+      const club = clubs.find(x => x.id === cid);
+      if (!club) return 1.0;
+      const last5 = club.stats.form.slice(-5);
+      if (last5.length === 0) return 1.0;
+      const pts = last5.reduce((acc, r) => acc + (r === 'W' ? 3 : r === 'R' ? 1 : 0), 0);
+      const formScore = pts / (last5.length * 3);
+      return 0.88 + formScore * 0.24;
+    };
+
     // Formuła Wykładnicza: Jakość rośnie nieliniowo
-    let hPower = Math.pow(hAvg + hRep, 2.6) * (getTierVal(data.homeClub.id) < getTierVal(data.awayClub.id) ? tierMod : 1);
-    let aPower = Math.pow(aAvg + aRep, 2.6) * (getTierVal(data.awayClub.id) < getTierVal(data.homeClub.id) ? tierMod : 1);
+    let hPower = Math.pow(hAvg + hRep, 2.6) * (getTierVal(data.homeClub.id) < getTierVal(data.awayClub.id) ? tierMod : 1) * getLeagueRankMod(data.homeClub.id) * getFormMod(data.homeClub.id);
+    let aPower = Math.pow(aAvg + aRep, 2.6) * (getTierVal(data.awayClub.id) < getTierVal(data.homeClub.id) ? tierMod : 1) * getLeagueRankMod(data.awayClub.id) * getFormMod(data.awayClub.id);
     
     if (!data.fixture.id.includes("FINAŁ")) hPower *= 1.15; // Bonus domowy w potędze
     // KONIEC
@@ -132,6 +160,23 @@ export const PreMatchCupStudioView: React.FC = () => {
     const scale = 75 / (hProb + aProb);
     hProb *= scale;
     aProb *= scale;
+
+    // Wymuszamy realistyczne stawki: drużyna z Ekstraklasy vs 2+ poziomy niżej → min kurs ~1.20
+    const homeT = getTierVal(data.homeClub.id);
+    const awayT = getTierVal(data.awayClub.id);
+    const MIN_EKSTRA_PROB = 100 / 1.20; // ~83.33%
+    if (homeT === 1 && awayT >= 3 && hProb < MIN_EKSTRA_PROB) {
+      hProb = MIN_EKSTRA_PROB;
+      const weakMinProb = 4 + Math.random() * 4; // 4%–8% → kurs ~12–25
+      dProb = Math.min(dProb, 100 - hProb - weakMinProb);
+      aProb = 100 - hProb - dProb;
+    } else if (awayT === 1 && homeT >= 3 && aProb < MIN_EKSTRA_PROB) {
+      aProb = MIN_EKSTRA_PROB;
+      const weakMinProb = 4 + Math.random() * 4; // 4%–8% → kurs ~12–25
+      dProb = Math.min(dProb, 100 - aProb - weakMinProb);
+      hProb = 100 - aProb - dProb;
+    }
+
     const odds1 = (100 / hProb).toFixed(2);
     const oddsX = (100 / dProb).toFixed(2);
     const odds2 = (100 / aProb).toFixed(2);
@@ -156,50 +201,41 @@ export const PreMatchCupStudioView: React.FC = () => {
 
   const formatPlayerName = (p: Player) => `${p.firstName.charAt(0)}. ${p.lastName}`;
 
-  // -> ZASTĄP TEN KOD (Inteligentne mapowanie kolorów na zdjęcia koszulek)
-  const getJerseyUrl = (hex: string) => {
-    const jerseyGallery = [
-      { hex: '#ffffff', url: 'https://i.ibb.co/PvSRwngm/player1-white.jpg' },
-      { hex: '#000000', url: 'https://i.ibb.co/qFLXNMXm/player1-black.jpg' },
-      { hex: '#ff0000', url: 'https://i.ibb.co/1fqNVfyG/player1-red.jpg' },
-      { hex: '#0000ff', url: 'https://i.ibb.co/5Xbzn6CT/player1-blue.jpg' },
-      { hex: '#ffff00', url: 'https://i.ibb.co/SwxQFgnd/player1-yellow.jpg' },
-      { hex: '#008000', url: 'https://i.ibb.co/nNwZ3HtH/player1-green.jpg' },
-      { hex: '#ff5f1f', url: 'https://i.ibb.co/wr4sNvtp/player1-orange.jpg' },
-    ];
-
-    let bestMatch = jerseyGallery[0];
-    let minDistance = Infinity;
-
-    jerseyGallery.forEach(item => {
-      // Używamy profesjonalnej metody dystansu barwnego z KitSelectionService
-      const distance = KitSelectionService.getColorDistance(hex, item.hex);
-      if (distance < minDistance) {
-        minDistance = distance;
-        bestMatch = item;
-      }
-    });
-
-    return bestMatch.url;
-  };
+  const getJerseyUrl = (clubId: string, hex: string) => getPlayerCardImage(clubId, hex);
 
   return (
     <div className="h-screen w-full text-slate-100 flex flex-col p-6 animate-fade-in overflow-hidden relative selection:bg-rose-500">
 
       <div className="fixed inset-0 z-[-1] bg-slate-950 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[url('https://i.ibb.co/mCvsmhwf/puchar-Polski2.png')] bg-cover bg-center scale-110 opacity-70 mix-blend-luminosity" />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/80 to-slate-950" />
+        <div className="absolute inset-0 bg-cover bg-center scale-110 opacity-90" style={{ backgroundImage: `url(${startMecz})` }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/80 to-slate-950" />
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-rose-600/10 blur-[150px] animate-pulse" />
       </div>
 
       <header className="relative mb-8 shrink-0 w-full max-w-[1600px] mx-auto">
-        <div className="bg-slate-900/60 border border-white/10 rounded-[40px] overflow-hidden shadow-2xl backdrop-blur-3xl">
+        {/* Logo gospodarzy — poza kontenerem overflow-hidden, nad wszystkim */}
+        {getClubLogo(data.homeClub.id) && (
+          <div className="absolute left-8 top-1/2 z-50 pointer-events-none" style={{ transform: 'translateY(calc(-50% + 4px))' }}>
+            <img src={getClubLogo(data.homeClub.id)} alt={data.homeClub.name} className="w-[115px] h-[115px] object-contain transform -rotate-6 drop-shadow-2xl opacity-80" />
+          </div>
+        )}
+        {/* Logo gości — poza kontenerem overflow-hidden, nad wszystkim */}
+        {getClubLogo(data.awayClub.id) && (
+          <div className="absolute right-8 top-1/2 z-50 pointer-events-none" style={{ transform: 'translateY(calc(-50% + 4px))', right: 'calc(2rem - 15px)' }}>
+            <img src={getClubLogo(data.awayClub.id)} alt={data.awayClub.name} className="w-[115px] h-[115px] object-contain transform rotate-6 drop-shadow-2xl opacity-80" />
+          </div>
+        )}
+        <div className="bg-slate-900/60 border border-white/10 rounded-[40px] overflow-hidden shadow-2xl ">
            <div className="flex items-stretch justify-between h-20">
               <div className="flex-1 flex items-center justify-start gap-8 px-12">
-                 <div className="w-12 h-12 rounded-2xl border-2 border-white/10 overflow-hidden flex flex-col shadow-2xl transform -rotate-3" style={{ backgroundColor: matchKits.home.primary }}>
-                    <div style={{ backgroundColor: matchKits.home.secondary }} className="flex-1" />
-                 </div>
-                 <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white drop-shadow-md">{data.homeClub.name}</h2>
+                 {getClubLogo(data.homeClub.id) ? (
+                   <div className="w-12 h-12" />
+                 ) : (
+                   <div className="w-12 h-12 rounded-2xl border-2 border-white/10 overflow-hidden flex flex-col shadow-2xl transform -rotate-3" style={{ backgroundColor: matchKits.home.primary }}>
+                     <div style={{ backgroundColor: matchKits.home.secondary }} className="flex-1" />
+                   </div>
+                 )}
+                 <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white drop-shadow-md">{data.homeClub.name}</h2>
               </div>
               <div className="px-16 flex flex-col justify-center items-center border-x border-white/5 bg-rose-950/20 relative">
                  <div className="flex items-center gap-2 mb-1">
@@ -209,17 +245,21 @@ export const PreMatchCupStudioView: React.FC = () => {
                  <div className="h-1 w-24 bg-rose-500 rounded-full shadow-[0_0_15px_rgba(225,29,72,0.5)]" />
               </div>
               <div className="flex-1 flex items-center justify-end gap-8 px-12">
-                 <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white text-right drop-shadow-md">{data.awayClub.name}</h2>
-                 <div className="w-12 h-12 rounded-2xl border-2 border-white/10 overflow-hidden flex flex-col shadow-2xl transform rotate-3" style={{ backgroundColor: matchKits.away.primary }}>
-                    <div style={{ backgroundColor: matchKits.away.secondary }} className="flex-1" />
-                 </div>
+                 <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white text-right drop-shadow-md">{data.awayClub.name}</h2>
+                 {getClubLogo(data.awayClub.id) ? (
+                   <div className="w-12 h-12" />
+                 ) : (
+                   <div className="w-12 h-12 rounded-2xl border-2 border-white/10 overflow-hidden flex flex-col shadow-2xl transform rotate-3" style={{ backgroundColor: matchKits.away.primary }}>
+                     <div style={{ backgroundColor: matchKits.away.secondary }} className="flex-1" />
+                   </div>
+                 )}
               </div>
            </div>
         </div>
       </header>
 
       <div className="flex-1 flex items-center justify-center gap-12 max-w-[1600px] mx-auto w-full min-h-0">
-        <div className="w-72 bg-slate-900/40 rounded-[35px] border border-white/5 p-6 backdrop-blur-2xl flex flex-col gap-4 overflow-hidden">
+        <div className="w-72 bg-slate-900/40 rounded-[35px] border border-white/5 p-6  flex flex-col gap-4 overflow-hidden">
            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">SKŁAD</h4>
            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2">
              {squadDetails.hXI.map(p => (
@@ -232,8 +272,8 @@ export const PreMatchCupStudioView: React.FC = () => {
                 <h5 className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-2 text-center opacity-50">Rezerwowi</h5>
                 {squadDetails.hBench.map(p => (
                   <div key={p.id} className="flex items-center gap-3 py-1 opacity-50 hover:opacity-100 transition-opacity">
-                    <span className="font-mono text-[8px] w-6 text-slate-500">{p.position}</span>
-                    <span className="text-[10px] font-medium text-slate-400 uppercase truncate">{formatPlayerName(p)}</span>
+                    <span className="font-mono text-[10px] w-6 text-slate-500">{p.position}</span>
+                    <span className="text-[12px] font-medium text-slate-400 uppercase truncate">{formatPlayerName(p)}</span>
                   </div>
                 ))}
              </div>
@@ -242,9 +282,9 @@ export const PreMatchCupStudioView: React.FC = () => {
 
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
            <div className="flex items-center justify-center gap-12 w-full max-w-3xl animate-slide-up">
-              <div className="relative group">
+                      <div className="relative group">
                  <div className="absolute inset-0 bg-rose-600/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                 <img src={getJerseyUrl(matchKits.home.primary)} alt="Home" className="w-44 h-64 object-cover rounded-3xl border-2 border-white/10 shadow-2xl relative z-10 transform -rotate-2" />
+                 <img src={getJerseyUrl(data.homeClub.id, matchKits.home.primary)} alt="Home" className="w-44 h-64 object-cover rounded-3xl border-2 border-white/10 shadow-2xl relative z-10 transform -rotate-2" />
               </div>
               <div className="flex-1 space-y-6">
                  {[
@@ -254,9 +294,9 @@ export const PreMatchCupStudioView: React.FC = () => {
                  ].map(stat => (
                     <div key={stat.label} className="space-y-1.5">
                        <div className="flex justify-between px-1">
-                          <span className="text-[10px] font-black text-white italic">{stat.h}</span>
-                          <span className="text-[8px] font-black text-slate-500 tracking-widest">{stat.label}</span>
-                          <span className="text-[10px] font-black text-white italic">{stat.a}</span>
+                          <span className="text-[14px] font-black text-white italic">{stat.h}</span>
+                          <span className="text-[14px] font-black text-slate-500 tracking-widest">{stat.label}</span>
+                          <span className="text-[14px] font-black text-white italic">{stat.a}</span>
                        </div>
                        <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden flex p-0.5 border border-white/5">
                           <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${(stat.h / (stat.h + stat.a)) * 100}%`, backgroundColor: matchKits.home.primary }} />
@@ -266,9 +306,9 @@ export const PreMatchCupStudioView: React.FC = () => {
                     </div>
                  ))}
               </div>
-              <div className="relative group">
+                         <div className="relative group">
                  <div className="absolute inset-0 bg-blue-600/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                 <img src={getJerseyUrl(matchKits.away.primary)} alt="Away" className="w-44 h-64 object-cover rounded-3xl border-2 border-white/10 shadow-2xl relative z-10 transform rotate-2" />
+                 <img src={getJerseyUrl(data.awayClub.id, matchKits.away.primary)} alt="Away" className="w-44 h-64 object-cover rounded-3xl border-2 border-white/10 shadow-2xl relative z-10 transform rotate-2" />
               </div>
            </div>
 
@@ -292,7 +332,7 @@ export const PreMatchCupStudioView: React.FC = () => {
                  <span className="text-lg font-black text-white italic uppercase truncate block">{(nextEvent?.label.includes("FINAŁ") || nextEvent?.label.toUpperCase().includes("SUPERPUCHAR")) ? "PGE Narodowy, Warszawa" : data.homeClub.stadiumName}</span>
               </div>
               <div className="bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-center flex-1">
-                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Widzowie</span>
+                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Widzów</span>
                  <div className="flex items-center justify-center gap-3">
                     <span className="text-2xl">🏟️</span>
                     <span className="text-lg font-black text-white italic">{estimatedAttendance.toLocaleString()}</span>
@@ -329,12 +369,12 @@ export const PreMatchCupStudioView: React.FC = () => {
            </div>
         </div>
 
-        <div className="w-72 bg-slate-900/40 rounded-[35px] border border-white/5 p-6 backdrop-blur-2xl flex flex-col gap-4 overflow-hidden">
+        <div className="w-72 bg-slate-900/40 rounded-[35px] border border-white/5 p-6 flex flex-col gap-4 overflow-hidden">
            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">SKŁAD</h4>
            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 text-right">
              {squadDetails.aXI.map(p => (
                <div key={p.id} className="flex items-center gap-3 py-1.5 border-b border-white/[0.02] flex-row-reverse">
-                 <span className={`font-mono font-black text-[9px] w-6 ${PlayerPresentationService.getPositionColorClass(p.position)}`}>{p.position}</span>
+                 <span className={`font-mono font-black text-[11px] w-6 ${PlayerPresentationService.getPositionColorClass(p.position)}`}>{p.position}</span>
                  <span className="text-xs font-bold text-white uppercase italic truncate">{formatPlayerName(p)}</span>
                </div>
              ))}
@@ -342,8 +382,8 @@ export const PreMatchCupStudioView: React.FC = () => {
                 <h5 className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-2 text-center opacity-50">Rezerwowi</h5>
                 {squadDetails.aBench.map(p => (
                   <div key={p.id} className="flex items-center gap-3 py-1 flex-row-reverse opacity-50 hover:opacity-100 transition-opacity">
-                    <span className="font-mono text-[8px] w-6 text-slate-500">{p.position}</span>
-                    <span className="text-[10px] font-medium text-slate-400 uppercase truncate">{formatPlayerName(p)}</span>
+                    <span className="font-mono text-[11px] w-6 text-slate-500">{p.position}</span>
+                    <span className="text-[12px] font-medium text-slate-400 uppercase truncate">{formatPlayerName(p)}</span>
                   </div>
                 ))}
              </div>

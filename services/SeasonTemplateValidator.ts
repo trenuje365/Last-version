@@ -72,8 +72,8 @@ export const SeasonTemplateValidator = {
     if (superCup && firstLeague) {
         const diffTime = Math.abs(firstLeague.start.getTime() - superCup.start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        if (diffDays < 6 || diffDays > 8) {
-           errors.push(`Super Cup is not approx 1 week before League Start. Diff: ${diffDays} days.`);
+        if (diffDays < 10 || diffDays > 14) {
+           errors.push(`Super Cup is not approx 2 weeks before League Start. Diff: ${diffDays} days.`);
         }
     }
 

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, HealthStatus, PlayerAttributes } from '../../types';     
+import { ViewState, HealthStatus, PlayerAttributes } from '../../types';
+import { REGION_NATIONALITY_LABEL } from '../../constants';     
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
 import { FreeAgentNegotiationService } from '../../services/FreeAgentNegotiationService';
 import { NegotiationStatus } from '../../types';
@@ -109,7 +110,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                     {player.position}
                  </div>
                  <div className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">
-                    {player.age} lat • {player.nationality}
+                    {player.age} lat • {REGION_NATIONALITY_LABEL[player.nationality] ?? player.nationality}
                  </div>
               </div>
            </div>
@@ -218,7 +219,7 @@ const [showHistory, setShowHistory] = React.useState(false);
 
            <div className="flex flex-col gap-6">
               <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] mb-2 flex items-center gap-3">
-                 <span className="w-8 h-px bg-rose-500/30" /> Stan Zdrowia i Gotowość
+                 <span className="w-8 h-px bg-rose-500/30" /> Stan Zdrowia
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex items-center justify-between">
@@ -243,11 +244,19 @@ const [showHistory, setShowHistory] = React.useState(false);
 
                  <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex flex-col justify-center">
                     <div className="flex justify-between items-center mb-2 px-1">
-                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Kondycja Fizyczna</span>
-                       <span className="text-xs font-black font-mono text-white">{Math.round(player.condition)}%</span>
+                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Kondycja / Limit Energii</span>
+                       <div className="flex items-center gap-2">
+                          {player.fatigueDebt > 0 && (
+                            <span className="text-[10px] font-black text-red-500 uppercase italic">SPADEK {Math.round(player.fatigueDebt)}%</span>
+                          )}
+                          <span className="text-xs font-black font-mono text-white">{Math.round(player.condition)}%</span>
+                       </div>
                     </div>
-                    <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                       <div className={`h-full transition-all duration-1000 ${condColor}`} style={{ width: `${player.condition}%` }} />
+                    <div className="h-1.5 w-full bg-red-900/20 rounded-full overflow-hidden border border-white/5 relative">
+                       {/* Czerwona strefa długu */}
+                       <div className="absolute inset-0 bg-black/60" style={{ left: `${100 - (player.fatigueDebt || 0)}%` }} />
+                       {/* Pasek kondycji */}
+                       <div className={`h-full ${condColor} transition-all duration-1000 relative z-10`} style={{ width: `${player.condition}%` }} />
                     </div>
                  </div>
               </div>
@@ -275,7 +284,7 @@ const [showHistory, setShowHistory] = React.useState(false);
 
                  <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-colors">
                     <div>
-                       <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Wygaśnięcie Kontraktu</span>
+                       <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Kontrakt DO</span>
                        <span className="text-sm font-black text-white italic uppercase">
                           {player.contractEndDate ? new Date(player.contractEndDate).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' }) : 'Brak danych'}
                        </span>
@@ -285,7 +294,7 @@ const [showHistory, setShowHistory] = React.useState(false);
 
 <div className="bg-slate-900/40 p-6 rounded-[32px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-all col-span-1 md:col-span-2 shadow-lg">
                     <div>
-                       <span className="block text-[8px] font-black text-emerald-500/60 uppercase tracking-widest mb-1">Aktualna Wartość Rynkowa</span>
+                       <span className="block text-[8px] font-black text-emerald-500/60 uppercase tracking-widest mb-1">Cena Rynkowa</span>
                        <span className="text-2xl font-black text-emerald-400 font-mono italic tabular-nums leading-none">
                           {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} <span className="text-xs opacity-60 ml-1">PLN</span>
                        </span>

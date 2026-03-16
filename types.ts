@@ -30,7 +30,36 @@ export enum ViewState {
   SCORE_RESULTS_POLISH_CUP = 'SCORE_RESULTS_POLISH_CUP',
   EDITOR = 'EDITOR',
   CONTRACT_MANAGEMENT = 'CONTRACT_MANAGEMENT',
-  FREE_AGENT_NEGOTIATION = 'FREE_AGENT_NEGOTIATION'
+  FREE_AGENT_NEGOTIATION = 'FREE_AGENT_NEGOTIATION',
+
+
+  CL_DRAW = 'CL_DRAW',
+  POLISH_CUP_BRACKET = 'POLISH_CUP_BRACKET',
+  POLISH_CUP_FINALISTS = 'POLISH_CUP_FINALISTS',
+
+  ///champions league 
+  CHAMPIONS_LEAGUE_DRAW = 'CHAMPIONS_LEAGUE_DRAW',
+  CL_R1Q = 'CL_R1Q',              // ← DODAJ: 1. mecz, Runda 1 Preeliminacyjna
+  CL_R1Q_RETURN = 'CL_R1Q_RETURN', // ← DODAJ: Rewanż, Runda 1 Preeliminacyjna
+   CL_R2Q_DRAW = 'CL_R2Q_DRAW',
+  CL_R2Q = 'CL_R2Q',
+  CL_R2Q_RETURN = 'CL_R2Q_RETURN',
+  CL_GROUP_DRAW = 'CL_GROUP_DRAW',
+
+
+   PRE_MATCH_CL_STUDIO = 'PRE_MATCH_CL_STUDIO',
+  PRE_MATCH_CL_LIVE_STUDIO = 'PRE_MATCH_CL_LIVE_STUDIO',
+  POST_MATCH_CL_STUDIO = 'POST_MATCH_CL_STUDIO',
+  MATCH_LIVE_CL = 'MATCH_LIVE_CL',
+  CL_BRACKET = 'CL_BRACKET',
+  CL_HISTORY = 'CL_HISTORY',
+  CL_R16_DRAW = 'CL_R16_DRAW',
+  CL_QF_DRAW = 'CL_QF_DRAW',
+  CL_SF_DRAW = 'CL_SF_DRAW',
+  CL_FINAL_DRAW = 'CL_FINAL_DRAW',
+  PRE_MATCH_CL_FINAL = 'PRE_MATCH_CL_FINAL',
+  POST_MATCH_CL_FINAL = 'POST_MATCH_CL_FINAL',
+  EUROPEAN_CLUBS = 'EUROPEAN_CLUBS'
 }
 
 export enum MailType {
@@ -38,7 +67,8 @@ export enum MailType {
   FANS = 'FANS',
   STAFF = 'STAFF',
   MEDIA = 'MEDIA',
-  SYSTEM = 'SYSTEM'
+  SYSTEM = 'SYSTEM',
+  SCOUT = 'SCOUT'
 }
 export interface CoachAttributes {
   experience: number;
@@ -100,7 +130,12 @@ export enum Region {
   SSA = 'SSA',
   IBERIA = 'IBERIA',
   SCANDINAVIA = 'SCANDINAVIA',
-  EX_USSR = 'EX_USSR'
+  EX_USSR = 'EX_USSR',
+  SPAIN = 'SPAIN',
+  ENGLAND = 'ENGLAND',
+  GERMANY = 'GERMANY',
+  ITALY = 'ITALY',
+  FRANCE = 'FRANCE'
 }
 
 export enum PlayerPosition {
@@ -133,6 +168,8 @@ export enum EventKind {
   MATCH_EURO = 'MATCH_EURO',
   TRANSFER_WINDOW = 'TRANSFER_WINDOW',
   OFF_SEASON = 'OFF_SEASON',
+  CL_DRAW = 'CL_DRAW',
+  CUP_DRAW = 'CUP_DRAW',
   NONE = 'NONE'
 }
 
@@ -145,7 +182,26 @@ export enum CompetitionType {
   OFF_SEASON = 'OFF_SEASON',
   TRANSFER_WINDOW = 'TRANSFER_WINDOW',
   FRIENDLY = 'FRIENDLY',
-  BOARD = 'BOARD'
+  BOARD = 'BOARD',
+  CHAMPIONS_LEAGUE_DRAW = 'CHAMPIONS_LEAGUE_DRAW',
+  CL_R1Q = 'CL_R1Q',
+  CL_R1Q_RETURN = 'CL_R1Q_RETURN',
+  CL_R2Q_DRAW = 'CL_R2Q_DRAW',
+  CL_R2Q = 'CL_R2Q',
+  CL_R2Q_RETURN = 'CL_R2Q_RETURN',
+   CL_GROUP_DRAW = 'CL_GROUP_DRAW',
+  CL_GROUP_STAGE = 'CL_GROUP_STAGE',
+   CL_R16_DRAW = 'CL_R16_DRAW',
+  CL_R16 = 'CL_R16',
+  CL_R16_RETURN = 'CL_R16_RETURN',
+   CL_QF_DRAW = 'CL_QF_DRAW',         // ← NOWE
+  CL_QF = 'CL_QF',                   // ← NOWE
+  CL_QF_RETURN = 'CL_QF_RETURN',  
+   CL_SF_DRAW = 'CL_SF_DRAW',
+  CL_SF = 'CL_SF',
+  CL_SF_RETURN = 'CL_SF_RETURN',
+  CL_FINAL = 'CL_FINAL',
+  CL_FINAL_DRAW = 'CL_FINAL_DRAW',
 }
 
 export enum SlotType {
@@ -168,7 +224,8 @@ export enum LeagueLevel {
   TIER_1 = 'TIER_1',
   TIER_2 = 'TIER_2',
   TIER_3 = 'TIER_3',
-  TIER_4_HIDDEN = 'TIER_4_HIDDEN'
+  TIER_4_HIDDEN = 'TIER_4_HIDDEN',
+  EUROPEAN = 'EUROPEAN'
 }
 
 export interface PlayerAttributes {
@@ -245,6 +302,7 @@ export interface Player {
       severity?: InjurySeverity;
       injuryDate: string; // ISO Date string
       totalDays: number;
+      conditionAtInjury?: number; // kondycja w momencie rejestracji kontuzji
     };
   };
   condition: number;
@@ -263,6 +321,8 @@ export interface Player {
   isNegotiationPermanentBlocked: boolean; // Czy zawodnik obraził się na amen
   transferLockoutUntil: string | null;
   freeAgentLockoutUntil: string | null;
+  /** Lista ID klubów aktualnie zainteresowanych pozyskaniem tego zawodnika (aktualizowana ~1x/miesiąc przez AI) */
+  interestedClubs?: string[];
 }
 
 export interface TeamStats {
@@ -275,6 +335,15 @@ export interface TeamStats {
   goalDifference: number;
   played: number;
   form: ('W' | 'R' | 'P')[];
+}
+
+export interface FinanceLog {
+  id: string;
+  date: string;
+  amount: number;
+  type: 'INCOME' | 'EXPENSE';
+  description: string;
+  previousBalance?: number; // Saldo przed operacją
 }
 
 export interface Club {
@@ -297,7 +366,20 @@ export interface Club {
   boardStrictness: number;
   signingBonusPool: number; // Pula pieniędzy zarezerwowana tylko na bonusy za podpis
   squadNeeds?: Record<string, number>; 
+  financeHistory?: FinanceLog[];
 }
+
+export interface EuropeanStatus {
+  isInChampionsLeague: boolean;
+  isInEuropeanLeague: boolean;
+  isInConferenceLeague: boolean;
+  isInChampionsLeagueNextPhase: boolean;
+  isInEuropeanLeagueNextPhase: boolean;
+  isInConferenceLeagueNextPhase: boolean;
+}
+
+
+
 export interface NationalTeam {
   id: string;
   name: string;
@@ -416,9 +498,11 @@ export interface MatchEvent {
 
 export interface GoalTickerInfo {
   playerName: string;
+  scorerId?: string;
   minute: number;
   isPenalty: boolean;
   isMiss?: boolean;
+  varDisallowed?: boolean;
   assistantName?: string;
   assistantId?: string;
 }
@@ -432,6 +516,15 @@ export interface TacticalInstructions {
   intensity: InstructionIntensity;
   lastChangeMinute: number;
   expiryMinute: number; 
+  tempoExpiry: number;
+  mindsetExpiry: number;
+  intensityExpiry: number;
+  tempoCooldown: number;
+  mindsetCooldown: number;
+  intensityCooldown: number;
+  tempoResponseFactor: number;
+  mindsetResponseFactor: number;
+  intensityResponseFactor: number;
 }
 export interface SubstitutionRecord {
   playerOutId: string;
@@ -456,7 +549,7 @@ export interface MatchLiveState {
   isPausedForEvent: boolean;
   isHalfTime: boolean;
   isFinished: boolean;
-  speed: 1 | 2.5 | 5;
+  speed: 1 | 2.5 | 3.5 | 5;
   momentum: number;
   momentumPulse: number; 
   homeScore: number;
@@ -481,6 +574,7 @@ export interface MatchLiveState {
   homeSubsHistory: SubstitutionRecord[];
   awaySubsHistory: SubstitutionRecord[];
   lastAiActionMinute: number;
+  aiTacticLocked?: boolean;
   logs: MatchLogEntry[];
   events: MatchEvent[];
   homeGoals: GoalTickerInfo[];
@@ -551,6 +645,7 @@ export interface MatchSummaryEvent {
   assistantName?: string;
   teamSide: 'HOME' | 'AWAY';
   scoreAtMoment?: string;
+  varDisallowed?: boolean;
 }
 
 export interface MatchSummary {
@@ -644,6 +739,7 @@ export interface PlayerNextEvent {
   endDate: Date;
   kind: EventKind;
   label: string;
+  competition?: CompetitionType;
   opponentClubId?: string;
   isHome?: boolean;
 }
@@ -657,6 +753,10 @@ export interface Referee {
   strictness: number;
   consistency: number;
   advantageTendency: number;
+  matchRatings: number[];
+  totalYellowCardsShown: number;
+  totalRedCardsShown: number;
+  experience: number; // DOŚWIADCZENIE SĘDZIEGO
 }
 
 export interface WeatherSnapshot {

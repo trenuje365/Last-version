@@ -8,7 +8,7 @@ import { MailService } from '../../services/MailService';
 export const ContractManagementView: React.FC = () => {
   const { 
     viewedPlayerId, players, clubs, navigateTo, 
-    currentDate, setPlayers, setClubs, lineups, updateLineup, setMessages 
+    currentDate, setPlayers, setClubs, lineups, updateLineup, setMessages, addFinanceLog 
   } = useGame();
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,6 +22,7 @@ export const ContractManagementView: React.FC = () => {
   const [counterOffer, setCounterOffer] = useState<{salary: number, bonus: number} | null>(null);
   const [isOfferSent, setIsOfferSent] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [renewalVeto, setRenewalVeto] = useState<string | null>(null);
 
   const data = useMemo(() => {
     if (!viewedPlayerId) return null;
@@ -42,6 +43,7 @@ export const ContractManagementView: React.FC = () => {
       setCounterOffer(null);
       setIsOfferSent(false);
       setShowSuccessModal(false);
+      setRenewalVeto(null);
     }
   }, [viewedPlayerId]);
 
@@ -93,7 +95,15 @@ export const ContractManagementView: React.FC = () => {
     setNegotiationMessage(null);
 
     setTimeout(() => {
-      setIsProcessing(false);
+      // VETO ZARZĄDU przy przedłużeniu kontraktu
+      const squad = players[club.id] || [];
+      const boardCheck = FinanceService.evaluateRenewalBoardDecision(player, offerSalary, offerBonus, squad, club);
+      if (!boardCheck.approved) {
+        setIsProcessing(false);
+        setRenewalVeto(boardCheck.reason);
+        return;
+      }
+
       setIsOfferSent(true);
 
       const playerDemand = FinanceService.calculatePlayerBonusDemand(player, offerSalary, club.reputation);
@@ -105,6 +115,7 @@ export const ContractManagementView: React.FC = () => {
         }));
         setNegotiationMessage("Nie traktujecie mnie powaznie wiec nie będziemy o niczym rozmawiac. Do widzenia!");
         setCounterOffer(null);
+        setIsProcessing(false);
         return;
       }
 
@@ -168,13 +179,25 @@ export const ContractManagementView: React.FC = () => {
           setNegotiationMessage(decision.reason);
         }
       }
+      setIsProcessing(false);
     }, 1200);
   };
 
   const handleReleasePlayer = () => {
     if (!boardDecision || (boardDecision.status !== 'APPROVED' && boardDecision.status !== 'WARNING')) return;
 
+    const previousBudget = club.budget; // Saldo PRZED zmianą
     setClubs(prev => prev.map(c => c.id === club.id ? { ...c, budget: c.budget - penaltyAmount } : c));
+    
+    // 💼 Log zwolnienia zawodnika z poprzednim saldem
+    addFinanceLog(
+      club.id,
+      `Zwolnienie: ${player.firstName} ${player.lastName}`,
+      -penaltyAmount,
+      currentDate,
+      previousBudget
+    );
+    
    const playerToRelease = squad.find(p => p.id === viewedPlayerId)!;
     
     // AKTUALIZACJA HISTORII - TUTAJ WSTAW TEN KOD
@@ -569,6 +592,22 @@ export const ContractManagementView: React.FC = () => {
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.6s ease-out; }
       `}</style>
+
+      {renewalVeto && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-lg animate-fade-in p-6">
+          <div className="max-w-md w-full p-10 rounded-[40px] border-2 border-red-500 bg-slate-900 shadow-[0_0_100px_rgba(239,68,68,0.2)] text-center flex flex-col items-center gap-6">
+            <div className="w-20 h-20 rounded-3xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-5xl shadow-inner">🏛️</div>
+            <h3 className="text-2xl font-black uppercase italic text-red-500 tracking-tighter">VETO ZARZĄDU</h3>
+            <p className="text-slate-300 italic font-medium leading-relaxed">"{renewalVeto}"</p>
+            <button
+              onClick={() => setRenewalVeto(null)}
+              className="mt-4 w-full py-5 bg-red-600 text-white font-black uppercase rounded-2xl hover:bg-red-500 transition-all shadow-xl border-b-4 border-red-900 active:scale-95"
+            >
+              SKORYGUJ OFERTĘ
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState } from '../../types';
-
+import bgImg from '../../Graphic/themes/start_menu.jpg';
 export const StartMenu: React.FC = () => {
   const { startNewGame, navigateTo } = useGame();
 
@@ -12,8 +12,9 @@ export const StartMenu: React.FC = () => {
       {/* 1. CINEMATIC BACKGROUND LAYER */}
       <div className="absolute inset-0 z-0">
         {/* Real Football Background - High Contrast Stadium */}
-        <div 
-          className="absolute inset-0 bg-[url('https://i.ibb.co/Fqs6zXg4/theme-no-tittle.jpg')] bg-cover bg-center scale-110 opacity-70 mix-blend-luminosity animate-pulse-slow"
+        <div
+          className="absolute inset-0 scale-110 opacity-70 mix-blend-luminosity animate-pulse-slow"
+          style={{ backgroundImage: `url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
         />
         {/* Overlays */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/60 to-slate-950" />

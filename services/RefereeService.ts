@@ -21,7 +21,11 @@ export const RefereeService = {
         nationality: Region.POLAND,
         strictness: 20 + Math.floor(Math.random() * 70),
         consistency: 30 + Math.floor(Math.random() * 60),
-        advantageTendency: 10 + Math.floor(Math.random() * 80)
+        advantageTendency: 10 + Math.floor(Math.random() * 80),
+         experience: 30 + Math.floor(Math.random() * 70), // np. 30-99
+        matchRatings: [],
+        totalYellowCardsShown: 0,
+        totalRedCardsShown: 0
       });
     }
   },
@@ -49,5 +53,56 @@ export const RefereeService = {
     const finalPool = eligibleRefs.length > 0 ? eligibleRefs : RefereeService.pool;
     const index = Math.abs(hash) % finalPool.length;
     return finalPool[index];
+  },
+
+  /**
+   * Losuje ocenę 1-10. Wyższy consistency = szansa na wyższą ocenę.
+   */
+  generateMatchRating: (referee: Referee): number => {
+    const maxRating = Math.min(10, 4 + Math.floor(referee.consistency / 15));
+    return Math.floor(1 + Math.random() * maxRating);
+  },
+
+  recordMatchStats: (refereeId: string, rating: number, yellowCards: number, redCards: number): void => {
+    const ref = RefereeService.pool.find(r => r.id === refereeId);
+    if (!ref) return;
+    ref.matchRatings.push(rating);
+    ref.totalYellowCardsShown += yellowCards;
+    ref.totalRedCardsShown += redCards;
+  },
+
+  getAverageRating: (referee: Referee): number | null => {
+    if (referee.matchRatings.length === 0) return null;
+    const sum = referee.matchRatings.reduce((a, b) => a + b, 0);
+    return Math.round((sum / referee.matchRatings.length) * 10) / 10;
+  },
+
+  applyEndOfSeasonAdjustments: (): void => {
+    RefereeService.pool.forEach(ref => {
+      if (ref.matchRatings.length <= 5) return;
+      const avg = RefereeService.getAverageRating(ref)!;
+      const attrs: (keyof Pick<Referee, 'strictness' | 'consistency' | 'advantageTendency'>)[] =
+        ['strictness', 'consistency', 'advantageTendency'];
+
+      if (avg < 6) {
+        const penalty = Math.floor(Math.random() * 3) + 1;
+        attrs.forEach(attr => {
+          ref[attr] = Math.max(5, ref[attr] - penalty);
+        });
+      } else if (avg > 6.5) {
+        const bonus = Math.floor(Math.random() * 3) + 1;
+        attrs.forEach(attr => {
+          ref[attr] = Math.min(99, ref[attr] + bonus);
+        });
+      }
+    });
+  },
+
+  resetSeasonStats: (): void => {
+    RefereeService.pool.forEach(ref => {
+      ref.matchRatings = [];
+      ref.totalYellowCardsShown = 0;
+      ref.totalRedCardsShown = 0;
+    });
   }
 };

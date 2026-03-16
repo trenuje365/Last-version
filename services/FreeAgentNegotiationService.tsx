@@ -3,7 +3,7 @@ import { Player, Club, PendingNegotiation, NegotiationStatus } from '../types';
 export const FreeAgentNegotiationService = {
   // Sprawdza czy zawodnik w ogóle chce rozmawiać (Gatekeeping)
   evaluateInitialInterest: (player: Player, club: Club): { interested: boolean, message: string } => {
-    // Jeśli zawodnik ma OVR > 75 a klub ma reputację < 5 -> 1% szansy
+    // Jeśli zawodnik ma OVR > 69 a klub ma reputację < 5 -> 1% szansy
     if (player.overallRating > 69 && club.reputation < 5) {
       if (Math.random() > 0.01) {
         return { 
@@ -12,6 +12,20 @@ export const FreeAgentNegotiationService = {
         };
       }
     }
+
+    // Polskie kluby: malejąca szansa na podpisanie gracza z OVR > 82
+    // OVR 83 → 50%, OVR 99 → 1% (interpolacja liniowa)
+    const isPolishClub = club.leagueId?.startsWith('L_PL_');
+    if (isPolishClub && player.overallRating > 82) {
+      const chance = 0.50 - (player.overallRating - 83) * (0.49 / 16);
+      if (Math.random() > chance) {
+        return {
+          interested: false,
+          message: "Mój klient rozważa wyłącznie oferty z silniejszych lig. Poziom rozgrywkowy jest dla niego niewystarczający."
+        };
+      }
+    }
+
     return { interested: true, message: "" };
   },
 

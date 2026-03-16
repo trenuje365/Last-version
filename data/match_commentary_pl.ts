@@ -17,7 +17,18 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Kolejna próba {Nazwisko}, wciąż bez efektu bramkowego.",
     "{Nazwisko} decyduje się na uderzenie rozpaczy, bardzo niecelnie.",
     "Piłka po strzale {Nazwisko} opuszcza plac gry w znacznej odległości od bramki.",
-    "{Nazwisko} chciał zaskoczyć golkipera, ale to nie był dobry pomysł."
+    "{Nazwisko} chciał zaskoczyć golkipera, ale to nie był dobry pomysł.",
+      "{Nazwisko} uderza z dystansu, ale piłka mija bramkę o kilka metrów, co za zmarnowana okazja!",
+      "Próba z woleja w wykonaniu {Nazwisko}, jednak kompletnie niecelna, co za pech!",
+      "Potężna bomba, którą posłał {Nazwisko}! Niestety prosto w trybuny, co za zmarnowany strzał!",
+      "{Nazwisko} szukał miejsca do strzału, ale ostatecznie chybił, co za niewykorzystana szansa!",
+      "Nieczyste uderzenie {Nazwisko}, piłka turla się obok słupka, co za pechowy strzał!",
+      "{Nazwisko} spróbował technicznego strzału, zabrakło jednak precyzji, co za zmarnowana okazja!",
+      "Kolejna próba {Nazwisko}, wciąż bez efektu bramkowego, co za niewykorzystany potencjał!",
+      "{Nazwisko} decyduje się na uderzenie rozpaczy, bardzo niecelnie, co za pechowy strzał!",
+      "Piłka po strzale {Nazwisko} opuszcza plac gry w znacznej odległości od bramki, co za zmarnowana okazja!",
+      "{Nazwisko} chciał zaskoczyć golkipera, ale to nie był dobry pomysł, co za pechowy strzał!"
+
   ],
   [MatchEventType.SHOT_ON_TARGET]: [
     "Groźny strzał! Bramkarz z trudem wybija na róg.",
@@ -34,7 +45,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Techniczne uderzenie {Nazwisko} zmierzało do siatki.",
     "Czysty kontakt z piłką {Nazwisko}, ale prosto w ręce bramkarza.",
     "{Nazwisko} świetnie znalazł lukę, ale strzał był zbyt czytelny.",
-    "Mamy celną próbę! {Nazwisko} był bliski szczęścia."
+    "Mamy celną próbę! {Nazwisko} był bliski szczęścia.",
+      "{Nazwisko} uderzył z dystansu, ale bramkarz był czujny i pewnie chwycił piłkę.",
+      "{Nazwisko} posłał piłkę w samo okienko, ale golkiper był na posterunku i zdołał obronić ten strzał!",
+      "Strzał w światło bramki autorstwa {Nazwisko}, ale bramkarz był czujny i zdołał obronić ten strzał!",
+      "Ależ blisko był {Nazwisko}! Bramkarz końcami palców wybija piłkę, ratując swój zespół przed utratą gola.",
+      "{Nazwisko} sprawdził czujność bramkarza mocnym strzałem, ale golkiper był na posterunku i zdołał obronić ten strzał!",
+      "Techniczne uderzenie {Nazwisko} zmierzało do siatki, ale bramkarz był czujny i zdołał obronić ten strzał!",
+      "Czysty kontakt z piłką {Nazwisko}, ale prosto w ręce bramkarza, który był czujny i zdołał obronić ten strzał!",
+      "{Nazwisko} świetnie znalazł lukę, ale strzał był zbyt czytelny, golkiper był na posterunku i zdołał obronić ten strzał!"
+
   ],
   [MatchEventType.SAVE]: [
     "Co za parada! Wyciągnął się jak struna.",
@@ -51,7 +71,24 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Interwencja meczu! Bramkarz górą nad {Nazwisko}.",
     "Golkiper popisuje się kunsztem po strzale {Nazwisko}.",
     "{Nazwisko} zrobił wszystko dobrze, ale bramkarz był fenomenalny.",
-    "Kolejna świetna obrona, tym razem powstrzymany {Nazwisko}."
+    "Kolejna świetna obrona, tym razem powstrzymany {Nazwisko}.",
+      "{Nazwisko} nie może uwierzyć, że bramkarz go zatrzymał!",
+      "Bramkarz bohaterem! Obronił strzał {Nazwisko}!",
+      "Niesamowity refleks! {Nazwisko} był bliski szczęścia, ale golkiper był lepszy.",
+      "Bramkarz ratuje swój zespół przed utratą gola po strzale {Nazwisko}!",
+      "Cudowna interwencja! {Nazwisko} nie może w to uwierzyć, że bramkarz go zatrzymał!",
+      "Golkiper wygrywa pojedynek z {Nazwisko} po fenomenalnej paradzie!",
+      "Niesamowity refleks! {Nazwisko} uderzył świetnie, ale obrona była lepsza, ratując swój zespół przed utratą gola!",
+      "Bramkarz kradnie show, broniąc strzał {Nazwisko} w niesamowity sposób!",
+      "Bramkarz popisuje się kunsztem po strzale {Nazwisko}, ratując swój zespół przed utratą gola!",
+      "{Nazwisko} nie może uwierzyć, że bramkarz go zatrzymał po tej fenomenalnej paradzie!",
+      "Bramkarz bohaterem! Obronił strzał {Nazwisko} w niesamowity sposób!",
+      "Niesamowity refleks! {Nazwisko} był bliski szczęścia, ale golkiper był lepszy, ratując swój zespół przed utratą gola!",
+      "Bramkarz ratuje swój zespół przed utratą gola po strzale {Nazwisko} w niesamowity sposób!",
+      "Cudowna interwencja! {Nazwisko} nie może w to uwierzyć, że bramkarz go zatrzymał po tej fenomenalnej paradzie!",
+      "Golkiper wygrywa pojedynek z {Nazwisko} po fenomenalnej paradzie, ratując swój zespół przed utratą gola!",
+      "Niesamowity refleks! {Nazwisko} uderzył świetnie, ale obrona była lepsza, ratując swój zespół przed utratą gola po strzale {Nazwisko}!",
+      "Bramkarz kradnie show, broniąc strzał {Nazwisko} w niesamowity sposób, ratując swój zespół przed utratą gola!"
   ],
   [MatchEventType.GOAL]: [
     "GOL! Stadiony świata! Ależ to trafił!",
@@ -70,10 +107,33 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} pakuje piłkę do siatki! Co za radość!",
     "To musiał być gol! {Nazwisko} wykańcza tę akcję wzorowo.",
     "{Nazwisko} pokazuje klasę, bramka numer jeden dzisiaj!",
-    "Mamy prowadzenie! {Nazwisko} bohaterem trybun!",
+    "Co za bramka!!! {Nazwisko} bohaterem trybun!",
     "Fenomenalna bramka! {Nazwisko} uderzył nie do obrony.",
     "Piłka w siatce, a strzelcem nie kto inny jak {Nazwisko}!",
-    "Precyzyjny strzał {Nazwisko} i mamy bramkę!"
+    "Precyzyjny strzał {Nazwisko} i mamy bramkę!",
+    "GOL!!! {Nazwisko} strzela z główki",
+    "GOL!!! {Nazwisko} strzela z dystansu!",
+    "GOL!!! {Nazwisko} strzela po dośrodkowaniu!",
+    "GOL!!! {Nazwisko} dobija z bliska.",
+    "GOL!!! {Nazwisko} w dziecinny sposób ograł obronę.",
+    "GOL!!! {Nazwisko} sam na sam z bramkarzem.",
+    "GOL!!! {Nazwisko} strzela z bliska.",
+    "GOL!!! {Nazwisko} wpisuje się na listę. Nieudana pułapka ofsajdowa rywali.",
+    "GOL!!! {Nazwisko} lobuje bramkarza",
+    "GOL!!! {Nazwisko} strzela z rzutu wolnego!",
+    "GOL!!! {Nazwisko} piłka odbija się od słupka i wpada do siatki!",
+    "GOL!!! {Nazwisko} strzela z woleja!",
+    "GOL!!! {Nazwisko} strzela z pierwszej piłki!",
+    "GOL!!! {Nazwisko} strzela z główki po dośrodkowaniu!",
+    "GOL!!! {Nazwisko} strzela z dystansu po indywidualnej akcji!",
+    "GOL!!! {Nazwisko} strzela z bliska po błędzie obrony!",
+    "GOL!!! {Nazwisko} strzela z bliska po dośrodkowaniu!",
+    "GOL!!! {Nazwisko} strzela z bliska po indywidualnej akcji!",
+    "GOL!!! {Nazwisko} strzela z bliska po błędzie bramkarza!",
+    "GOL!!! {Nazwisko} strzela z bliska po błędzie obrony i bramkarza!",
+    "GOL!!! {Nazwisko} strzela z bliska po dośrodkowaniu i błędzie obrony!",
+    "GOL!!! {Nazwisko} strzela z bliska po indywidualnej akcji i błędzie obrony!",
+    "GOL!!! {Nazwisko} strzela z bliska po błędzie bramkarza i obrony!"
   ],
   [MatchEventType.FOUL]: [
     "Sędzia przerywa grę, faul w środkowej strefie.",
@@ -90,7 +150,11 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Kolejne przewinienie {Nazwisko}, sędzia traci cierpliwość.",
     "{Nazwisko} powala rywala nieprzepisowym wejściem.",
     "Zbyt twardo zagrał teraz {Nazwisko}, mamy gwizdek.",
-    "Arbiter upomina {Nazwisko} za to ostre starcie."
+    "Arbiter upomina {Nazwisko} za to ostre starcie.",
+    "{Nazwisko} fauluje, ale sędzia nie decyduje się na kartkę.",
+    "{Nazwisko} fauluje, sędzia go upomina po raz ostatni."
+    
+
   ],
   [MatchEventType.OFFSIDE]: [
     "Spalony! Sędzia asystent podnosi chorągiewkę.",
@@ -107,7 +171,18 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} protestuje, ale spalony był ewidentny.",
     "Ofsajd {Nazwisko} marnuje świetną szansę bramkową.",
     "{Nazwisko} wyszedł zbyt wcześnie do prostopadłej piłki.",
-    "Kolejny spalony dzisiaj, tym razem zawinił {Nazwisko}."
+    "Kolejny spalony dzisiaj, tym razem zawinił {Nazwisko}.",
+    "{Nazwisko} złapany na spalonym, sędzia nie miał wątpliwości.",
+      "{Nazwisko} na spalonym, akcja przerwana, co za pech!",
+      "Pech {Nazwisko}, był o krok przed obrońcami, ale sędzia był czujny i złapał go na spalonym!",
+      "{Nazwisko} nie dopilnował linii, mamy ofsajd, co za pech!",
+      "Spalony! {Nazwisko} musi lepiej czytać grę obronną, co za pech!",
+      "{Nazwisko} protestuje, ale spalony był ewidentny, co za pech!",
+      "Ofsajd {Nazwisko} marnuje świetną szansę bramkową, co za pech!",
+      "{Nazwisko} wyszedł zbyt wcześnie do prostopadłej piłki, co za pech!",
+      "Kolejny spalony dzisiaj, tym razem zawinił {Nazwisko}, co za pech!",
+      "{Nazwisko} złapany na spalonym, sędzia nie miał wątpliwości, co za pech!"
+
   ],
   [MatchEventType.CORNER]: [
     "Dośrodkowanie z rzutu rożnego w głąb pola karnego.",
@@ -124,7 +199,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} próbuje wkręcić piłkę z rogu prosto do bramki!",
     "Techniczna centra {Nazwisko}, będzie groźnie pod bramką.",
     "{Nazwisko} bije rzut rożny na długi słupek.",
-    "Piłka od {Nazwisko} z narożnika, trwa walka o pozycję."
+    "Piłka od {Nazwisko} z narożnika, trwa walka o pozycję.",
+    "{Nazwisko} posyła piłkę w pole karne z rogu, ale obrońcy są czujni.",
+    "{Nazwisko} decyduje się na krótkie rozegranie kornera, ale rywale są czujni i przechwytują piłkę.",
+    "Mocna centra {Nazwisko} z rzutu rożnego, ale obrońcy są czujni i wybijają piłkę.",
+    "{Nazwisko} posyła piłkę prosto na głowę stopera, ale ten nie trafia w światło bramki.",
+    "Złe dośrodkowanie {Nazwisko} z rożnego, obrona wybija, co za zmarnowana okazja!",
+    "{Nazwisko} próbuje wkręcić piłkę z rogu prosto do bramki, ale obrońcy są czujni i wybijają piłkę.",
+    "Techniczna centra {Nazwisko}, będzie groźnie pod bramką, ale obrońcy są czujni i wybijają piłkę.",
+    "{Nazwisko} bije rzut rożny na długi słupek, ale obrońcy są czujni i wybijają piłkę.",
+    "Piłka od {Nazwisko} z narożnika, trwa walka o pozycję, ale obrońcy są czujni i przechwytują piłkę."
   ],
   [MatchEventType.PENALTY_AWARDED]: [
     "RZUT KARNY! Ależ dramaturgia w polu karnym!",
@@ -144,7 +228,12 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Wielka szansa przed {Nazwisko}, sędzia dyktuje jedenastkę.",
     "Jedenastka! {Nazwisko} bierze piłkę pod pachę.",
     "Czy {Nazwisko} pokona bramkarza z jedenastu metrów?",
-    "Kontrowersja! Sędzia dyktuje karny po starciu z udziałem {Nazwisko}."
+    "Kontrowersja! Sędzia dyktuje karny po starciu z udziałem {Nazwisko}.",
+    "Rzut karny! {Nazwisko} ma szansę zostać bohaterem tego spotkania.",
+    "Sędzia wskazuje na wapno, {Nazwisko} będzie miał okazję strzelić z jedenastu metrów.",
+    "Rzut karny! {Nazwisko} podchodzi do piłki, a cały stadion w napięciu czeka na ten moment."
+
+
   ],
   [MatchEventType.PENALTY_SCORED]: [
     "Pewnie wykonany rzut karny! Bramkarz w innym rogu.",
@@ -198,7 +287,18 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Bramkarz bohaterem! Zatrzymuje strzał {Nazwisko}!",
     "{Nazwisko} uderzył zbyt lekko, prosto w ręce golkipera.",
     "Karny niewykorzystany przez {Nazwisko}! Stadion zamarł.",
-    "{Nazwisko} fatalnie skiksował przy rzucie karnym."
+    "{Nazwisko} fatalnie skiksował przy rzucie karnym.",
+    "{Nazwisko} chciał zlekceważyć bramkarza i teraz może mieć pretesje sam do siebie, co za pech!",
+    "NIE MA GOLA! {Nazwisko} marnuje rzut karny, co za pech!",
+    "Bramkarz wyczuł {Nazwisko} i broni tę jedenastkę, co za pech!",
+    "{Nazwisko} uderza nad poprzeczką! Fatalne pudło, co za pech!",
+    "Pech {Nazwisko}, piłka po jego strzale obija słupek, co za pech!",
+    "{Nazwisko} zmarnował wielką szansę na zmianę wyniku, co za pech!",
+    "Co za pudło! {Nazwisko} nie może uwierzyć w to co zrobił, co za pech!",
+    "Bramkarz bohaterem! Zatrzymuje strzał {Nazwisko} w niesamowity sposób, co za pech!",
+    "{Nazwisko} uderzył zbyt lekko, prosto w ręce golkipera, co za pech!",
+    "Karny niewykorzystany przez {Nazwisko}! Stadion zamarł, co za pech!",
+    "{Nazwisko} fatalnie skiksował przy rzucie karnym, co za pech!"
   ],
   [MatchEventType.PRESSURE]: [
     "Trwa oblężenie pola karnego, pachnie bramką.",
@@ -215,7 +315,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Trwa kanonada! {Nazwisko} szuka kolejnej okazji.",
     "{Nazwisko} wygrywa każdą górną piłkę, presja narasta.",
     "Obrona wybija piłkę pod nogi {Nazwisko}, oblężenie trwa.",
-    "{Nazwisko} zmusza defensorów do panicznego wybijania piłki."
+    "{Nazwisko} zmusza defensorów do panicznego wybijania piłki.",
+      "{Nazwisko} napędza kolejny atak swojej drużyny, co za presja!",
+      "Pod naporem {Nazwisko} obrona zaczyna pękać, co za presja!",
+      "{Nazwisko} dusi rywala pressingiem na ich połowie, co za presja!",
+      "Rywal nie może wyjść z własnej połowy przez {Nazwisko}, co za presja!",
+      "Pełna dominacja, {Nazwisko} niemal nie schodzi z pola karnego, co za presja!",
+      "{Nazwisko} kreuje sytuację za sytuacją, obrona w tarapatach, co za presja!",
+      "Trwa kanonada! {Nazwisko} szuka kolejnej okazji, co za presja!",
+      "{Nazwisko} wygrywa każdą górną piłkę, presja narasta, co za presja!",
+      "Obrona wybija piłkę pod nogi {Nazwisko}, oblężenie trwa, co za presja!",
+      "{Nazwisko} zmusza defensorów do panicznego wybijania piłki, co za presja!"
   ],
   [MatchEventType.INJURY_LIGHT]: [
     "✚ Uraz: {Nazwisko}",
@@ -232,7 +342,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} pokazuje kciuk w górę, zostaje na boisku.",
     "Szybka interwencja fizjoterapeuty przy {Nazwisko}.",
     "{Nazwisko} musi na chwilę zejść za linię boczną.",
-    "Lekka kontuzja {Nazwisko}, miejmy nadzieję na szybką regenerację."
+    "Lekka kontuzja {Nazwisko}, miejmy nadzieję na szybką regenerację.",
+      "{Nazwisko} krzywi się z bólu, ale nie chce zmiany, co za charakter!",
+      "Medyk opatruje nogę {Nazwisko}, to tylko stłuczenie, co za ulga!",
+      "{Nazwisko} wraca do gry po krótkiej przerwie medycznej, co za determinacja!",
+      "Mały uraz {Nazwisko}, miejmy nadzieję, że to nic groźnego, co za ulga!",
+      "{Nazwisko} kuleje, ale zaciska zęby i walczy dalej, co za charakter!",
+      "Potrzebny spray chłodzący dla {Nazwisko}, co za ulga!",
+      "{Nazwisko} pokazuje kciuk w górę, zostaje na boisku, co za charakter!",
+      "Szybka interwencja fizjoterapeuty przy {Nazwisko}, co za ulga!",
+      "{Nazwisko} musi na chwilę zejść za linię boczną, miejmy nadzieję na szybką regenerację, co za ulga!",
+      "Lekka kontuzja {Nazwisko}, miejmy nadzieję na szybką regenerację, co za ulga!"
   ],
   [MatchEventType.INJURY_SEVERE]: [
     "✚ Poważna kontuzja: {Nazwisko}",
@@ -249,7 +369,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Fatalny zbieg okoliczności dla {Nazwisko}, potrzebna operacja?",
     "Wszyscy zamarli, {Nazwisko} doznał groźnej kontuzji.",
     "Brak {Nazwisko} będzie ogromnym osłabieniem dla zespołu.",
-    "{Nazwisko} schodzi w asyście lekarzy, to koniec na dzisiaj."
+    "{Nazwisko} schodzi w asyście lekarzy, to koniec na dzisiaj.",
+    "To wygląda bardzo poważnie, {Nazwisko} wzywa lekarzy, co za koszmarne wieści!",
+    "{Nazwisko} zniesiony z murawy, trzymamy kciuki za zdrowie, co za koszmarne wieści!",
+    "Niestety, {Nazwisko} nie dokończy tego spotkania, co za koszmarne wieści!",
+    "Poważny uraz kolana {Nazwisko}, to może być długa przerwa, co za koszmarne wieści!",
+    "{Nazwisko} ze łzami w oczach opuszcza plac gry, co za koszmarne wieści!",
+    "Fatalny zbieg okoliczności dla {Nazwisko}, potrzebna operacja?, co za koszmarne wieści!",
+    "Wszyscy zamarli, {Nazwisko} doznał groźnej kontuzji, co za koszmarne wieści!",
+    "Brak {Nazwisko} będzie ogromnym osłabieniem dla zespołu, co za koszmarne wieści!",
+    "{Nazwisko} schodzi w asyście lekarzy, to koniec na dzisiaj, co za koszmarne wieści!"
   ],
   [MatchEventType.THROW_IN]: [
     "Aut! Piłka opuszcza plac gry.",
@@ -266,7 +395,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} popełnia błąd przy wyrzucie z autu!",
     "Sędzia nakazuje powtórkę autu przez {Nazwisko}.",
     "{Nazwisko} wyrzuca piłkę do tyłu, uspokajając grę.",
-    "Dynamiczny wyrzut {Nazwisko} otwiera drogę do akcji."
+    "Dynamiczny wyrzut {Nazwisko} otwiera drogę do akcji.",
+    "{Nazwisko} szybko wznawia grę wyrzutem z autu, co za tempo!",
+    "Piłka od {Nazwisko} wędruje w kierunku napastników, co za precyzja!",
+    "{Nazwisko} wyciera piłkę o koszulkę przed wyrzutem, co za profesjonalizm!",
+    "Daleki wyrzut {Nazwisko} w samą szesnastkę, co za siła!",
+    "{Nazwisko} szuka wzrokiem wolnego partnera do autu, co za inteligencja!",
+    "Aut dla rywali, {Nazwisko} nie zdążył do piłki, co za pech!",
+    "{Nazwisko} popełnia błąd przy wyrzucie z autu, co za pech!",
+    "Sędzia nakazuje powtórkę autu przez {Nazwisko}, co za pech!",
+    "{Nazwisko} wyrzuca piłkę do tyłu, uspokajając grę, co za profesjonalizm!",
+    "Dynamiczny wyrzut {Nazwisko} otwiera drogę do akcji, co za precyzja!"
   ],
   [MatchEventType.FREE_KICK]: [
     "Rzut wolny! Faul w bezpiecznej odległości od bramki.",
@@ -283,7 +422,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} wrzuca piłkę w kocioł podbramkowy.",
     "Nieudane rozegranie wolnego przez {Nazwisko}.",
     "{Nazwisko} szuka głowy stopera mocną wrzutką.",
-    "Piłka od {Nazwisko} z wolnego przelatuje nad obrońcami."
+    "Piłka od {Nazwisko} z wolnego przelatuje nad obrońcami.",
+    "{Nazwisko} posyła długą centrę z rzutu wolnego, ale obrońcy są czujni i wybijają piłkę.",
+    "{Nazwisko} krótko rozgrywa wolny do najbliższego kolegi, ale rywale są czujni i przechwytują piłkę.",
+    "Mamy rzut wolny, {Nazwisko} gotowy do uderzenia, co za napięcie!",
+    "{Nazwisko} faulowany, sam będzie wymierzał sprawiedliwość, co za bohaterstwo!",
+    "Gwizdek sędziego, {Nazwisko} szybko wznawia grę, co za tempo!",
+    "{Nazwisko} wrzuca piłkę w kocioł podbramkowy, ale obrońcy są czujni i wybijają piłkę.",
+    "Nieudane rozegranie wolnego przez {Nazwisko}, co za zmarnowana okazja!",
+    "{Nazwisko} szuka głowy stopera mocną wrzutką, ale obrońcy są czujni i wybijają piłkę.",
+    "Piłka od {Nazwisko} z wolnego przelatuje nad obrońcami, ale bramkarz jest czujny i łapie piłkę."
   ],
   [MatchEventType.FREE_KICK_DANGEROUS]: [
     "Niebezpieczeństwo! Rzut wolny blisko pola karnego!",
@@ -300,7 +448,15 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} oszukał mur, ale bramkarz był czujny.",
     "Potężny strzał {Nazwisko} zatrzymuje się na murze.",
     "{Nazwisko} celebruje ustawienie piłki, będzie groźnie.",
-    "Wszyscy patrzą na {Nazwisko}, rzut wolny z 20 metrów!"
+    "Wszyscy patrzą na {Nazwisko}, rzut wolny z 20 metrów!",
+    "{Nazwisko} mierzy w samo okienko z rzutu wolnego, co za okazja!",
+    "Ależ okazja! {Nazwisko} przy piłce, mur drży z niepokoju, co za napięcie!",
+    "{Nazwisko} uderza technicznie nad murem, ale bramkarz jest czujny i łapie piłkę!",
+    "Brama na widelcu! Czy {Nazwisko} to wykorzysta? Co za napięcie!",
+    "{Nazwisko} posyła bombę z wolnego, co za siła, ale bramkarz jest czujny i łapie piłkę!",
+    "Minimalne chybił {Nazwisko} z tego groźnego wolnego, co za pech!",
+    "{Nazwisko} oszukał mur, ale bramkarz był czujny i łapie piłkę, co za pech!",
+    "Potężny strzał {Nazwisko} zatrzymuje się na murze, co za pech!"
   ],
   [MatchEventType.SHOT_POST]: [
     "SŁUPEK! Ależ pech! Centymetry od gola!",
@@ -317,7 +473,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} o centymetry od bramki! Słupek!",
     "Konstrukcja bramki uratowała zespół przed golem {Nazwisko}.",
     "{Nazwisko} złapał się za głowę po tym strzale w słupek.",
-    "Tylko słupek! {Nazwisko} był tak blisko trafienia."
+    "Tylko słupek! {Nazwisko} był tak blisko trafienia.",
+    "{Nazwisko} trafia w słupek! Zabrakło szczęścia, co za pech!",
+    "Ależ pech {Nazwisko}! Słupek ratuje bramkarza, co za pech!",
+    "Piłka po strzale {Nazwisko} obija konstrukcję bramki, co za pech!",
+    "{Nazwisko} nie może uwierzyć, piłka zatrzymała się na słupku, co za pech!",
+    "To powinien być gol {Nazwisko}, ale jest tylko słupek, co za pech!",
+    "Huknął {Nazwisko}, ale słupek stanął na drodze do radości, co za pech!",
+    "{Nazwisko} o centymetry od bramki! Słupek, co za pech!",
+    "Konstrukcja bramki uratowała zespół przed golem {Nazwisko}, co za pech!",
+    "{Nazwisko} złapał się za głowę po tym strzale w słupek, co za pech!"
   ],
   [MatchEventType.SHOT_BAR]: [
     "POPRZECZKA! Niesamowite uderzenie!",
@@ -334,7 +499,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Poprzeczka uratowała bramkarza po strzale {Nazwisko}!",
     "{Nazwisko} nie wierzy własnym oczom, poprzeczka!",
     "Kolejny pechowy strzał, tym razem {Nazwisko} w poprzeczkę.",
-    "Stadion jęknął z zawodu, {Nazwisko} trafił w poprzeczkę."
+    "Stadion jęknął z zawodu, {Nazwisko} trafił w poprzeczkę.",
+    "{Nazwisko} obija poprzeczkę potężnym strzałem, co za pech!",
+    "Ależ bomba {Nazwisko}! Poprzeczka aż zadudniła, co za pech!",
+    "Pech {Nazwisko}! Piłka ląduje na górnej części poprzeczki, co za pech!",
+    "{Nazwisko} uderza z woleja i trafia w poprzeczkę, co za pech!",
+    "Gdyby to wpadło! {Nazwisko} trafia w samo aluminium, co za pech!",
+    "{Nazwisko} o włos od pięknego gola! Tylko poprzeczka, co za pech!",
+    "Poprzeczka uratowała bramkarza po strzale {Nazwisko}, co za pech!",
+    "{Nazwisko} nie wierzy własnym oczom, poprzeczka, co za pech!",
+    "Kolejny pechowy strzał, tym razem {Nazwisko} w poprzeczkę, co za pech!",
+    "Stadion jęknął z zawodu, {Nazwisko} trafił w poprzeczkę, co za pech!"
   ],
   [MatchEventType.HANDBALL]: [
     "Ręka! Celowe zagranie i żółta kartka!",
@@ -351,7 +526,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Ręka! {Nazwisko} protestuje, ale decyzja jest inna.",
     "{Nazwisko} zablokował strzał ręką, sędzia bezlitosny.",
     "Przewinienie {Nazwisko}, ewidentne zagranie ręką.",
-    "{Nazwisko} tłumaczy się sędziemu z tego kontaktu z piłką."
+    "{Nazwisko} tłumaczy się sędziemu z tego kontaktu z piłką.",
+    "{Nazwisko} zagrał piłkę ręką w polu karnym, co za błąd!",
+    "Arbiter dyktuje rzut wolny po ręce {Nazwisko}, co za błąd!",
+    "{Nazwisko} celowo dotknął piłki dłonią, mamy gwizdek, co za błąd!",
+    "Błąd {Nazwisko}, ręka przy próbie przyjęcia piłki, co za błąd!",
+    "{Nazwisko} ukarany za nieprzepisowe zagranie ręką, co za błąd!",
+    "Sprytne zagranie ręką {Nazwisko} nie umknęło uwadze sędziego, co za błąd!",
+    "Ręka! {Nazwisko} protestuje, ale decyzja jest inna, co za błąd!",
+    "{Nazwisko} zablokował strzał ręką, sędzia bezlitosny, co za błąd!",
+    "Przewinienie {Nazwisko}, ewidentne zagranie ręką, co za błąd!",
+    "{Nazwisko} tłumaczy się sędziemu z tego kontaktu z piłką, co za błąd!"
   ],
   [MatchEventType.FOUL_JERSEY]: [
     "Pociągnięcie za koszulkę! Taktyczny faul.",
@@ -368,7 +553,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Koszula niemal zdjęta! {Nazwisko} przesadził.",
     "{Nazwisko} ukarany za to brzydkie pociągnięcie za koszulkę.",
     "Faul taktyczny {Nazwisko}, trzymał rywala zbyt mocno.",
-    "{Nazwisko} uśmiecha się pod nosem po tym pociągnięciu."
+    "{Nazwisko} uśmiecha się pod nosem po tym pociągnięciu.",
+    "{Nazwisko} bezczelnie ciągnie rywala za koszulkę, co za brudne zagranie!",
+    "Arbiter upomina {Nazwisko} za pociąganie za trykot, co za brudne zagranie!",
+    "{Nazwisko} zatrzymuje kontrę, trzymając rywala za koszulkę, co za brudne zagranie!",
+    "Taktyczny faul {Nazwisko}, koszulka rywala ucierpiała, co za brudne zagranie!",
+    "{Nazwisko} nie pozwolił rywalowi uciec, ciągnąc go za ubranie, co za brudne zagranie!",
+    "Sędzia widział to pociągnięcie w wykonaniu {Nazwisko}, co za brudne zagranie!",
+    "Koszula niemal zdjęta! {Nazwisko} przesadził, co za brudne zagranie!",
+    "{Nazwisko} ukarany za to brzydkie pociągnięcie za koszulkę, co za brudne zagranie!",
+    "Faul taktyczny {Nazwisko}, trzymał rywala zbyt mocno, co za brudne zagranie!",
+    "{Nazwisko} uśmiecha się pod nosem po tym pociągnięciu, co za brudne zagranie!"
   ],
   [MatchEventType.FOUL_PUSH]: [
     "Odepchnięcie rywala! Sędzia odgwizduje przewinienie.",
@@ -385,7 +580,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Pchnięcie rywala przez {Nazwisko} przerywa akcję.",
     "{Nazwisko} używa rąk w walce bark w bark.",
     "Brutalny atak barkiem w wykonaniu {Nazwisko}!",
-    "{Nazwisko} spycha rywala na ziemię, sędzia czujny."
+    "{Nazwisko} spycha rywala na ziemię, sędzia czujny.",
+    "{Nazwisko} ordynarnie spycha rywala z boiska, co za brutalny atak!",
+    "Faul! {Nazwisko} pchnął przeciwnika obiema rękami, co za brutalny atak!",
+    "{Nazwisko} przesadził z siłą w walce o pozycję, co za brutalny atak!",
+    "Odepchnięcie w wykonaniu {Nazwisko}, sędzia gwiżdże, co za brutalny atak!",
+    "{Nazwisko} ukarany za niebezpieczne pchnięcie w plecy, co za brutalny atak!",
+    "{Nazwisko} nie zgadza się z decyzją po tym odepchnięciu, co za brutalny atak!",
+    "Pchnięcie rywala przez {Nazwisko} przerywa akcję, co za brutalny atak!",
+    "{Nazwisko} używa rąk w walce bark w bark, co za brutalny atak!",
+    "Brutalny atak barkiem w wykonaniu {Nazwisko}!, co za brutalny atak!",
+    "{Nazwisko} spycha rywala na ziemię, sędzia czujny, co za brutalny atak!"
   ],
   [MatchEventType.WINGER_STOPPED]: [
     "Znakomity wślizg! Rajd skrzydłowego powstrzymany.",
@@ -402,7 +607,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Pojedynek jeden na jeden wygrany przez {Nazwisko}.",
     "{Nazwisko} wybija piłkę spod nóg rozpędzonego rywala.",
     "{Nazwisko} stawia tamę na boku boiska!",
-    "Koniec rajdu, {Nazwisko} odebrał piłkę profesjonalnie."
+    "Koniec rajdu, {Nazwisko} odebrał piłkę profesjonalnie.",
+    "{Nazwisko} perfekcyjnie wyłącza skrzydłowego z gry, co za wślizg!",
+    "Ależ wślizg {Nazwisko}! Czysto i skutecznie, co za wślizg!",
+    "{Nazwisko} nie dał się ograć na skrzydle, co za wślizg!",
+    "Mur nie do przejścia, {Nazwisko} króluje w obronie, co za wślizg!",
+    "{Nazwisko} zatrzymuje rajd rywala w ostatniej chwili, co za wślizg!",
+    "{Nazwisko} świetnie czyta zamiary skrzydłowego, co za wślizg!",
+    "Pojedynek jeden na jeden wygrany przez {Nazwisko}, co za wślizg!",
+    "{Nazwisko} wybija piłkę spod nóg rozpędzonego rywala, co za wślizg!",
+    "{Nazwisko} stawia tamę na boku boiska, co za wślizg!",
+    "Koniec rajdu, {Nazwisko} odebrał piłkę profesjonalnie, what a tackle!"
   ],
   [MatchEventType.CROSS_NEAR_POST]: [
     "Wrzutka na krótki słupek! Szukają przecięcia.",
@@ -419,7 +634,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} posyła piłkę wzdłuż linii bramkowej!",
     "Niebezpieczna centra {Nazwisko} z bocznego sektora.",
     "{Nazwisko} szuka zaskoczenia wrzutką na pierwszy słupek.",
-    "Piłka od {Nazwisko} szybuje w stronę bramki!"
+    "Piłka od {Nazwisko} szybuje w stronę bramki!",
+    "{Nazwisko} posyła kąśliwą centrę na krótki słupek, co za precyzja!",
+    "Ostra wrzutka {Nazwisko}, szuka głowy napastnika, co za precyzja!",
+    "{Nazwisko} precyzyjnie dośrodkowuje w przednią strefę, co za precyzja!",
+    "Mamy wrzutkę {Nazwisko}, obrońcy muszą być czujni, co za precyzja!",
+    "{Nazwisko} centruje na krótki róg bramki, co za precyzja!",
+    "Świetne dogranie {Nazwisko}, ale nikt nie przeciął piłki, co za pech!",
+    "{Nazwisko} posyła piłkę wzdłuż linii bramkowej, co za precyzja!",
+    "Niebezpieczna centra {Nazwisko} z bocznego sektora, co za precyzja!",
+    "{Nazwisko} szuka zaskoczenia wrzutką na pierwszy słupek, co za precyzja!",
+    "Piłka od {Nazwisko} szybuje w stronę bramki, co za precyzja!"
   ],
   [MatchEventType.CROSS_FAR_POST]: [
     "Głęboka wrzutka na długi słupek!",
@@ -436,7 +661,15 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} wrzuca miękko w kierunku dalszego rogu.",
     "Groźne dogranie {Nazwisko}, będzie strzał głową?",
     "{Nazwisko} precyzyjnie bije piłkę na tyły obrony.",
-    "Mamy głęboką centrę {Nazwisko}, obrona ma problemy."
+    "Mamy głęboką centrę {Nazwisko}, obrona ma problemy.",
+    "{Nazwisko} centruje głęboko na dalszy słupek, co za precyzja!",
+    "Wrzutka {Nazwisko} szuka zamykającego akcję skrzydłowego, co za precyzja!",
+    "{Nazwisko} posyła mierzoną piłkę nad głowami stoperów, co za precyzja!",
+    "Dośrodkowanie {Nazwisko} na drugi róg szesnastki, co za precyzja!",
+    "{Nazwisko} świetnie dostrzegł partnera na długim słupku, co za precyzja!",
+    "Piłka od {Nazwisko} przelatuje nad całym polem karnym, co za precyzja!",
+    "{Nazwisko} wrzuca miękko w kierunku dalszego rogu, co za precyzja!",
+    "Groźne dogranie {Nazwisko}, będzie strzał głową? Co za precyzja!"
   ],
   [MatchEventType.ONE_ON_ONE_GOAL]: [
     "SAM NA SAM! I GOOOL! Zimna krew napastnika!",
@@ -470,7 +703,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} chciał technicznie, a wyszło... bardzo niecelnie.",
     "Marnuje setkę {Nazwisko}! Trener nie może uwierzyć.",
     "Strzał życia... a wyszło pudło roku w wykonaniu {Nazwisko}.",
-    "{Nazwisko} złapał się za twarz po tym niewiarygodnym pudle."
+    "{Nazwisko} złapał się za twarz po tym niewiarygodnym pudle.",
+    "{Nazwisko} marnuje idealną szansę sam na sam, co za pudło!",
+    "Jak on tego nie strzelił?! {Nazwisko} pudłuje w setce, co za pudło!",
+    "{Nazwisko} uderza obok słupka w czystej sytuacji, co za pudło!",
+    "Pech {Nazwisko}! Piłka mija bramkę o milimetry, co za pudło!",
+    "{Nazwisko} nie wytrzymał presji w pojedynku z bramkarzem, co za pudło!",
+    "Fatalne wykończenie {Nazwisko}, piłka na trybunach, co za pudło!",
+    "{Nazwisko} chciał technicznie, a wyszło... bardzo niecelnie, co za pudło!",
+    "Marnuje setkę {Nazwisko}! Trener nie może uwierzyć, co za pudło!",
+    "Strzał życia... a wyszło pudło roku w wykonaniu {Nazwisko}, co za pudło!",
+    "{Nazwisko} złapał się za twarz po tym niewiarygodnym pudle, co za pudło!"
   ],
   [MatchEventType.ONE_ON_ONE_SAVE]: [
     "SAM NA SAM... BRONI BRAMKARZ! Genialna interwencja!",
@@ -487,7 +730,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Pojedynek twarzą w twarz wygrywa golkiper, {Nazwisko} smutny.",
     "Bramkarz czyta zamiary {Nazwisko} jak otwartą księgę!",
     "Cudowna parada nogami! {Nazwisko} tylko kręci głową.",
-    "Golkiper ratuje zespół po strzale {Nazwisko}!"
+    "Golkiper ratuje zespół po strzale {Nazwisko}!",
+    "Bramkarz zatrzymuje {Nazwisko} w nieprawdopodobny sposób, co za interwencja!",
+    "Golkiper górą nad {Nazwisko} w pojedynku sam na sam, co za interwencja!",
+    "Niesamowita obrona strzału {Nazwisko}! Co za klasa bramkarza, co za interwencja!",
+    "{Nazwisko} powstrzymany! Bramkarz skrócił kąt idealnie, co za interwencja!",
+    "Bramkarz kradnie bramkę {Nazwisko}! Fenomenalna interwencja, co za interwencja!",
+    "{Nazwisko} uderzył mocno, ale bramkarz odbił piłkę klatką! Co za interwencja!",
+    "Pojedynek twarzą w twarz wygrywa golkiper, {Nazwisko} smutny, co za interwencja!",
+    "Bramkarz czyta zamiary {Nazwisko} jak otwartą księgę! Co za interwencja!",
+    "Cudowna parada nogami! {Nazwisko} tylko kręci głową, co za interwencja!",
+    "Golkiper ratuje zespół po strzale {Nazwisko}! Co za interwencja!"
   ],
   [MatchEventType.DRIBBLING]: [
     "Niesamowity rajd z piłką u nogi!",
@@ -504,7 +757,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} wpada w pole karne po serii zwodów!",
     "Drybling sezonu w wykonaniu {Nazwisko}!",
     "{Nazwisko} gra na małej przestrzeni jak profesor.",
-    "Rajd {Nazwisko} podrywa kibiców z miejsc!"
+    "Rajd {Nazwisko} podrywa kibiców z miejsc!",
+    "{Nazwisko} mija rywali jak tyczki treningowe, co za drybling!",
+    "Ależ balans ciała pokazał teraz {Nazwisko}!, co za drybling!",
+    "{Nazwisko} tańczy z piłką między obrońcami!, co za drybling!",
+    "Cudowna technika {Nazwisko}, rywale tylko patrzą!, co za drybling!",
+    "{Nazwisko} ośmiesza defensywę swoim dryblingiem, co za drybling!",
+    "Piłka przyklejona do nogi {Nazwisko}! Co za kontrola, co za drybling!",
+    "{Nazwisko} wpada w pole karne po serii zwodów!, co za drybling!",
+    "Drybling sezonu w wykonaniu {Nazwisko}!, co za drybling!",
+    "{Nazwisko} gra na małej przestrzeni jak profesor, co za drybling!",
+    "Rajd {Nazwisko} podrywa kibiców z miejsc!, co za drybling!"
   ],
   [MatchEventType.STUMBLE]: [
     "Potknął się na prostej drodze! Strata piłki.",
@@ -521,7 +784,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} wywraca się w najmniej odpowiednim momencie.",
     "Niefortunny upadek {Nazwisko}, strata w środku pola.",
     "{Nazwisko} ma problemy z przyczepnością na tej trawie.",
-    "Ależ kiks! {Nazwisko} po prostu się przewrócił."
+    "Ależ kiks! {Nazwisko} po prostu się przewrócił.",
+    "{Nazwisko} traci piłkę po głupim potknięciu, co za pech!",
+    "Pech {Nazwisko}, murawa okazała się zbyt śliska, co za pech!",
+    "{Nazwisko} zaplątał się we własne nogi przy dryblingu, co za pech!",
+    "Potknięcie {Nazwisko} marnuje świetnie zapowiadającą się akcję, co za pech!",
+    "{Nazwisko} ląduje na murawie bez udziału przeciwnika, co za pech!",
+    "{Nazwisko} wywraca się w najmniej odpowiednim momencie, co za pech!",
+    "Niefortunny upadek {Nazwisko}, strata w środku pola, co za pech!",
+    "{Nazwisko} ma problemy z przyczepnością na tej trawie, co za pech!",
+    "Ależ kiks! {Nazwisko} po prostu się przewrócił, co za pech!"
   ],
   [MatchEventType.MISPLACED_PASS]: [
     "Niecelne podanie, prosta strata w środku pola.",
@@ -538,7 +810,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} podaje niedokładnie, rywal przejmuje inicjatywę.",
     "Fatalne zagranie {Nazwisko}, piłka ląduje na aucie.",
     "{Nazwisko} chciał zagrać prostopadle, ale nie wyszło.",
-    "Niedbałe podanie {Nazwisko} kończy się stratą."
+    "Niedbałe podanie {Nazwisko} kończy się stratą.",
+    "{Nazwisko} posyła piłkę prosto do przeciwnika, co za błąd!",
+    "Co za niecelne podanie {Nazwisko}! Kibice gwiżdżą, co za błąd!",
+    "{Nazwisko} marnuje akcję przez brak precyzji w podaniu, co za błąd!",
+    "Piłka od {Nazwisko} wędruje w próżnię..., co za błąd!",
+    "{Nazwisko} nie dogadał się z partnerem, prosta strata, co za błąd!",
+    "Zbyt mocne podanie {Nazwisko}, nikt tego nie dogoni, co za błąd!",
+    "{Nazwisko} podaje niedokładnie, rywal przejmuje inicjatywę, co za błąd!",
+    "Fatalne zagranie {Nazwisko}, piłka ląduje na aucie, co za błąd!",
+    "{Nazwisko} chciał zagrać prostopadle, ale nie wyszło, co za błąd!",
+    "Niedbałe podanie {Nazwisko} kończy się stratą, co za błąd!"
   ],
   [MatchEventType.BLUNDER]: [
     "CO ON ZROBIŁ?! Koszmarny błąd!",
@@ -555,7 +837,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Błąd sezonu w wykonaniu {Nazwisko}! Kibice zamarli.",
     "{Nazwisko} nie trafił w piłkę przy próbie wybicia!",
     "Skandaliczne zachowanie {Nazwisko} pod własną bramką.",
-    "{Nazwisko} podaje do rywala... co on miał w głowie?"
+    "{Nazwisko} podaje do rywala... co on miał w głowie?",
+    "{Nazwisko} popełnia niewybaczalny błąd w obronie, co za katastrofa!",
+    "Katastrofa! {Nazwisko} oddaje piłkę napastnikowi pod bramką, co za katastrofa!",
+    "Co za wielbłąd {Nazwisko}! To się nie może dziać, co za katastrofa!",
+    "{Nazwisko} kompletnie się pogubił przy wyprowadzaniu piłki, co za katastrofa!",
+    "Koszmar {Nazwisko}! Prezentuje bramkę przeciwnikowi, co za katastrofa!",
+    "{Nazwisko} zagrał jak amator w tej sytuacji, co za katastrofa!",
+    "Błąd sezonu w wykonaniu {Nazwisko}! Kibice zamarli, co za katastrofa!",
+    "{Nazwisko} nie trafił w piłkę przy próbie wybicia, co za katastrofa!",
+    "Skandaliczne zachowanie {Nazwisko} pod własną bramką, co za katastrofa!",
+    "{Nazwisko} podaje do rywala... co on miał w głowie?, co za katastrofa!"
   ],
   [MatchEventType.GK_LONG_THROW]: [
     "Daleki wyrzut piłki przez bramkarza!",
@@ -572,7 +864,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} pokazuje niesamowitą siłę rzutu ręką.",
     "Szybki wyrzut {Nazwisko} zaskakuje obronę rywala.",
     "{Nazwisko} precyzyjnie uruchamia skrzydłowego ręką.",
-    "Bramkarz {Nazwisko} dyryguje akcją dalekim wyrzutem."
+    "Bramkarz {Nazwisko} dyryguje akcją dalekim wyrzutem.",
+    "{Nazwisko} rzuca piłkę na 40 metrów, kapitalna wizja!, co za wyrzut!",
+    "Potężny wyrzut ręką {Nazwisko} napędza kontratak, co za wyrzut!",
+    "{Nazwisko} błyskawicznie wznawia grę dalekim rzutem, co za wyrzut!",
+    "Kapitalne dogranie ręką od {Nazwisko}!, co za wyrzut!",
+    "{Nazwisko} wyrzuca piłkę prosto pod nogi pomocnika, co za wyrzut!",
+    "Daleki wyrzut {Nazwisko} mija linię środkową, co za wyrzut!",
+    "{Nazwisko} pokazuje niesamowitą siłę rzutu ręką, co za wyrzut!",
+    "Szybki wyrzut {Nazwisko} zaskakuje obronę rywala, co za wyrzut!",
+    "{Nazwisko} precyzyjnie uruchamia skrzydłowego ręką, co za wyrzut!",
+    "Bramkarz {Nazwisko} dyryguje akcją dalekim wyrzutem, co za wyrzut!"
   ],
   [MatchEventType.MIDFIELD_CONTROL]: [
     "Spokojnie rozgrywają piłkę w środku boiska.",
@@ -589,7 +891,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} nie daje rywalom dojść do głosu.",
     "Profesorskie rozegranie {Nazwisko} w środku pola.",
     "{Nazwisko} trzyma wszystkich pod grą, świetna praca.",
-    "Rywal biega za piłką, którą zarządza {Nazwisko}."
+    "Rywal biega za piłką, którą zarządza {Nazwisko}.",
+    "{Nazwisko} dyryguje grą w środkowej strefie, co za kontrola!",
+    "Pełna swoboda {Nazwisko} w rozegraniu piłki, co za kontrola!",
+    "{Nazwisko} uspokaja tempo, wymieniając dziesiątki podań, co za kontrola!",
+    "Piłka krąży wokół {Nazwisko}, zespół czuje się pewnie, co za kontrola!",
+    "{Nazwisko} decyduje o kierunku każdego ataku, co za kontrola!",
+    "Kontrola totalna pod wodzą {Nazwisko}, co za kontrola!",
+    "{Nazwisko} nie daje rywalom dojść do głosu, co za kontrola!",
+    "Profesorskie rozegranie {Nazwisko} w środku pola, co za kontrola!",
+    "{Nazwisko} trzyma wszystkich pod grą, świetna praca, co za kontrola!",
+    "Rywal biega za piłką, którą zarządza {Nazwisko}, co za kontrola!"
   ],
   [MatchEventType.PLAY_LEFT]: [
     "Zagranie na lewą stronę, zespół rozciąga grę.",
@@ -606,7 +918,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} dostaje piłkę i rusza lewą stroną!",
     "Krótkie rozegranie na lewej stronie, inicjuje {Nazwisko}.",
     "{Nazwisko} świetnie widzi wolną przestrzeń na lewo.",
-    "Mamy zagranie do lewego bocznego obrońcy, to {Nazwisko}."
+    "Mamy zagranie do lewego bocznego obrońcy, to {Nazwisko}.",
+    "{Nazwisko} uruchamia lewą stronę boiska, co za zagranie!",
+    "Piłka na lewo do rozpędzonego {Nazwisko}, co za zagranie!",
+    "{Nazwisko} rozciąga grę do lewej linii bocznej, co za zagranie!",
+    "Przerzut {Nazwisko} na lewą flankę idealnie w tempo, co za zagranie!",
+    "{Nazwisko} szuka szczęścia po lewej stronie placu, co za zagranie!",
+    "Akcja dynamicznie przeniesiona na lewo przez {Nazwisko}, co za zagranie!",
+    "{Nazwisko} dostaje piłkę i rusza lewą stroną, co za zagranie!",
+    "Krótkie rozegranie na lewej stronie, inicjuje {Nazwisko}, co za zagranie!",
+    "{Nazwisko} świetnie widzi wolną przestrzeń na lewo, co za zagranie!",
+    "Mamy zagranie do lewego bocznego obrońcy, to {Nazwisko}, co za zagranie!"
   ],
   [MatchEventType.PLAY_RIGHT]: [
     "Zagranie na prawą stronę, zmiana kierunku akcji.",
@@ -623,7 +945,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} rozciąga formację rywala, grając na prawo.",
     "Przeniesienie akcji na prawą stronę przez {Nazwisko}.",
     "{Nazwisko} szuka obiegu na prawym skrzydle.",
-    "Piłka na prawą flankę, tam jest wolny {Nazwisko}."
+    "Piłka na prawą flankę, tam jest wolny {Nazwisko}.",
+    "{Nazwisko} posyła piłkę na prawą stronę, co za zagranie!",
+    "Dynamiczna akcja prawą flanką, przy piłce {Nazwisko}, co za zagranie!",
+    "{Nazwisko} świetnie przerzuca ciężar gry na prawo, what a pass!",
+    "Prawa strona należy teraz do {Nazwisko}, co za zagranie!",
+    "{Nazwisko} inicjuje atak prawym sektorem boiska, co za zagranie!",
+    "Podanie na prawo do {Nazwisko}, będzie wrzutka? Co za zagranie!",
+    "{Nazwisko} rozciąga formację rywala, grając na prawo, co za zagranie!",
+    "Przeniesienie akcji na prawą stronę przez {Nazwisko}, co za zagranie!",
+    "{Nazwisko} szuka obiegu na prawym skrzydle, co za zagranie!",
+    "Piłka na prawą flankę, tam jest wolny {Nazwisko}, co za zagranie!"
   ],
   [MatchEventType.PLAY_BACK]: [
     "Wycofanie piłki do tyłu, uspokojenie gry.",
@@ -640,7 +972,17 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "Piłka wraca do {Nazwisko}, zespół zaczyna od nowa.",
     "{Nazwisko} gra bezpiecznie, nie chcąc stracić piłki.",
     "Podanie zwrotne do {Nazwisko}, grają w defensywie.",
-    "{Nazwisko} szuka nowego otwarcia, podając do tyłu."
+    "{Nazwisko} szuka nowego otwarcia, podając do tyłu.",
+    "{Nazwisko} wycofuje piłkę do bramkarza, co za zagranie!",
+    "{Nazwisko} decyduje się na bezpieczne podanie do tyłu, co za zagranie!",
+    "Uspokojenie akcji, {Nazwisko} gra do stoperów, co za zagranie!",
+    "{Nazwisko} nie ryzykuje, wycofuje piłkę za linię środkową, co za zagranie!",
+    "Reset akcji, {Nazwisko} podaje do bloku defensywnego, co za zagranie!",
+    "{Nazwisko} czeka na wsparcie, wycofując futbolówkę, co za zagranie!",
+    "Piłka wraca do {Nazwisko}, zespół zaczyna od nowa, co za zagranie!",
+    "{Nazwisko} gra bezpiecznie, nie chcąc stracić piłki, co za zagranie!",
+    "Podanie zwrotne do {Nazwisko}, grają w defensywie, co za zagranie!",
+    "{Nazwisko} szuka nowego otwarcia, podając do tyłu, co za zagranie!"
   ],
   [MatchEventType.PLAY_SIDE]: [
     "Podanie do boku, szukają wolnej przestrzeni.",
@@ -657,6 +999,16 @@ export const MATCH_COMMENTARY_DB: Record<string, string[]> = {
     "{Nazwisko} świetnie widzi wolnego partnera na boku.",
     "Zagranie od {Nazwisko} otwiera boczny korytarz.",
     "{Nazwisko} spokojnie podaje do boku pola gry.",
-    "Piłka krąży wszerz boiska dzięki {Nazwisko}."
+    "Piłka krąży wszerz boiska dzięki {Nazwisko}.",
+    "{Nazwisko} rozrzuca piłkę do bocznego sektora, co za zagranie!",
+    "Piłka do boku, {Nazwisko} szuka rozciągnięcia obrony, co za zagranie!",
+    "{Nazwisko} gra wszerz boiska, budując akcję, co za zagranie!",
+    "Krótkie podanie do boku od {Nazwisko}, co za zagranie!",
+    "{Nazwisko} przenosi ciężar gry do bocznej strefy, co za zagranie!",
+    "Szukają luki, {Nazwisko} gra piłkę do boku, what a pass!",
+    "{Nazwisko} świetnie widzi wolnego partnera na boku, co za zagranie!",
+    "Zagranie od {Nazwisko} otwiera boczny korytarz, co za zagranie!",
+    "{Nazwisko} spokojnie podaje do boku pola gry, co za zagranie!",
+    "Piłka krąży wszerz boiska dzięki {Nazwisko}, co za zagranie!"
   ]
 };

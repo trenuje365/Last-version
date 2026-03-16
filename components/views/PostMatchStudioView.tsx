@@ -5,6 +5,7 @@ import { ViewState, MatchEventType, PlayerPerformance, MatchResult, MatchSummary
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
 import { PostMatchCommentSelector } from '../../PolishCupEngine/PostMatchCommentSelector';
 import { KitSelectionService } from '../../services/KitSelectionService';
+import { DebugLoggerService } from '../../services/DebugLoggerService';
 
 // Zwiększona przezroczystość paneli dla lepszej widoczności tła
 const GLASS_PANEL = "bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.6)]";
@@ -12,6 +13,7 @@ const GLASS_PANEL = "bg-slate-900/40 backdrop-blur-xl border border-white/10 sha
 export const PostMatchStudioView: React.FC = () => {
   const { lastMatchSummary, navigateTo, roundResults, currentDate, jumpToNextEvent, clubs, players } = useGame();
   const [pageIndex, setPageIndex] = useState(1);
+  const [showExpertModal, setShowExpertModal] = useState(false);
 
   if (!lastMatchSummary) return null;
 
@@ -22,7 +24,23 @@ export const PostMatchStudioView: React.FC = () => {
   } = lastMatchSummary;
 
   const currentRoundResults = useMemo(() => {
-    return roundResults[currentDate.toDateString()] || null;
+    const todayKey = currentDate.toDateString();
+    const yesterdayDate = new Date(currentDate);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayKey = yesterdayDate.toDateString();
+
+    // DEBUG
+    DebugLoggerService.separator('PostMatchStudioView');
+    DebugLoggerService.log('STUDIO', `roundResults keys: ${Object.keys(roundResults).join(', ')}`);
+    DebugLoggerService.log('STUDIO', `currentDate=${todayKey} | today entry=${roundResults[todayKey]?.league1Results?.length ?? 'null'} | yesterday entry=${roundResults[yesterdayKey]?.league1Results?.length ?? 'null'}`);
+    Object.entries(roundResults).forEach(([key, val]) => {
+      DebugLoggerService.log('STUDIO', `  dateKey=${key} L1=${val.league1Results.length} L2=${val.league2Results.length} L3=${val.league3Results.length}`);
+      val.league1Results.forEach((r, i) => DebugLoggerService.log('STUDIO', `    L1[${i}]: ${r.homeTeamName} vs ${r.awayTeamName} ${r.homeScore}:${r.awayScore}`));
+    });
+
+    if (roundResults[todayKey]) return roundResults[todayKey];
+    // Fallback: advanceDay mogło przesunąć datę przed meczem (wyniki pod poprzednim dniem)
+    return roundResults[yesterdayKey] || null;
   }, [roundResults, currentDate]);
 
   const motm = useMemo(() => PostMatchCommentSelector.calculateMOTM(lastMatchSummary), [lastMatchSummary]);
@@ -162,6 +180,16 @@ export const PostMatchStudioView: React.FC = () => {
 
           const formattedEventName = getEventFormattedName(e.playerName, side);
 
+          if (e.varDisallowed) {
+            return (
+              <span key={i} className="text-[10px] font-black uppercase italic text-slate-500 flex items-center gap-1">
+                {side === 'HOME'
+                  ? <><s>{formattedEventName} ({e.minute}')</s>&nbsp;⚽(VAR)</>
+                  : <>⚽(VAR)&nbsp;<s>{formattedEventName} ({e.minute}')</s></>}
+              </span>
+            );
+          }
+
           return (
             <span key={i} className={`text-[10px] font-black uppercase italic ${color} flex items-center gap-1`}>
               {side === 'HOME' ? `${formattedEventName} (${e.minute}') ${icon}` : `${icon} ${formattedEventName} (${e.minute}')`}
@@ -243,7 +271,7 @@ export const PostMatchStudioView: React.FC = () => {
                   {homeScore} <span className="text-slate-700">:</span> {awayScore}
                 </div>
                 <div className="bg-emerald-500/10 px-4 py-1 rounded-full border border-emerald-500/20">
-                  <span className="text-[9px] font-black text-emerald-400 tracking-[0.3em] uppercase">KONIEC</span>
+                  <span className="text-[14px] font-black text-emerald-400 tracking-[0.3em] uppercase">KONIEC SPOTKANIA</span>
                 </div>
               </div>
 
@@ -316,8 +344,12 @@ export const PostMatchStudioView: React.FC = () => {
                     <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">ANALIZA EKSPERCKA</h4>
                     <p className="text-xs font-black text-white italic">Tomasz Hajto</p>
                   </div>
+                  <button
+                    onClick={() => setShowExpertModal(true)}
+                    className="ml-auto px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] hover:bg-emerald-500/30 hover:border-emerald-400 transition-all"
+                  >czytaj więcej ↗</button>
                </div>
-               <p className="text-xl text-slate-300 italic leading-relaxed font-medium relative max-w-3xl">
+               <p className="text-xl text-slate-300 italic leading-relaxed font-medium relative max-w-3xl line-clamp-4">
                  <span className="text-emerald-500/50 text-6xl font-serif absolute -left-10 -top-4">"</span>
                  {expertComment}
                  <span className="text-emerald-500/50 text-6xl font-serif absolute -right-6 bottom-[-20px]">"</span>
@@ -375,15 +407,15 @@ export const PostMatchStudioView: React.FC = () => {
                 📡
              </div>
              <div>
-                <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none">System Multiliga Live</h2>
+                <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none">WYNIKI SPOTKAŃ</h2>
                 <p className="text-blue-500 text-xs font-black uppercase tracking-[0.4em] mt-4">
                    KOLEJKA ROZEGRANA • {currentDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}
                 </p>
              </div>
           </div>
           <div className="bg-black/20 border border-white/10 rounded-[30px] px-10 py-6 flex flex-col items-end">
-             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">Status serwera</span>
-             <span className="text-sm font-black text-emerald-400 italic uppercase tracking-widest">PRZETWORZONO DANE</span>
+             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2"></span>
+             <span className="text-sm font-black text-emerald-400 italic uppercase tracking-widest">NA ŻYWO</span>
           </div>
        </div>
 
@@ -437,6 +469,40 @@ export const PostMatchStudioView: React.FC = () => {
       <div className="relative z-10 w-full max-w-[1800px] h-full flex flex-col gap-6">
         {pageIndex === 1 ? renderPage1() : renderPage2()}
       </div>
+
+      {/* EXPERT COMMENT MODAL */}
+      {showExpertModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-8 animate-fade-in"
+          onClick={() => setShowExpertModal(false)}
+        >
+          <div
+            className={`${GLASS_PANEL} relative rounded-[40px] p-12 max-w-2xl w-full`}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-5 mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 border-2 border-emerald-400 flex items-center justify-center font-black text-2xl text-white italic shadow-lg">H</div>
+              <div>
+                <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">ANALIZA EKSPERCKA</h4>
+                <p className="text-xs font-black text-white italic">Tomasz Hajto</p>
+              </div>
+              <button
+                onClick={() => setShowExpertModal(false)}
+                className="ml-auto w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all text-2xl font-light text-slate-400"
+              >&times;</button>
+            </div>
+            {/* Text with scrollbar */}
+            <div className="overflow-y-auto custom-scrollbar max-h-[60vh] pr-2">
+              <p className="text-lg text-slate-200 italic leading-relaxed font-medium">
+                <span className="text-emerald-500/50 text-5xl font-serif not-italic align-bottom leading-none mr-1">"</span>
+                {expertComment}
+                <span className="text-emerald-500/50 text-5xl font-serif not-italic align-bottom leading-none ml-1">"</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }

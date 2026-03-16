@@ -61,7 +61,9 @@ export const LeagueBackgroundMatchEngineV2 = {
     let hSubsUsed = 0;
     let aSubsUsed = 0;
 
-   const globalChaos = (seededRng(1) * 0.30) - 0.15;
+      // Im mniej doświadczony sędzia, tym większy chaos meczu
+   const experienceFactor = 1 + (50 - (referee.experience || 50)) / 100; // domyślnie 1.0
+   const globalChaos = ((seededRng(1) * 0.30) - 0.15) * experienceFactor;
    
     const homeFieldBonus = 1.0015 + ((seededRng as any)(2) * 0.0085);
     const weatherFinMod = weather.description.toLowerCase().includes('deszcz') ? 0.99 : 1.1;
@@ -231,41 +233,40 @@ const allPlayedIds = new Set<string>([
     if (seededRng(minute + 100) < hGoalLambda) {
         homeScore++;
         const scorer = GoalAttributionService.pickScorer(homePlayers, hActiveXI, false, () => seededRng(minute + 500));
-        const assistant = GoalAttributionService.pickAssistant(homePlayers, hActiveXI, scorer.id, false, () => seededRng(minute + 501));
-        scorers.push({ 
-          playerId: scorer.id, 
-          assistId: assistant?.id, 
-          minute, 
-          isPenalty: false 
-        });
+        if (scorer) {
+          const assistant = GoalAttributionService.pickAssistant(homePlayers, hActiveXI, scorer.id, false, () => seededRng(minute + 501));
+          scorers.push({ playerId: scorer.id, assistId: assistant?.id, minute, isPenalty: false });
+        }
       }
 
- if (seededRng(minute + 200) < aGoalLambda) {
+      if (seededRng(minute + 200) < aGoalLambda) {
         awayScore++;
         const scorer = GoalAttributionService.pickScorer(awayPlayers, aActiveXI, false, () => seededRng(minute + 600));
-        const assistant = GoalAttributionService.pickAssistant(awayPlayers, aActiveXI, scorer.id, false, () => seededRng(minute + 601));
-        scorers.push({ 
-          playerId: scorer.id, 
-          assistId: assistant?.id, 
-          minute, 
-          isPenalty: false 
-        });
+        if (scorer) {
+          const assistant = GoalAttributionService.pickAssistant(awayPlayers, aActiveXI, scorer.id, false, () => seededRng(minute + 601));
+          scorers.push({ playerId: scorer.id, assistId: assistant?.id, minute, isPenalty: false });
+        }
       }
 
       // LOSOWANIE KARNYCH (Zależne od surowości sędziego)
-      const penaltyProb = (referee.strictness / 7000);
+            // Im mniej doświadczony sędzia, tym większa szansa na kontrowersyjny karny
+      const penaltyExperienceFactor = 1 + (50 - (referee.experience || 50)) / 100;
+      const penaltyProb = (referee.strictness / 7000) * penaltyExperienceFactor;
       if (seededRng(minute + 700) < penaltyProb) {
         const side = seededRng(minute + 701) < 0.5 ? 'H' : 'A';
         const isScored = seededRng(minute + 702) < 0.78; // 78% skuteczności karnych
         if (isScored) {
           if (side === 'H') homeScore++; else awayScore++;
-          const kicker = GoalAttributionService.pickScorer(side === 'H' ? homePlayers : awayPlayers, (side === 'H' ? homeLineup : awayLineup).startingXI as string[], false, () => seededRng(minute + 703));
-          scorers.push({ playerId: kicker.id, minute, isPenalty: true });
+         const kicker = GoalAttributionService.pickScorer(side === 'H' ? homePlayers : awayPlayers, (side === 'H' ? homeLineup : awayLineup).startingXI as string[], false, () => seededRng(minute + 703));
+if (!kicker) break; // brak kandydatów (np. czerwona kartka wyczyściła skład)
+scorers.push({ playerId: kicker.id, minute, isPenalty: true });
         }
       }
 
       // LOSOWANIE KARTEK
-      const yellowBaseProb = 0.001 + (referee.strictness / 7500);
+            // Im mniej doświadczony sędzia, tym większa szansa na kartkę
+      const yellowExperienceFactor = 1 + (50 - (referee.experience || 50)) / 100;
+      const yellowBaseProb = (0.001 + (referee.strictness / 7500)) * yellowExperienceFactor;
       const hCardRoll = seededRng(minute + 300);
       const aCardRoll = seededRng(minute + 300);
 
@@ -304,7 +305,8 @@ const allPlayedIds = new Set<string>([
 
 
 // 2c. SYMULACJA KONTUZJI (0.4% szansy na minutę na mecz)
-      const injuryChance = 0.004;
+       const experienceFactor = 1 + (50 - (referee.experience || 50)) / 100;
+      const injuryChance = 0.004 * experienceFactor;
       if (seededRng(minute + 800) < injuryChance) {
         const side = seededRng(minute + 801) < 0.5 ? 'H' : 'A';
         const pPool = side === 'H' ? homePlayers : awayPlayers;

@@ -96,8 +96,9 @@ export const SquadGeneratorService = {
 
         usedNames.add(fullName);
 
-        const genData = PlayerAttributesGenerator.generateAttributes(slot.pos, leagueTier, clubRep);
-        const age = 16 + Math.floor(Math.random() * 20);
+       const age = 16 + Math.floor(Math.random() * 20);
+        const genData = PlayerAttributesGenerator.generateAttributes(slot.pos, leagueTier, clubRep, age);
+
 
         return {
             id: `PL_${clubId}_${String(index).padStart(2, '0')}`,
@@ -107,6 +108,7 @@ export const SquadGeneratorService = {
             position: slot.pos,
             nationality: region,
             age: age,
+            fatigueDebt: 0,
             overallRating: genData.overall,
             attributes: genData.attributes,
             stats: {
@@ -117,7 +119,8 @@ export const SquadGeneratorService = {
                 yellowCards: 0, 
                 redCards: 0, 
                 cleanSheets: 0,
-                seasonalChanges: {}
+                seasonalChanges: {},
+                ratingHistory: [] 
             },
             health: {
               status: HealthStatus.HEALTHY
@@ -125,7 +128,17 @@ export const SquadGeneratorService = {
             condition: 100,
             suspensionMatches: 0,
             // Kontrakt wygasa za 1-3 lata (30 czerwca)
-            contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random() * 3), 5, 30).toISOString()
+           
+contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random() * 3), 5, 30).toISOString(),
+            history: [{
+                clubName: clubInfo?.name || "Nieznany Klub",
+                clubId: clubId,
+                fromYear: 2024,
+                fromMonth: 7,
+                toYear: null,
+                toMonth: null
+            }]
+
         } as Player;
     });
 
@@ -142,7 +155,7 @@ export const SquadGeneratorService = {
     // Przypisz finalną pensję każdemu graczowi proporcjonalnie do jego wagi (OVR + Wiek)
     const finalSquad = squadBase.map(p => ({
         ...p,
-        annualSalary: Math.floor((FinanceService.calculateSalaryWeight(p.overallRating, p.age) / totalSquadWeight) * wagePool)
+        annualSalary: Math.floor((FinanceService.calculateSalaryWeight(p.overallRating, p.age) / totalSquadWeight) * wagePool),
 marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
 
     })) as Player[];
@@ -151,6 +164,70 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         console.warn(`Squad size invalid for ${clubId}: ${finalSquad.length}`);
     }
 
-    return finalSquad;
+       return finalSquad;
+  },
+
+  generateEuropeanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {
+    const usedNames = new Set<string>();
+
+ 
+    // Stały skład: 3 GK, 8 DEF, 10 MID, 9 FWD = 30
+    const slots: { pos: PlayerPosition }[] = [
+      ...Array(3).fill({ pos: PlayerPosition.GK }),
+      ...Array(8).fill({ pos: PlayerPosition.DEF }),
+      ...Array(10).fill({ pos: PlayerPosition.MID }),
+      ...Array(9).fill({ pos: PlayerPosition.FWD }),
+    ];
+
+    const squad = slots.map((slot, index) => {
+      const region = NameGeneratorService.getRandomForeignRegion();
+      let namePair;
+      let fullName;
+      let attempts = 0;
+      do {
+        namePair = NameGeneratorService.getRandomName(region);
+        fullName = `${namePair.firstName} ${namePair.lastName}`;
+        attempts++;
+      } while (usedNames.has(fullName) && attempts < 50);
+      usedNames.add(fullName);
+
+      const age = 17 + Math.floor(Math.random() * 18); // 17-34
+      const genData = PlayerAttributesGenerator.generateAttributes(slot.pos, tier, reputation, age, true);
+
+      return {
+        id: `EU_CL_${clubId}_${String(index).padStart(2, '0')}`,
+        firstName: namePair.firstName,
+        lastName: namePair.lastName,
+        clubId,
+        position: slot.pos,
+        nationality: region,
+        age,
+        fatigueDebt: 0,
+        overallRating: genData.overall,
+        attributes: genData.attributes,
+        stats: {
+          matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,
+          yellowCards: 0, redCards: 0, cleanSheets: 0,
+          seasonalChanges: {}, ratingHistory: []
+        },
+        health: { status: HealthStatus.HEALTHY },
+        condition: 100,
+        suspensionMatches: 0,
+        contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random() * 3), 5, 30).toISOString(),
+        annualSalary: 0,
+        marketValue: 0,
+        isUntouchable: true,
+        negotiationStep: 0,
+        negotiationLockoutUntil: null,
+        contractLockoutUntil: null,
+        boardLockoutUntil: null,
+        isNegotiationPermanentBlocked: false,
+        transferLockoutUntil: null,
+        freeAgentLockoutUntil: null,
+        history: []
+      } as Player;
+    });
+
+    return squad;
   }
 };

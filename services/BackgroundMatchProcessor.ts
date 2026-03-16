@@ -1,5 +1,6 @@
 
 import { Fixture, Club, Player, MatchStatus, Lineup, CompetitionType, LeagueRoundResults, MatchResult, HealthStatus, InjurySeverity, Referee, WeatherSnapshot, Coach } from '../types';
+import { DebugLoggerService } from './DebugLoggerService';
 import { LeagueBackgroundMatchEngine } from './LeagueBackgroundMatchEngine';
 import { LeagueBackgroundMatchEngineV2 } from './LeagueBackgroundMatchEngine-ver2';
 import { RefereeService } from './RefereeService';
@@ -12,6 +13,7 @@ import { AttendanceService } from './AttendanceService';
 import { PolandWeatherService } from './PolandWeatherService';
 import { FinanceService } from './FinanceService';
 import { PendingNegotiation } from '@/types';
+import { AiScoutingService } from './AiScoutingService';
 
 export const BackgroundMatchProcessor = {
   processLeagueEvent: (
@@ -22,7 +24,10 @@ export const BackgroundMatchProcessor = {
     playersMap: Record<string, Player[]>,
     lineups: Record<string, Lineup>,
     seasonNumber: number,
-    coaches: Record<string, Coach>
+    coaches: Record<string, Coach>,
+    // Opcjonalne ziarno sesji — używane przez scouting transferowy.
+    // Jeśli nie podane, scouting działa z seed=0 (mniej różnorodny, ale funkcjonalny).
+    sessionSeed: number = 0
   ): { 
     updatedFixtures: Fixture[], 
     updatedClubs: Club[], 
@@ -34,19 +39,43 @@ export const BackgroundMatchProcessor = {
     ratings: Record<string, number>;
   } => {
     
-    const dateStr = currentDate.toDateString();
-    const todayFixtures = fixtures.filter(f => f.date.toDateString() === dateStr && f.status === MatchStatus.SCHEDULED);
+       const dateStr = currentDate.toDateString();
+    const CL_COMPETITION_IDS = new Set([
+      CompetitionType.CL_R1Q, CompetitionType.CL_R1Q_RETURN,
+      CompetitionType.CL_R2Q, CompetitionType.CL_R2Q_RETURN,
+      CompetitionType.CL_GROUP_DRAW, CompetitionType.CL_GROUP_STAGE,
+      CompetitionType.CHAMPIONS_LEAGUE_DRAW,
+    ]);
+    const todayFixtures = fixtures.filter(f =>
+      f.date.toDateString() === dateStr &&
+      f.status === MatchStatus.SCHEDULED &&
+      !CL_COMPETITION_IDS.has(f.leagueId as CompetitionType)
+    );
     
-    // Nawet jeśli nie ma meczów dzisiaj, odświeżamy składy pod kątem zawieszeń (np. po wczorajszej kolejce)
+    // DEBUG
+    DebugLoggerService.log('BMP', `processLeagueEvent: ${dateStr} | SCHEDULED: ${todayFixtures.length} | TOTAL fixtures: ${fixtures.length}`, true);
     const newLineups = AiMatchPreparationService.prepareAllTeams(clubs, playersMap, lineups, userTeamId);
 if (todayFixtures.length === 0) {
       const contractUpdate = AiContractService.processClubsContracts(clubs, playersMap, currentDate, userTeamId);
       const recruitmentUpdate = AiContractService.processAiRecruitment(contractUpdate.updatedClubs, contractUpdate.updatedPlayers, currentDate, userTeamId);
 
+      // Miesięczna aktualizacja zainteresowań transferowych (tylko 1. dzień miesiąca).
+      // AI-kluby przeglądają rynek i aktualizują swoje listy obserwowanych zawodników.
+      let scoutedPlayers = recruitmentUpdate.updatedPlayers;
+      if (currentDate.getDate() === 1) {
+        scoutedPlayers = AiScoutingService.updateTransferInterests(
+          recruitmentUpdate.updatedClubs,
+          recruitmentUpdate.updatedPlayers,
+          currentDate,
+          userTeamId,
+          sessionSeed
+        );
+      }
+
       return { 
         updatedFixtures: fixtures, 
         updatedClubs: recruitmentUpdate.updatedClubs, 
-        updatedPlayers: recruitmentUpdate.updatedPlayers, 
+        updatedPlayers: scoutedPlayers, 
         updatedLineups: newLineups, 
         newOffers: recruitmentUpdate.newOffers, 
         seasonNumber: seasonNumber,
@@ -114,6 +143,11 @@ if (todayFixtures.length === 0) {
         fixture, home, away, hPlayers, aPlayers, hLineup, aLineup, 
         hCoach as any, aCoach as any, assignedRef, weather, seed
       );
+
+      const yellowsInMatch = result.cards.filter(c => c.type === MatchEventType.YELLOW_CARD).length;
+      const redsInMatch = result.cards.filter(c => c.type === MatchEventType.RED_CARD).length;
+      const refereeRating = RefereeService.generateMatchRating(assignedRef);
+      RefereeService.recordMatchStats(assignedRef.id, refereeRating, yellowsInMatch, redsInMatch);
 
       // Obliczamy miejsce gospodarza w tabeli
       const leagueStandings = standingsMap[fixture.leagueId as string] || [];
@@ -202,9 +236,57 @@ if (todayFixtures.length === 0) {
           const newForm = [...(c.stats.form || []), resultChar].slice(-5) as ("W" | "R" | "P")[];
 
           const matchExpenses = isHome ? homeMatchExpenses : awayMatchExpenses;
+          const ticketPrice = 45;
+          const ticketRevenue = isHome ? (fixture.attendance || 0) * ticketPrice : 0;
+          const netChange = ticketRevenue - matchExpenses;
+
+          // Tworzymy logi finansowe z poprzednim saldem
+          const financeLogsToAdd: any[] = [];
+          let runningBalance = c.budget; // Saldo przed operacjami
+          
+          if (isHome) {
+            // 🏟️ Przychody z biletów
+            if (ticketRevenue > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: currentDate.toISOString().split('T')[0],
+                amount: ticketRevenue,
+                type: 'INCOME' as const,
+                description: `Przychody z biletów: ${fixture.attendance || 0} widzów @ 45 PLN`,
+                previousBalance: runningBalance
+              });
+              runningBalance += ticketRevenue;
+            }
+            
+            // 💰 Koszty organizacji
+            if (matchExpenses > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: currentDate.toISOString().split('T')[0],
+                amount: -matchExpenses,
+                type: 'EXPENSE' as const,
+                description: `Koszty organizacji meczu`,
+                previousBalance: runningBalance
+              });
+              runningBalance -= matchExpenses;
+            }
+          } else {
+            // 🚌 Koszty wyjazdu (away)
+            financeLogsToAdd.push({
+              id: Math.random().toString(36).substr(2, 9),
+              date: currentDate.toISOString().split('T')[0],
+              amount: -matchExpenses,
+              type: 'EXPENSE' as const,
+              description: `Koszty wyjazdu`,
+              previousBalance: runningBalance
+            });
+            runningBalance -= matchExpenses;
+          }
+
           return {
             ...c,
-            budget: c.budget - matchExpenses,
+            budget: c.budget + netChange,
+            financeHistory: [...financeLogsToAdd, ...(c.financeHistory || [])].slice(0, 50),
             stats: {
               ...c.stats,
               played: c.stats.played + 1,
@@ -262,6 +344,9 @@ if (todayFixtures.length === 0) {
 
               const injury = result.injuries.find(inj => inj.playerId === p.id);
               if (injury) {
+                 const basePenalty = injury.severity === InjurySeverity.SEVERE ? 55 : 20;
+                 const randomExtra = Math.floor(Math.random() * 15); 
+                 const condAfterPenalty = Math.max(0, updatedP.condition - (basePenalty + randomExtra));
                 updatedP.health = {
                     status: HealthStatus.INJURED,
                     injury: {
@@ -269,13 +354,11 @@ if (todayFixtures.length === 0) {
                        daysRemaining: injury.days,
                        severity: injury.severity,
                        injuryDate: currentDate.toISOString(), 
-                       totalDays: injury.days
+                       totalDays: injury.days,
+                       conditionAtInjury: condAfterPenalty
                     }
                  };
-
-                 const basePenalty = injury.severity === InjurySeverity.SEVERE ? 55 : 20;
-                 const randomExtra = Math.floor(Math.random() * 15); 
-                 updatedP.condition = Math.max(0, updatedP.condition - (basePenalty + randomExtra));
+                 updatedP.condition = condAfterPenalty;
               }
               return updatedP;
            });
@@ -290,6 +373,18 @@ if (todayFixtures.length === 0) {
        currentClubs = finalUpdate.updatedClubs;
     currentPlayers = finalUpdate.updatedPlayers;
  const newOffers = finalUpdate.newOffers;
+
+    // Miesięczna aktualizacja zainteresowań transferowych — dotyczy też dni meczowych.
+    if (currentDate.getDate() === 1) {
+      currentPlayers = AiScoutingService.updateTransferInterests(
+        currentClubs,
+        currentPlayers,
+        currentDate,
+        userTeamId,
+        sessionSeed
+      );
+    }
+
     return { 
       
       updatedFixtures: currentFixtures, 

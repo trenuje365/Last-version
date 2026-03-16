@@ -1,10 +1,13 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, EventKind, Club, MailMessage, MailType } from '../../types';
+import { ViewState, EventKind, CompetitionType, Club, MailMessage, MailType } from '../../types';
+import stadionBg from '../../Graphic/themes/stadion.png';
 import { Card } from '../ui/Card';
 import { LineupService } from '../../services/LineupService';
 import { MailDetailsModal } from '../modals/MailDetailsModal';
+import { FinanceHistoryModal } from '../modals/FinanceHistoryModal';
 import { FinanceService } from '../../services/FinanceService';
+import { getClubLogo } from '../../resources/ClubLogoAssets';
 
 export const Dashboard: React.FC = () => {
   const { 
@@ -29,12 +32,14 @@ export const Dashboard: React.FC = () => {
    processBackgroundCupMatches,
    coaches,
    viewCoachDetails,
-    fixtures
+    fixtures,
+    confirmSeasonEnd,
   } = useGame();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedMail, setSelectedMail] = useState<MailMessage | null>(null);
+  const [isFinanceModalOpen, setIsFinanceModalOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const myClub = clubs.find(c => c.id === userTeamId);
@@ -111,236 +116,132 @@ const boardConfidence = useMemo(() => {
   }, [lineups, userTeamId, players]);
 
   const actionConfig = useMemo(() => {
-const month = currentDate.getMonth();
-    const day = currentDate.getDate();
-
-    // TUTAJ WSTAW TEN KOD
-    // Obsługa przycisku Superpucharu (12 Lipca)
-  if (month === 6 && day === 12) {
-      const currentYear = currentDate.getFullYear();
-      const scFix = fixtures.find(f => f.id === `SUPER_CUP_${currentYear}`);
-      
-      if (scFix) {
-        if (scFix.status !== 'FINISHED') {
-          const isUserPlaying = scFix.homeTeamId === userTeamId || scFix.awayTeamId === userTeamId;
-          
-          // Logika: Jeśli to Sezon 1 LUB gracz bierze udział -> Studio
-          // Jeśli Sezon 2+ i gracz NIE bierze udziału -> Rozegraj w tle
-          const shouldPlayBackground = seasonNumber > 1 && !isUserPlaying;
-
-          return {
-            text: "SUPERPUCHAR POLSKI ✨",
-            action: () => {
-              if (isUserPlaying) {
-                navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-              } else if (shouldPlayBackground) {
-                processBackgroundCupMatches();
-                navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-              } else {
-                // Failsafe dla 1. sezonu AI vs AI
-                processBackgroundCupMatches();
-                navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-              }
-            },
-            isMatch: isUserPlaying,
-            disabled: isJumping,
-            info: shouldPlayBackground ? "Symulacja wyników" : undefined
-          };
-        } else {
-          return { text: "KONTYNUUJ DO LIGI", action: advanceDay, isMatch: false, disabled: isJumping };
-        }
-      }
-    }
-// KONIEC
-     if (month === 6 && day === 9) {
-      return {
-        text: "ROZPOCZNIJ PRZYGOTOWANIA 📋",
-        action: advanceDay,
-        isMatch: false,
-        disabled: isJumping,
-        info: "Analiza kadry i planowanie"
-      };
-    }
-    const isCupDay = month === 7 && day === 16; 
-    if (isCupDay) {
-      return {
-        text: "1/64 PP 🏆",
-        action: () => navigateTo(ViewState.PRE_MATCH_CUP_STUDIO),
-        isMatch: true,
-        disabled: isJumping
-      };
-    }
-    const isCupDaySept = month === 8 && day === 20; 
-    if (isCupDaySept) {
-      return {
-        text: "1/32 PP 🏆",
-        action: () => {
-          if (myClub?.isInPolishCup) {
-            navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          } else {
-            processBackgroundCupMatches();
-            navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-          }
-        },
-        isMatch: true,
-        disabled: isJumping
-      };
-    }
-    const isCupDayOct = month === 9 && day === 18; 
-    if (isCupDayOct) {
-      return {
-        text: "1/16 PP 🏆",
-        action: () => {
-          if (myClub?.isInPolishCup) {
-            navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          } else {
-            processBackgroundCupMatches();
-            navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-          }
-        },
-        isMatch: true,
-        disabled: isJumping
-      };
-    }
-    const isCupDayNov = month === 10 && day === 15; 
-    if (isCupDayNov) {
-      return {
-        text: "1/8 PP 🏆",
-        action: () => {
-          if (myClub?.isInPolishCup) {
-            navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          } else {
-            processBackgroundCupMatches();
-            navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-          }
-        },
-        isMatch: true,
-        disabled: isJumping
-      };
-    }
-    const isCupDayMar = month === 2 && day === 14; 
-    if (isCupDayMar) {
-      return {
-        text: "1/4 PP 🏆",
-        action: () => {
-          if (myClub?.isInPolishCup) {
-            navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          } else {
-            processBackgroundCupMatches();
-            navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-          }
-        },
-        isMatch: true,
-        disabled: isJumping
-      };
-    }
-    const isCupDayApr = month === 3 && day === 18; 
-    if (isCupDayApr) {
-      return {
-        text: "1/2 PP 🏆",
-        action: () => {
-          if (myClub?.isInPolishCup) {
-            navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          } else {
-            processBackgroundCupMatches();
-            navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-          }
-        },
-        isMatch: true,
-        disabled: isJumping
-      };
-    }
-    const isCupDayMay = month === 4 && day === 30; 
-    if (isCupDayMay) {
-      return {
-        text: "FINAŁ PP 🏆",
-        action: () => {
-          if (myClub?.isInPolishCup) {
-            navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          } else {
-            processBackgroundCupMatches();
-            navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP);
-          }
-        },
-        isMatch: true,
-        disabled: isJumping
-      };
+    // Brak nextEvent — po prostu przesuń dzień
+    if (!nextEvent) {
+      return { text: "NASTĘPNY DZIEŃ", action: advanceDay, isMatch: false, disabled: isJumping };
     }
 
-    const isSeasonBreak = month === 5; 
-    if (isSeasonBreak) {
-      return {
-        text: "URLOP 🌴",
-        action: () => jumpToDate(new Date(currentDate.getFullYear(), 6, 9)),
-        isMatch: false,
-        disabled: isJumping,
-        info: "Skok do 9 lipca"
-      };
-    }
-    const isWinterDeadZone = (month === 11 && day >= 8) || (month === 0 && day <= 30);
-
-    if (isWinterDeadZone) {
-      const targetYear = month === 11 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
-      return {
-        text: "PRZESKOCZ PRZERWĘ ZIMOWĄ ❄️",
-        action: () => jumpToDate(new Date(targetYear, 0, 31)),
-        isMatch: false,
-        disabled: isJumping,
-        info: "Skok do 31 stycznia"
-      };
-    }
-
-    if (!nextEvent) return { text: "NASTĘPNY DZIEŃ", action: advanceDay, isMatch: false, disabled: false };
     const isToday = nextEvent.startDate.toDateString() === currentDate.toDateString();
-    
+
+    // Następne zdarzenie nie jest dziś — pokaż przycisk skoku
     if (!isToday) {
-       return { 
-         text: isJumping ? "PRZETWARZANIE..." : `⚽ ${nextEvent.label.toUpperCase()}`, 
-         action: () => jumpToDate(nextEvent.startDate), 
-         isMatch: false, 
-         disabled: isJumping 
-       };
+      return {
+        text: isJumping ? "PRZETWARZANIE..." : `⚽ ${nextEvent.label.toUpperCase()}`,
+        action: () => jumpToDate(nextEvent.startDate),
+        isMatch: false,
+        disabled: isJumping,
+      };
     }
 
+    // Dzisiaj jest zdarzenie — określ akcję na podstawie rodzaju
     switch (nextEvent.kind) {
+
+      // ── Liga ──────────────────────────────────────────────────────────────
       case EventKind.MATCH_LEAGUE:
-      case EventKind.MATCH_SUPER_CUP:
       case EventKind.MATCH_FRIENDLY:
-        return { 
-          text: lineupValidation.valid ? "DZIEŃ MECZOWY ⚽" : "BŁĄD SKŁADU ⚠️", 
-          action: () => lineupValidation.valid ? navigateTo(ViewState.PRE_MATCH_STUDIO) : navigateTo(ViewState.SQUAD_VIEW), 
-          isMatch: true, 
-          disabled: isJumping, 
-          error: lineupValidation.valid ? null : lineupValidation.error
-        };
-      case EventKind.MATCH_POLISH_CUP:
-        return { 
-          text: lineupValidation.valid ? "PUCHAR POLSKI 🏆" : "BŁĄD SKŁADU ⚠️", 
-          action: () => lineupValidation.valid ? navigateTo(ViewState.PRE_MATCH_CUP_STUDIO) : navigateTo(ViewState.SQUAD_VIEW), 
-          isMatch: true, 
-          disabled: isJumping, 
-          error: lineupValidation.valid ? null : lineupValidation.error
-        };
-      case EventKind.MATCH_EURO:
-        return { 
-          text: lineupValidation.valid ? "EURO 🌍" : "BŁĄD SKŁADU ⚠️", 
-          action: () => lineupValidation.valid ? navigateTo(ViewState.PRE_MATCH_STUDIO) : navigateTo(ViewState.SQUAD_VIEW), 
-          isMatch: true, 
-          disabled: isJumping, 
-          error: lineupValidation.valid ? null : lineupValidation.error
-        };
-      case EventKind.TRANSFER_WINDOW:
-        return { 
-          text: "OKNO TRANSFEROWE 📝", 
-          action: advanceDay, 
-          isMatch: false, 
+        return {
+          text: lineupValidation.valid ? 'DZIEŃ MECZOWY ⚽' : 'BŁĄD SKŁADU ⚠️',
+          action: () => lineupValidation.valid
+            ? navigateTo(ViewState.PRE_MATCH_STUDIO)
+            : navigateTo(ViewState.SQUAD_VIEW),
+          isMatch: true,
           disabled: isJumping,
-          info: "Dzień informacyjny"
+          error: lineupValidation.valid ? null : lineupValidation.error,
         };
+
+      // ── Superpuchar Polski ─────────────────────────────────────────────────
+      case EventKind.MATCH_SUPER_CUP: {
+        const scFix = fixtures.find(f => f.id === `SUPER_CUP_${currentDate.getFullYear()}`);
+        const isUserPlaying = !!scFix &&
+          (scFix.homeTeamId === userTeamId || scFix.awayTeamId === userTeamId);
+        return {
+          text: 'SUPERPUCHAR POLSKI ✨',
+          action: () => {
+            if (isUserPlaying) navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
+            else { processBackgroundCupMatches(); navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP); }
+          },
+          isMatch: isUserPlaying,
+          disabled: isJumping,
+          info: isUserPlaying ? undefined : 'Symulacja wyników',
+        };
+      }
+
+      // ── Puchar Polski — mecz ───────────────────────────────────────────────
+      case EventKind.MATCH_POLISH_CUP:
+        if (myClub?.isInPolishCup) {
+          return {
+            text: lineupValidation.valid ? `PUCHAR POLSKI 🏆` : 'BŁĄD SKŁADU ⚠️',
+            action: () => lineupValidation.valid
+              ? navigateTo(ViewState.PRE_MATCH_CUP_STUDIO)
+              : navigateTo(ViewState.SQUAD_VIEW),
+            isMatch: true,
+            disabled: isJumping,
+            error: lineupValidation.valid ? null : lineupValidation.error,
+          };
+        }
+        return {
+          text: 'PUCHAR POLSKI 🏆 (wyniki)',
+          action: () => { processBackgroundCupMatches(); navigateTo(ViewState.SCORE_RESULTS_POLISH_CUP); },
+          isMatch: false,
+          disabled: isJumping,
+          info: 'Nasz zespół odpadł — symulacja wyników',
+        };
+
+      // ── Puchar Polski — losowanie ──────────────────────────────────────────
+      case EventKind.CUP_DRAW:
+        return {
+          text: '🏆 LOSOWANIE PUCHARU POLSKI',
+          action: advanceDay,
+          isMatch: false,
+          disabled: isJumping,
+        };
+
+      // ── Liga Mistrzów — mecz ───────────────────────────────────────────────
+      case EventKind.MATCH_EURO: {
+        const isFinal = nextEvent.competition === CompetitionType.CL_FINAL;
+        return {
+          text: isFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : 'LIGA MISTRZÓW ⭐',
+          action: () => navigateTo(isFinal ? ViewState.PRE_MATCH_CL_FINAL : ViewState.PRE_MATCH_CL_STUDIO),
+          isMatch: true,
+          disabled: isJumping,
+        };
+      }
+
+      // ── Liga Mistrzów — losowanie ──────────────────────────────────────────
+      case EventKind.CL_DRAW:
+        return {
+          text: '⭐ LOSOWANIE LIGI MISTRZÓW',
+          action: advanceDay,
+          isMatch: false,
+          disabled: isJumping,
+        };
+
+      // ── Okno transferowe ───────────────────────────────────────────────────
+      case EventKind.TRANSFER_WINDOW:
+        return {
+          text: 'OKNO TRANSFEROWE 📝',
+          action: advanceDay,
+          isMatch: false,
+          disabled: isJumping,
+          info: 'Dzień informacyjny',
+        };
+
+      // ── Zakończenie sezonu — gracz czyta emaile i klika przycisk ─────────
+      case EventKind.OFF_SEASON:
+        return {
+          text: 'NOWY SEZON 🏆',
+          action: confirmSeasonEnd,
+          isMatch: false,
+          disabled: isJumping,
+          info: 'Zakończenie sezonu — przejdź do kolejnego!',
+        };
+
+      // ── Domyślnie: przesuń dzień ───────────────────────────────────────────
       default:
-        return { text: "KONTYNUUJ", action: advanceDay, isMatch: false, disabled: isJumping };
+        return { text: 'KONTYNUUJ', action: advanceDay, isMatch: false, disabled: isJumping };
     }
-  }, [nextEvent, currentDate, advanceDay, jumpToDate, navigateTo, lineupValidation, isJumping, myClub, processBackgroundCupMatches]);
+  }, [nextEvent, currentDate, advanceDay, jumpToDate, navigateTo, lineupValidation, isJumping,
+      myClub, processBackgroundCupMatches, fixtures, userTeamId, confirmSeasonEnd]);
 
   const searchResults = useMemo(() => {
     if (!searchTerm || searchTerm.length < 2) return [];
@@ -387,7 +288,7 @@ const month = currentDate.getMonth();
       onClick={onClick}
       disabled={disabled}
       className={`
-        relative group flex flex-col items-center justify-center p-2 rounded-3xl border transition-all duration-300 overflow-hidden
+        relative group flex flex-col items-center justify-center p-1.5 rounded-2xl border transition-all duration-300 overflow-hidden
         ${primary 
           ? 'bg-white/5 border-white/10 hover:border-white/20' 
           : 'bg-black/20 border-white/5 hover:border-white/10'}
@@ -398,16 +299,39 @@ const month = currentDate.getMonth();
         className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity"
         style={{ background: `radial-gradient(circle at center, ${myClub?.colorsHex[0]}, transparent 70%)` }}
       />
-      <span className="text-3xl mb-2 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">{icon}</span>
-      <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors text-center">{label}</span>
+      <span className="text-[26px] mb-1.5 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">{icon}</span>
+      <span className="font-black text-[9px] uppercase tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors text-center">{label}</span>
       {badge && <div className="absolute top-2 right-2">{badge}</div>}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-t-full opacity-0 group-hover:opacity-100 transition-all" style={{ backgroundColor: myClub?.colorsHex[0] }} />
     </button>
   );
 
   return (
-    <div className="h-[1080px] max-w-[1920px] mx-auto flex flex-col gap-4 animate-fade-in overflow-hidden relative pr-2">
-      
+    <>
+    {/* ── GLOBAL BACKGROUND — outside animated container so fixed works correctly ── */}
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Stadium image — full visibility */}
+        <img
+          src={stadionBg}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.4 }}
+        />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-slate-950/70" />
+        {/* Club color glows */}
+        <div 
+          className="absolute top-[-10%] right-[-10%] w-[80%] h-[80%] rounded-full blur-[180px] opacity-[0.25] animate-pulse-slow transition-all duration-1000"
+          style={{ background: myClub?.colorsHex[0] || '#1e293b' }}
+        />
+        <div 
+          className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-[0.15] animate-pulse-slow transition-all duration-1000"
+          style={{ background: myClub?.colorsHex[1] || '#0f172a' }}
+        />
+    </div>
+
+    <div className="h-[1080px] max-w-[1920px] mx-auto flex flex-col gap-4 animate-fade-in overflow-hidden relative pr-2 z-10">
+
       {isJumping && (
         <div className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
            <div className="bg-slate-900 border border-white/10 px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-pulse">
@@ -427,34 +351,13 @@ const month = currentDate.getMonth();
         />
       )}
 
-  <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-[#020617]">
-        {/* 1. Cinematic Stadium Texture - High Contrast for visibility */}
-       {/* 1. Cinematic Stadium Texture - High Contrast for visibility */}
-
-        <div 
-          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-[0.45] mix-blend-lighten scale-105"
+      {myClub && (
+        <FinanceHistoryModal
+          isOpen={isFinanceModalOpen}
+          onClose={() => setIsFinanceModalOpen(false)}
+          club={myClub}
         />
-        
-        {/* 2. Pro Glass Gloss - Diagonal light reflection */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent z-10" />
-        <div className="absolute inset-0 backdrop-blur-[3px]" />
-        
-        {/* 3. Deep Focus Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#020617_100%)]" />
-        
-        {/* 4. Enhanced Dynamic Club Identity Glows */}
-        <div 
-          className="absolute top-[-10%] right-[-10%] w-[80%] h-[80%] rounded-full blur-[180px] opacity-[0.35] animate-pulse-slow transition-all duration-1000"
-          style={{ background: myClub?.colorsHex[0] || '#1e293b' }}
-        />
-        <div 
-          className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-[0.2] animate-pulse-slow transition-all duration-1000"
-          style={{ background: myClub?.colorsHex[1] || '#0f172a' }}
-        />
-
-        {/* 5. Precision Tactical Grid Overlay */}
-        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '45px 45px' }} />
-      </div>
+      )}
 
       <div className="flex items-center justify-between px-6 py-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-2xl shrink-0 z-[100] shadow-2xl">
          <div className="flex items-center gap-5">
@@ -543,18 +446,6 @@ const month = currentDate.getMonth();
               </div>
             )}
          </div>
-
-         <div className="flex items-center gap-8">
-            <div className="text-right">
-               <span className="block text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Budżet</span>
-               <span className="text-xs font-black text-emerald-400 italic tabular-nums">{currentBudget} <span className="text-[8px] opacity-60">PLN</span></span>
-            </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="text-right">
-               <span className="block text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Pozycja</span>
-               <span className="text-xs font-black text-white italic">{userRank}. MIEJSCE</span>
-            </div>
-         </div>
       </div>
       
       <div className="relative h-44 rounded-[40px] overflow-hidden shadow-2xl border border-white/10 shrink-0 z-10 group">
@@ -585,21 +476,82 @@ const month = currentDate.getMonth();
               </div>
            </div>
 
-           {nextEvent && nextEvent.opponentClubId && (
-             <div className="hidden lg:flex flex-col items-center bg-black/60 p-5 rounded-[32px] border border-white/10 backdrop-blur-xl shadow-2xl transform hover:scale-105 transition-transform cursor-help">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Następny Przeciwnik</span>
-                <div className="flex items-center gap-6">
-                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-lg font-black italic text-white shadow-inner">{myClub?.shortName}</div>
-                   <div className="text-sm font-black italic text-slate-700 animate-pulse">VS</div>
-                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-lg font-black italic text-white shadow-inner">
-                      {clubs.find(c => c.id === nextEvent.opponentClubId)?.shortName}
+           {nextEvent && nextEvent.opponentClubId && (() => {
+             const opponent = clubs.find(c => c.id === nextEvent.opponentClubId);
+             const isHome = nextEvent.isHome;
+             const roundLabel = nextEvent.kind === EventKind.MATCH_LEAGUE
+               ? `Kolejka ${(myClub?.stats.played ?? 0) + 1}`
+               : nextEvent.label;
+             const dateLabel = nextEvent.startDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+             return (
+               <div className="hidden lg:flex flex-col relative overflow-hidden rounded-[28px] border border-white/[0.08] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.1)] min-w-[300px] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] hover:scale-[1.02] cursor-default"
+                 style={{ background: `linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.80) 100%)` }}
+               >
+                 {/* top accent bar with club color */}
+                 <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-[28px]"
+                   style={{ background: `linear-gradient(90deg, transparent, ${myClub?.colorsHex[0] ?? '#3b82f6'}, transparent)` }} />
+                 {/* inner glow */}
+                 <div className="absolute inset-0 rounded-[28px] pointer-events-none"
+                   style={{ boxShadow: `inset 0 0 60px ${myClub?.colorsHex[0] ?? '#3b82f6'}15` }} />
+
+                 <div className="px-6 pt-5 pb-4 flex flex-col gap-4 relative z-10">
+                   {/* header */}
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                       <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: myClub?.colorsHex[0] ?? '#3b82f6' }} />
+                       <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Następny Mecz</span>
+                     </div>
+                     <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border"
+                       style={{ color: myClub?.colorsHex[0] ?? '#3b82f6', borderColor: `${myClub?.colorsHex[0] ?? '#3b82f6'}40`, background: `${myClub?.colorsHex[0] ?? '#3b82f6'}12` }}>
+                       {roundLabel}
+                     </span>
                    </div>
-                </div>
-                <div className="mt-3 text-center">
-                   <span className="block text-[10px] font-black text-blue-400 uppercase tracking-widest truncate max-w-[150px]">{nextEvent.label}</span>
-                </div>
-             </div>
-           )}
+
+                   {/* teams row */}
+                   <div className="flex items-center gap-3">
+                     {/* home team */}
+                     <div className="flex flex-col items-center gap-1.5 flex-1">
+                       <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-inner flex flex-col shrink-0">
+                         <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[0] ?? '#334155' }} />
+                         <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[1] ?? '#1e293b' }} />
+                       </div>
+                       <span className="text-[10px] font-black italic uppercase text-white text-center leading-tight line-clamp-2">{myClub?.name}</span>
+                       {isHome !== undefined && (
+                         <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500/70">{isHome ? 'DOM' : 'WYJAZD'}</span>
+                       )}
+                     </div>
+
+                     {/* VS */}
+                     <div className="flex flex-col items-center gap-0.5 shrink-0 px-1">
+                       <div className="w-px h-4 bg-white/10" />
+                       <span className="text-xs font-black italic text-white/20">VS</span>
+                       <div className="w-px h-4 bg-white/10" />
+                     </div>
+
+                     {/* away team */}
+                     <div className="flex flex-col items-center gap-1.5 flex-1">
+                       <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-inner flex flex-col shrink-0">
+                         <div className="flex-1" style={{ backgroundColor: opponent?.colorsHex[0] ?? '#334155' }} />
+                         <div className="flex-1" style={{ backgroundColor: opponent?.colorsHex[1] ?? '#1e293b' }} />
+                       </div>
+                       <span className="text-[10px] font-black italic uppercase text-white text-center leading-tight line-clamp-2">{opponent?.name}</span>
+                       {isHome !== undefined && (
+                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">{isHome ? 'WYJAZD' : 'DOM'}</span>
+                       )}
+                     </div>
+                   </div>
+
+                   {/* date footer */}
+                   <div className="border-t border-white/[0.06] pt-3 flex items-center justify-center gap-2">
+                     <svg className="w-3 h-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                     </svg>
+                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{dateLabel}</span>
+                   </div>
+                 </div>
+               </div>
+             );
+           })()}
 
            <div className="shrink-0 flex flex-col items-center gap-2">
               <button 
@@ -640,12 +592,22 @@ const month = currentDate.getMonth();
               <div className="absolute left-[-10px] top-10 text-9xl font-black italic text-white/[0.02] select-none pointer-events-none">
                  {myClub?.shortName}
               </div>
-              <div className="p-7 relative z-10">
+              <div className="py-[20.5px] px-7 relative z-10">
                  <div className="flex items-center gap-5 mb-8">
-                    <div className="w-16 h-16 rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl transform -rotate-3 group-hover:rotate-0 transition-transform">
-                       <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[0] }} />
-                       <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[1] }} />
-                    </div>
+                    {getClubLogo(myClub?.id || '') ? (
+                      <div className="relative z-50 w-[74px] h-[74px] shrink-0 transform -rotate-3 group-hover:rotate-0 transition-transform">
+                        <img
+                          src={getClubLogo(myClub?.id || '')}
+                          alt={myClub?.name}
+                          className="w-full h-full object-contain drop-shadow-2xl"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl transform -rotate-3 group-hover:rotate-0 transition-transform">
+                        <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[0] }} />
+                        <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[1] }} />
+                      </div>
+                    )}
                     <div>
                        <h3 className="text-xl font-black italic uppercase tracking-tighter text-white leading-tight">{myClub?.name}</h3>
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Status: Aktywny</p>
@@ -666,10 +628,14 @@ const month = currentDate.getMonth();
 
            <div className="space-y-4 shrink-0">
               {[
-                { label: 'Budżet Transferowy', value: `${currentBudget} PLN`, color: 'text-blue-400', icon: '💰', p: 80 },
+                { label: 'Budżet Transferowy', value: `${currentBudget} PLN`, color: 'text-blue-400', icon: '💰', p: 80, onClick: () => setIsFinanceModalOpen(true) },
                 { label: 'Zaufanie Zarządu', value: `${boardConfidence}%`, color: boardConfidence > 70 ? 'text-emerald-400' : (boardConfidence > 40 ? 'text-amber-400' : 'text-red-500'), icon: '📈', p: boardConfidence },
               ].map((stat, i) => (
-                <div key={i} className="bg-slate-900/40 p-5 rounded-[28px] border border-white/5 flex flex-col gap-3 backdrop-blur-md hover:border-white/10 transition-all group shadow-xl">
+                <div 
+                  key={i} 
+                  onClick={stat.onClick}
+                  className={`bg-slate-900/40 p-5 rounded-[28px] border border-white/5 flex flex-col gap-3 backdrop-blur-md hover:border-white/10 transition-all group shadow-xl ${stat.onClick ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                >
                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
@@ -689,13 +655,12 @@ const month = currentDate.getMonth();
               <TileButton label="PLANER" icon="📅" onClick={() => navigateTo(ViewState.CALENDAR_DEBUG)} disabled={isJumping} />
               <TileButton label="KADRA" icon="👕" onClick={() => navigateTo(ViewState.SQUAD_VIEW)} disabled={isJumping} />
               <TileButton 
-                 label="TRANSFERY" 
-                 icon="📝" 
-                 onClick={() => navigateTo(ViewState.TRANSFER_WINDOW)} 
-                 disabled={isJumping || !isTransferWindowOpen}
-                 badge={!isTransferWindowOpen ? <span className="text-[7px] font-black text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">CLOSED</span> : null}
+                 label="EUROPA" 
+                 icon="🌍" 
+                 onClick={() => navigateTo(ViewState.EUROPEAN_CLUBS)} 
+                 disabled={isJumping}
               />
-              <TileButton label="LIGA" icon="📊" onClick={() => navigateTo(ViewState.LEAGUE_TABLES)} disabled={isJumping} />
+              <TileButton label="ROZGRYWKI" icon="⚽" onClick={() => navigateTo(ViewState.LEAGUE_TABLES)} disabled={isJumping} />
               <TileButton label="STATYSTYKI" icon="🏆" onClick={() => navigateTo(ViewState.LEAGUE_STATS)} disabled={isJumping} />
               <TileButton label="HISTORIA" icon="📜" onClick={() => navigateTo(ViewState.MATCH_HISTORY_BROWSER)} disabled={isJumping} />             
               <TileButton label="RYNEK PRACY" icon="💼" onClick={() => navigateTo(ViewState.JOB_MARKET)} disabled={isJumping} />
@@ -791,5 +756,6 @@ const month = currentDate.getMonth();
         .animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
       `}</style>
     </div>
+    </>
   );
 };

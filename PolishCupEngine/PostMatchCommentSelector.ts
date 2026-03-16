@@ -1,5 +1,5 @@
 
-import { MatchSummary, PlayerPerformance, PlayerPosition } from '../types';
+import { MatchSummary, PlayerPerformance, PlayerPosition, MatchEventType } from '../types';
 import { POSTMATCH_EXPERT_COMMENTS_DB, ExpertComment } from '../data/postmatch_expert_comments_pl';
 
 export const PostMatchCommentSelector = {
@@ -54,7 +54,7 @@ export const PostMatchCommentSelector = {
       (!isUserHome && (summary.awayPenaltyScore || 0) > (summary.homePenaltyScore || 0))
     );
     const wentToPenalties = (userScore === oppScore) && summary.homePenaltyScore !== undefined;
-    
+
     // Result Tags (Puchary nie znają remisu jako wyniku końcowego)
     if (diff > 0 || isPenaltyWin) {
       tags.push('WIN');
@@ -64,9 +64,11 @@ export const PostMatchCommentSelector = {
       tags.push('LOSS');
     }
 
-    // Goal Diff Tags - Jeśli doszło do karnych, to ZAWSZE jest to "mecz stykowy"
+    // Goal Diff / Match Shape Tags
     const absDiff = Math.abs(diff);
-    if (wentToPenalties || absDiff <= 1) {
+    if (absDiff >= 4) {
+      tags.push('BLOWOUT');
+    } else if (wentToPenalties || absDiff <= 1) {
       tags.push('CLOSE_GAME');
     } else if (absDiff === 2) {
       tags.push('COMFORT_WIN');
@@ -76,16 +78,21 @@ export const PostMatchCommentSelector = {
 
     // Goal Total Tags
     const totalGoals = summary.homeScore + summary.awayScore;
+    if (totalGoals >= 6 && diff === 0 && !wentToPenalties) tags.push('HIGH_SCORE_DRAW');
     if (totalGoals >= 5) tags.push('GOAL_FEST');
     else if (totalGoals <= 1) tags.push('LOW_SCORING');
 
-    // Clean Sheet
-    if (summary.homeScore === 0) tags.push('CLEAN_SHEET_AWAY');
-    if (summary.awayScore === 0) tags.push('CLEAN_SHEET_HOME');
+    // Clean Sheet for user's team
+    if ((isUserHome && summary.awayScore === 0) || (!isUserHome && summary.homeScore === 0)) {
+      tags.push('CLEAN_SHEET');
+    }
 
     // Discipline
     const totalYellows = summary.homeStats.yellowCards + summary.awayStats.yellowCards;
-    if (totalYellows >= 5) tags.push('MANY_YELLOWS');
+    if (totalYellows >= 7) tags.push('STRICT_REFEREE');
+    else if (totalYellows >= 5) tags.push('MANY_YELLOWS');
+    const userRedCards = isUserHome ? summary.homeStats.redCards : summary.awayStats.redCards;
+    if (userRedCards > 0) tags.push('RED_CARD_USER');
     if (summary.homeStats.redCards > 0 || summary.awayStats.redCards > 0) tags.push('RED_CARD');
 
     // Player feats
@@ -93,6 +100,58 @@ export const PostMatchCommentSelector = {
     if (allPlayers.some(p => p.goals >= 3)) tags.push('HATTRICK');
     else if (allPlayers.some(p => p.goals === 2)) tags.push('BRACE');
     if (allPlayers.some(p => p.assists >= 2)) tags.push('TOP_ASSISTS');
+
+    // Severe injury in match timeline
+    if (summary.timeline.some(e => e.type === MatchEventType.INJURY_SEVERE)) {
+      tags.push('SEVERE_INJURY');
+    }
+
+    // Late penalty (minute >= 80)
+    if (summary.timeline.some(e =>
+      (e.type === MatchEventType.PENALTY_SCORED ||
+       e.type === MatchEventType.PENALTY_MISSED ||
+       e.type === MatchEventType.PENALTY_AWARDED) &&
+      e.minute >= 80
+    )) tags.push('LATE_PENALTY');
+
+    // Goal timeline analysis
+    const allGoalEvents = [
+      ...summary.homeGoals.map(g => ({ minute: g.minute, side: 'HOME' as const })),
+      ...summary.awayGoals.map(g => ({ minute: g.minute, side: 'AWAY' as const })),
+    ].sort((a, b) => a.minute - b.minute);
+
+    if (diff !== 0 && !isPenaltyWin) {
+      // Last-minute winner: track the last goal that put the eventual winner ahead
+      // (from level or behind) and check whether it happened in minute >= 80
+      const winnerSide = summary.homeScore > summary.awayScore ? 'HOME' : 'AWAY';
+      let lastDecisiveMinute = -1;
+      let runH = 0; let runA = 0;
+      for (const g of allGoalEvents) {
+        const prevDiff = runH - runA;
+        if (g.side === 'HOME') runH++; else runA++;
+        const newDiff = runH - runA;
+        if (g.side === winnerSide) {
+          const winnerNowLeading = winnerSide === 'HOME' ? newDiff > 0 : newDiff < 0;
+          const winnerWasNotLeading = winnerSide === 'HOME' ? prevDiff <= 0 : prevDiff >= 0;
+          if (winnerNowLeading && winnerWasNotLeading) lastDecisiveMinute = g.minute;
+        } else {
+          // Opponent goal – reset if winner loses the lead
+          if (winnerSide === 'HOME' ? newDiff <= 0 : newDiff >= 0) lastDecisiveMinute = -1;
+        }
+      }
+      if (lastDecisiveMinute >= 80) tags.push('LAST_MINUTE_WINNER');
+
+      // Comeback win: user was losing at some point but came back and won
+      if (diff > 0) {
+        let runH2 = 0; let runA2 = 0;
+        for (const g of allGoalEvents) {
+          if (g.side === 'HOME') runH2++; else runA2++;
+          const uS = isUserHome ? runH2 : runA2;
+          const oS = isUserHome ? runA2 : runH2;
+          if (oS > uS) { tags.push('COMEBACK_WIN'); break; }
+        }
+      }
+    }
 
     return tags;
   },
@@ -102,9 +161,25 @@ export const PostMatchCommentSelector = {
    */
   selectComment: (summary: MatchSummary): string => {
     const tags = PostMatchCommentSelector.generateTags(summary);
-    let pool = POSTMATCH_EXPERT_COMMENTS_DB.filter(c => 
-      c.tags.some(t => tags.includes(t))
-    );
+    const RESULT_TAGS = ['WIN', 'DRAW', 'LOSS'];
+    // Shape/condition tags that are exclusive: if a comment declares one, the match must also have it
+    const EXCLUSIVE_SHAPE_TAGS = new Set([
+      'CLOSE_GAME', 'DOMINANT_WIN', 'COMFORT_WIN', 'CLEAN_SHEET',
+      'LOW_SCORING', 'GOAL_FEST', 'HIGH_SCORE_DRAW', 'BLOWOUT',
+      'LAST_MINUTE_WINNER', 'LATE_PENALTY', 'COMEBACK_WIN',
+      'HATTRICK', 'BRACE', 'RED_CARD', 'RED_CARD_USER',
+      'SEVERE_INJURY', 'SHOTS_DOMINANCE', 'STRICT_REFEREE',
+      'MANY_YELLOWS', 'TOP_ASSISTS', 'PENALTY_MISSED',
+    ]);
+    let pool = POSTMATCH_EXPERT_COMMENTS_DB.filter(c => {
+      // Reject comments whose result tag (WIN/DRAW/LOSS) conflicts with this match's result
+      const hasConflictingResult = c.tags.some(t => RESULT_TAGS.includes(t) && !tags.includes(t));
+      if (hasConflictingResult) return false;
+      // Reject comments that require a specific condition the match doesn't have
+      const hasConflictingShape = c.tags.some(t => EXCLUSIVE_SHAPE_TAGS.has(t) && !tags.includes(t));
+      if (hasConflictingShape) return false;
+      return c.tags.some(t => tags.includes(t));
+    });
     if (pool.length === 0) {
       pool = POSTMATCH_EXPERT_COMMENTS_DB.filter(c => c.tags.includes('GENERIC'));
     }

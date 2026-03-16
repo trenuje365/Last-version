@@ -116,7 +116,7 @@ export const MatchView: React.FC = () => {
             ))}
             {matchState === 'POST' && (
               <div className="text-center text-yellow-400 font-bold py-4">
-                KONIEC MECZU
+                SĘDZIA KOŃCZY SPOTAKNIE!
               </div>
             )}
           </div>

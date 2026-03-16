@@ -6,7 +6,7 @@ export const CoachService = {
     const coaches: Record<string, Coach> = {};
     const coachList: Coach[] = [];
 
-    for (let i = 0; i < 250; i++) {
+    for (let i = 0; i < 1500; i++) {
       coachList.push(CoachService.createRandomCoach(i < 180));
     }
 
@@ -14,31 +14,68 @@ const updatedClubs = [...clubs];
     // Inicjalizujemy wszystkich trenerów w mapie obiektów
     coachList.forEach(c => { coaches[c.id] = c; });
 
-    // Losowe przypisanie trenerów do klubów na podstawie progów reputacji
+   // Losowe przypisanie trenerów do klubów na podstawie progów reputacji
     updatedClubs.forEach(club => {
+      let minExp = 0;
       let maxExp = 55;
-      if (club.reputation >= 7) maxExp = 72;
-      else if (club.reputation >= 4) maxExp = 65;
+
+      if (club.leagueId === 'L_CL' || club.leagueId === 'L_EL' || club.leagueId === 'L_CONF') {
+        // Trenerzy dla klubów europejskich — wg reputacji (koreluje z tier)
+        if (club.reputation >= 18) { minExp = 80; maxExp = 99; }       // Tier 1 top (Real, Bayern, PSG)
+        else if (club.reputation >= 15) { minExp = 70; maxExp = 88; }  // Tier 1 (Porto, Benfica)
+        else if (club.reputation >= 12) { minExp = 48; maxExp = 75; }  // Tier 2 (Club Brugge, Dinamo)
+        else { minExp = 10; maxExp = 60; }                             // Tier 3/4 (Sheriff, Žalgiris)
+      } else {
+        // Polskie kluby — stara logika
+        if (club.reputation >= 7) maxExp = 72;
+        else if (club.reputation >= 4) maxExp = 65;
+      }
 
       // Szukamy wolnych trenerów spełniających kryterium doświadczenia
+    // Dla europejskich Tier 1 i 2 (reputacja >= 12) — trener nie może być Polakiem
+      const excludePolish = (club.leagueId === 'L_CL' || club.leagueId === 'L_EL' || club.leagueId === 'L_CONF') && club.reputation >= 12;
+
       const candidates = coachList.filter(c => 
+        c.attributes.experience >= minExp &&
         c.attributes.experience <= maxExp && 
-        c.currentClubId === null
+        c.currentClubId === null &&
+        (!excludePolish || c.nationality !== Region.POLAND)
       );
 
-      // Jeśli nie znaleziono trenera w wąskim zakresie (mało prawdopodobne), 
-      // bierzemy jakiegokolwiek wolnego jako failsafe
-      const coach = candidates.length > 0 
-        ? candidates[Math.floor(Math.random() * candidates.length)]
+           // Jeśli nie znaleziono trenera — stopniowo obniżaj minExp o 5 aż do znalezienia
+      let finalCandidates = candidates;
+      let searchMinExp = minExp;
+      while (finalCandidates.length === 0 && searchMinExp > 0) {
+        searchMinExp = Math.max(0, searchMinExp - 5);
+              finalCandidates = coachList.filter(c =>
+          c.attributes.experience >= searchMinExp &&
+          c.attributes.experience <= maxExp &&
+          c.currentClubId === null &&
+          (!excludePolish || c.nationality !== Region.POLAND)
+        );
+      }
+      // Ostateczny failsafe — jeśli nadal brak, bierzemy jakiegokolwiek wolnego
+      const coach = finalCandidates.length > 0
+        ? finalCandidates[Math.floor(Math.random() * finalCandidates.length)]
         : coachList.find(c => c.currentClubId === null);
-
-      if (coach) {
+          if (coach) {
         coach.currentClubId = club.id;
         coach.history.push({
           clubId: club.id, clubName: club.name,
           fromYear: 2025, fromMonth: 7, toYear: null, toMonth: null
         });
         club.coachId = coach.id;
+
+        // Dla europejskich Tier 1 (rep >= 18) — każdy atrybut poniżej 80 losujemy między 80-99
+        if ((club.leagueId === 'L_CL' || club.leagueId === 'L_EL' || club.leagueId === 'L_CONF') && club.reputation >= 18) {
+          const attrs = coach.attributes;
+          const keys: (keyof typeof attrs)[] = ['experience', 'decisionMaking', 'motivation', 'training'];
+          keys.forEach(key => {
+            if (attrs[key] < 80) {
+              attrs[key] = 80 + Math.floor(Math.random() * 20);
+            }
+          });
+        }
       }
     });
     return { coaches, updatedClubs };

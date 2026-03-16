@@ -18,7 +18,7 @@ export const MailService = {
   /**
    * Generuje wiadomość powitalną od zarządu na start kariery.
    */
-  generateWelcomeMail: (userClub: Club, squad: Player[]): MailMessage => {
+  generateWelcomeMail: (userClub: Club, squad: Player[], gameDate?: Date): MailMessage => {
     const topPlayers = [...squad].sort((a, b) => b.overallRating - a.overallRating).slice(0, 15);
     const avgSquadOvr = topPlayers.reduce((acc, p) => acc + p.overallRating, 0) / topPlayers.length;
 
@@ -36,9 +36,12 @@ export const MailService = {
     if (userClub.leagueId === 'L_PL_3') targetLeagueName = "1. Ligi";
 
     let templateId = 'board_welcome_mid';
-    if (expectationIndex >= 7.6) {
+    if (userClub.reputation >= 9) {
+      // Top clubs (Legia, Lech etc.) - always elite regardless of squad strength
       templateId = isTopTier ? 'board_welcome_elite' : 'board_welcome_elite_promotion';
-    } else if (expectationIndex >= 6.1) {
+    } else if (expectationIndex >= 7.6) {
+      templateId = isTopTier ? 'board_welcome_elite' : 'board_welcome_elite_promotion';
+    } else if (expectationIndex >= 6.1 || userClub.reputation >= 7) {
       templateId = isTopTier ? 'board_welcome_pro' : 'board_welcome_pro_promotion';
     } else if (expectationIndex <= 4.0) {
       templateId = 'board_welcome_relegation';
@@ -50,9 +53,9 @@ export const MailService = {
       id: `WELCOME_MAIL_${Date.now()}`,
       sender: template.sender,
       role: template.role,
-      subject: template.subject.replace('{CLUB}', userClub.name).replace('{TARGET_LEAGUE}', targetLeagueName),
-      body: template.body.replace('{CLUB}', userClub.name).replace('{TARGET_LEAGUE}', targetLeagueName),
-      date: new Date(),
+      subject: template.subject.replace(/\{CLUB\}/g, userClub.name).replace(/\{TARGET_LEAGUE\}/g, targetLeagueName),
+      body: template.body.replace(/\{CLUB\}/g, userClub.name).replace(/\{TARGET_LEAGUE\}/g, targetLeagueName),
+      date: gameDate ? new Date(gameDate) : new Date(),
       isRead: false,
       type: template.type,
       priority: 100
@@ -61,7 +64,7 @@ export const MailService = {
 /**
    * Generuje wiadomość powitalną od Stowarzyszenia Kibiców z analizą składu.
    */
-  generateFanWelcomeMail: (userClub: Club, squad: Player[]): MailMessage => {
+  generateFanWelcomeMail: (userClub: Club, squad: Player[], gameDate?: Date): MailMessage => {
     // Obliczamy średnią 15 najlepszych zawodników
     const topPlayers = [...squad].sort((a, b) => b.overallRating - a.overallRating).slice(0, 15);
     const avgSquadOvr = topPlayers.reduce((acc, p) => acc + p.overallRating, 0) / topPlayers.length;
@@ -86,7 +89,7 @@ export const MailService = {
       body: template.body
         .replace('{CLUB}', userClub.name)
         .replace('{TRANSFER_DEMAND}', transferDemand),
-      date: new Date(),
+      date: gameDate ? new Date(gameDate) : new Date(),
       isRead: false,
       type: template.type,
       priority: 90
@@ -110,36 +113,38 @@ generateSeasonSummaryMail: (data: SeasonSummaryData): MailMessage => {
     const separator = "------------------------------------------";
     const seasonLabel = `${data.year}/${(data.year + 1).toString().slice(2)}`;
     
-    let body = `Szanowny Panie Managerze, \r\n\r\n Sezon ${seasonLabel} Przedstawiamy Panu raport z zakończenia ubiegłego sezonu:\r\n`;
-    
-    body += `🏆 MISTRZ POLSKI: ${data.championName.toUpperCase()}\n`;
-    body += `${separator}\r\n`;
-    
-    body += `📈 AWANSOWALI :\r\n`;
+    let body = `Szanowny Panie Managerze,\n\nPrzedstawiamy oficjalny raport z zakończenia sezonu ${seasonLabel}.\n`;
+    body += `${separator}\n\n`;
+
+    body += `🏆  MISTRZ POLSKI\n`;
+    body += `    ${data.championName.toUpperCase()}\n`;
+    body += `\n${separator}\n\n`;
+
+    body += `📈  AWANSOWALI:\n`;
     if (data.promotions.length > 0) {
       data.promotions.forEach(p => {
-        body += `• ${p.to}: ${p.teams.join(', ')}\r\n`;
+        body += `    • ${p.to}: ${p.teams.join(', ')}\n`;
       });
     } else {
-      body += `• Brak awansów (najwyższy szczebel)\r\n`;
+      body += `    • Brak awansów (najwyższy szczebel)\n`;
     }
     body += `\n`;
-    
-    body += `📉 SPADKOWICZE :\r\n`;
+
+    body += `📉  SPADKOWICZE:\n`;
     data.relegations.forEach(r => {
-      body += `• Z ${r.from}: ${r.teams.join(', ')}\r\n`;
+      body += `    • Z ${r.from}: ${r.teams.join(', ')}\n`;
     });
     body += `\n${separator}\n\n`;
-    
-    body += `⚽ ZŁOTE BUTY - NAGRODY INDYWIDUALNE:\r\n`;
+
+    body += `⚽  ZŁOTE BUTY — NAGRODY INDYWIDUALNE:\n`;
     data.leagueAwards.forEach(a => {
-      body += `[${a.leagueName.toUpperCase()}]\n`;
-      body += `  🎯 Król Strzelców: ${a.topScorer.name} (${a.topScorer.goals} goli)\\r\n`;
-      body += `  👟 Król Asyst:    ${a.topAssistant.name} (${a.topAssistant.assists} asyst)\r\n`;
+      body += `\n  [${a.leagueName.toUpperCase()}]\n`;
+      body += `    🎯 Król Strzelców: ${a.topScorer.name} (${a.topScorer.goals} goli)\n`;
+      body += `    👟 Król Asyst:     ${a.topAssistant.name} (${a.topAssistant.assists} asyst)\n`;
     });
 
-    body += `${separator}\r\n`;
-    body += `Zarząd oraz kibice dziękują za emocje dostarczone w ubiegłym sezonie. \r\n Teraz czas na nowe wyzwania.`;
+    body += `\n${separator}\n\n`;
+    body += `Zarząd oraz kibice dziękują za emocje dostarczone w ubiegłym sezonie.\nTeraz czas na nowe wyzwania. Powodzenia w kolejnym!`;
 
     return {
       id: `SEASON_SUMMARY_${data.year}`,
@@ -147,7 +152,7 @@ generateSeasonSummaryMail: (data: SeasonSummaryData): MailMessage => {
       role: 'PZPM',
       subject: `OFICJALNY RAPORT: Podsumowanie Sezonu ${seasonLabel}`,
       body: body,
-      date: new Date(data.year + 1, 5, 30),
+      date: new Date(data.year + 1, 5, 28),
       isRead: false,
       type: MailType.SYSTEM,
       priority: 150
@@ -359,7 +364,8 @@ generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string):
     allClubs: Club[],
     rank: number, 
     boardConfidence: number,
-    recentFixture?: Fixture
+    recentFixture?: Fixture,
+    existingMails: MailMessage[] = []
   ): MailMessage[] => {
     const newMails: MailMessage[] = [];
     const played = userClub.stats.played;
@@ -409,14 +415,27 @@ generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string):
 
     const rng = Math.random();
 
-    if (played >= 3) {
-       const expectedRank = Math.max(1, 19 - userClub.reputation);
-       
+    const month = currentDate.getMonth() + 1; // 1-based
+    const day = currentDate.getDate();
+    const isBeforeLastLeagueMatch = month < 5 || (month === 5 && day <= 23);
+
+    if (played >= 3 && isBeforeLastLeagueMatch) {
+       // expectedRank: non-linear mapping so high-rep clubs (Legia, Lech) expect top 2,
+       // mid-rep clubs expect top 5–9, low-rep clubs expect mid/low table
+       const expectedRank = Math.max(1, Math.round(19 - userClub.reputation * 1.7));
+       const isHighRepClub = userClub.reputation >= 8;
+       const isFirstHalf = played < 17;
+
        if (rng < 0.15) {
           if (rank <= expectedRank - 3) {
              newMails.push(createMail('board_excellent_position', { 'CLUB': userClub.name }));
-          } else if (rank >= expectedRank + 5) {
-             newMails.push(createMail('board_bad_position', { 'CLUB': userClub.name }));
+          } else if (rank >= expectedRank + 4) {
+             if (isHighRepClub && isFirstHalf) {
+                // First half of season: high-rep board watches patiently instead of panicking
+                newMails.push(createMail('board_watching_patience', { 'CLUB': userClub.name }));
+             } else {
+                newMails.push(createMail('board_bad_position', { 'CLUB': userClub.name }));
+             }
           }
        }
 
@@ -439,7 +458,8 @@ generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string):
           const injuredStar = squad.find(p => 
             p.health.status === HealthStatus.INJURED && 
             p.health.injury?.severity === InjurySeverity.SEVERE &&
-            p.overallRating >= 75
+            p.overallRating >= 75 &&
+            (p.health.injury?.daysRemaining ?? 0) >= 31
           );
           if (injuredStar) {
             victim = injuredStar;
@@ -449,11 +469,16 @@ generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string):
        }
 
        if (victim && victimClub) {
-          newMails.push(createMail('media_league_star_injured', {
-             'PLAYER': victim.lastName,
-             'OTHER_CLUB': victimClub.name,
-             'DAYS': victim.health.injury?.daysRemaining.toString() || '30'
-          }));
+          const alreadySent = existingMails.some(m =>
+            m.subject.includes(victim!.lastName)
+          );
+          if (!alreadySent) {
+            newMails.push(createMail('media_league_star_injured', {
+               'PLAYER': victim.lastName,
+               'OTHER_CLUB': victimClub.name,
+               'DAYS': victim.health.injury?.daysRemaining.toString() || '30'
+            }));
+          }
        }
     }
 
@@ -466,10 +491,15 @@ generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string):
 
     const severeInjury = userSquad.find(p => p.health.status === HealthStatus.INJURED && p.health.injury?.severity === InjurySeverity.SEVERE && p.health.injury.daysRemaining >= 12);
     if (severeInjury && rng < 0.15) {
-       newMails.push(createMail('staff_severe_injury', { 
-         'PLAYER': severeInjury.lastName, 
-         'DAYS': severeInjury.health.injury?.daysRemaining.toString() || '30' 
-       }));
+       const alreadySentSevere = existingMails.some(m =>
+         m.subject.includes(severeInjury.lastName)
+       );
+       if (!alreadySentSevere) {
+         newMails.push(createMail('staff_severe_injury', { 
+           'PLAYER': severeInjury.lastName, 
+           'DAYS': severeInjury.health.injury?.daysRemaining.toString() || '30' 
+         }));
+       }
     }
 
     return newMails;

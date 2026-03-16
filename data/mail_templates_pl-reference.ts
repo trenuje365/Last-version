@@ -149,6 +149,14 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     body: 'Niestety, badania potwierdziły uraz u zawodnika {PLAYER}. Przewidywany rozbrat z futbollem to około {DAYS} dni. To spore wyzwanie dla składu, ale rozpoczynamy intensywną rehabilitację.'
   },
   {
+    id: 'board_league_champion',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: '🏆 MISTRZOWIE POLSKI! HISTORIA NAPISANA NA NOWO!',
+    body: 'Panie Managerze, ZROBIŁ PAN TO! Tytuł Mistrza Polski należy do {CLUB}! To jeden z najwspanialszych momentów w historii naszego klubu. Całe miasto świętuje, kibice wylegli na ulice, a my — zarząd — jesteśmy po prostu dumni. To sukces całego sztabu, całej drużyny i Pana niesamowitej pracy przez cały sezon. Dziękujemy z całego serca. Trofeum trafia do naszej gabloty na zawsze!'
+  },
+  {
     id: 'board_cup_victory',
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
@@ -252,27 +260,8 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     role: 'Redaktor',
     subject: 'Echa finału Superpucharu',
     body: '{MEDIA_COMMENT}'
-  }
-
-{
-    id: 'staff_emergency_gk_hired',
-    type: MailType.STAFF,
-    sender: 'Sztab Szkoleniowy',
-    role: 'Asystent',
-    subject: 'Kryzys w bramce - powołanie awaryjne',
-    body: 'Szefie, sytuacja jest krytyczna. Wszyscy nasi bramkarze są niedostępni z powodu kontuzji lub zawieszeń. Zdecydowałem o natychmiastowym włączeniu do kadry 18-letniego wychowanka, którym jest {PLAYER}. Chłopak nie ma doświadczenia, ale to nasza jedyna opcja, by rozegrać nadchodzące spotkanie. Zostanie on zwolniony do akademii, gdy tylko jeden z naszych podstawowych bramkarzy wróci do zdrowia.'
-  },
+  }, // <--- TUTAJ BYŁ BRAK PRZECINKA
   {
-    id: 'staff_emergency_gk_fired',
-    type: MailType.STAFF,
-    sender: 'Sztab Szkoleniowy',
-    role: 'Asystent',
-    subject: 'Koniec kryzysu - junior wraca do akademii',
-    body: 'Dobre wieści! Nasi bramkarze odzyskali sprawność i są gotowi do gry. Zgodnie z ustaleniami, młody {PLAYER} opuścił już pierwszą kadrę i wrócił do treningów z juniorami. Dziękujemy mu za pomoc w tym trudnym okresie.'
-  },
-
-
-{
     id: 'media_coach_fired',
     type: MailType.MEDIA,
     sender: 'Głos Ligowy',
@@ -288,7 +277,5 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     subject: 'OSTRZEŻENIE - Ultimatum Zarządu',
     body: 'Szanowny Panie, nasza cierpliwość dobiegła końca. Obecna lokata zespołu ({RANK}) drastycznie odbiega od Pana obietnic. Jeśli w najbliższym czasie nie zobaczymy wyraźnej poprawy punktowej, będziemy zmuszeni podjąć radykalne kroki. Proszę traktować tę wiadomość jako oficjalne ostrzeżenie.'
   }
-// KONIEC KODU
-];
-
+]; // <--- ZAMKNIĘCIE TABLICY
 

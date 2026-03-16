@@ -52,15 +52,11 @@ export const FreeAgentNegotiationView: React.FC = () => {
   const [agentReaction, setAgentReaction] = useState<{ type: string, msg: string } | null>(null);
 
   // LOGIKA WSTĘPNEGO ZAINTERESOWANIA (Gatekeeping)
-  const isInterested = useMemo(() => {
-    // Jeśli to gwiazda (OVR > 70) i mały klub (REP < 5)
-    if (player && player.overallRating > 70 && myClub && myClub.reputation < 5) {
-      // 1% szansy na to, że jednak zechce rozmawiać (99% na blokadę)
-      const interestRoll = Math.random();
-      if (interestRoll > 0.01) return false;
-    }
-    return true;
+  const agentInterest = useMemo(() => {
+    if (!player || !myClub) return { interested: true, message: '' };
+    return FreeAgentNegotiationService.evaluateInitialInterest(player, myClub);
   }, [player, myClub]);
+  const isInterested = agentInterest.interested;
 
   if (!player || !myClub) return null;
 
@@ -148,7 +144,7 @@ const isAlreadyNegotiating = useMemo(() => {
                <div className="text-7xl mb-6">🧑‍💼</div>
                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">MÓJ KLIENT NIE JEST ZAINTERESOWANY GRĄ W WASZEJ DRUŻYNIE</h3>
                <p className="text-slate-400 text-lg italic max-w-2xl mx-auto">
-                 "Z całym szacunkiem, ale poziom sportowy oraz reputacja Państwa klubu nie odpowiadają ambicjom mojego klienta. Szukamy wyzwań w znacznie silniejszych ligach."
+                 "{agentInterest.message || 'Z całym szacunkiem, ale poziom sportowy oraz reputacja Państwa klubu nie odpowiadają ambicjom mojego klienta. Szukamy wyzwań w znacznie silniejszych ligach.'}"
                </p>
             </div>
           ) : (

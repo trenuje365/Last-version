@@ -7,6 +7,7 @@ import { TacticRepository } from '../../resources/tactics_db';
 import { LineupService } from '../../services/LineupService';
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
 import szatnia from '../../Graphic/themes/szatnia.png';
+import { getClubLogo } from '../../resources/ClubLogoAssets';
 
 export const SquadView: React.FC = () => {
   const { players, userTeamId, clubs, navigateTo, lineups, updateLineup, viewPlayerDetails } = useGame();
@@ -31,12 +32,14 @@ export const SquadView: React.FC = () => {
       if (clickedPlayer && loc === 'RES') {
          // Sprawdź zawieszenia
          if ((clickedPlayer.suspensionMatches || 0) > 0) {
-            alert("Ten zawodnik jest zawieszony i nie może zostać wybrany do składu meczowego.");
             return;
          }
-         // Sprawdź poważne kontuzje
-         if (clickedPlayer.health.status === HealthStatus.INJURED && clickedPlayer.health.injury?.severity === InjurySeverity.SEVERE) {
-            alert("Ten zawodnik jest poważnie kontuzjowany i nie jest zdolny do gry.");
+         // Sprawdź kontuzje (SEVERE lub daysRemaining > 2)
+         if (clickedPlayer.health.status === HealthStatus.INJURED && (clickedPlayer.health.injury?.severity === InjurySeverity.SEVERE || (clickedPlayer.health.injury?.daysRemaining ?? 0) > 2)) {
+            return;
+         }
+         // Sprawdź przemęczenie (kondycja < 60)
+         if (clickedPlayer.condition < 60) {
             return;
          }
       }
@@ -47,12 +50,15 @@ export const SquadView: React.FC = () => {
       // Walidacja przy wstawianiu zawodnika z Rezerw do składu
       if (sourcePlayer && selectedSlot.loc === 'RES' && loc !== 'RES') {
          if ((sourcePlayer.suspensionMatches || 0) > 0) {
-            alert("Nie można wstawić zawieszonego gracza do składu.");
             setSelectedSlot(null);
             return;
          }
-         if (sourcePlayer.health.status === HealthStatus.INJURED && sourcePlayer.health.injury?.severity === InjurySeverity.SEVERE) {
-            alert("Nie można wstawić poważnie kontuzjowanego gracza do składu.");
+         if (sourcePlayer.health.status === HealthStatus.INJURED && (sourcePlayer.health.injury?.severity === InjurySeverity.SEVERE || (sourcePlayer.health.injury?.daysRemaining ?? 0) > 2)) {
+            setSelectedSlot(null);
+            return;
+         }
+         // Sprawdź przemęczenie (kondycja < 60)
+         if (sourcePlayer.condition < 60) {
             setSelectedSlot(null);
             return;
          }
@@ -101,9 +107,22 @@ export const SquadView: React.FC = () => {
 
   if (!myLineup || !userTeamId || !myClub) return null;
 
+  const getPositionGroup = (role: string): string => {
+    if (role === 'GK') return 'GK';
+    if (['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(role) || role.startsWith('DEF')) return 'DEF';
+    if (['CM', 'CDM', 'CAM', 'LM', 'RM'].includes(role) || role.startsWith('MID')) return 'MID';
+    return 'FWD';
+  };
+
   const renderPlayerRow = (pId: string | null, label: string, loc: 'START' | 'BENCH' | 'RES', index?: number) => {
     const player = pId ? getPlayerById(pId) : null;
     const isSelected = selectedSlot?.loc === loc && (loc === 'START' ? selectedSlot.index === index : selectedSlot.id === pId);
+    const selectedRole = selectedSlot?.loc === 'START' ? currentTactic.slots[selectedSlot.index]?.role : null;
+    const isHighlighted = !isSelected && selectedRole && (loc === 'BENCH' || loc === 'RES') && player
+      && !(( player.suspensionMatches || 0) > 0)
+      && !(player.health.status === HealthStatus.INJURED && player.health.injury?.severity === InjurySeverity.SEVERE)
+      && !(player.condition < 60)
+      && getPositionGroup(player.position) === getPositionGroup(selectedRole);
 
     if (!player && loc === 'START') {
       return (
@@ -127,6 +146,7 @@ export const SquadView: React.FC = () => {
     const condColor = PlayerPresentationService.getConditionColorClass(player.condition);
     const isSuspended = (player.suspensionMatches || 0) > 0;
     const isSevereInjured = player.health.status === HealthStatus.INJURED && player.health.injury?.severity === InjurySeverity.SEVERE;
+    const isOverfatigued = player.condition < 60;
     
     return (
       <tr 
@@ -134,8 +154,8 @@ export const SquadView: React.FC = () => {
         onClick={() => handlePlayerClick(player.id, loc, index)}
         onDoubleClick={() => handlePlayerDoubleClick(player.id)}
         className={`group relative h-14 border-b border-white/5 transition-all cursor-pointer
-          ${isSelected ? 'bg-blue-600/20 ring-1 ring-inset ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'hover:bg-white/[0.03]'}
-          ${(isSuspended || isSevereInjured) ? 'opacity-30 grayscale' : ''}`}
+          ${isSelected ? 'bg-blue-600/20 ring-1 ring-inset ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : isHighlighted ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-400/60 shadow-[0_0_16px_rgba(52,211,153,0.15)]' : 'hover:bg-white/[0.03]'}
+          ${(isSuspended || isSevereInjured || isOverfatigued) ? 'opacity-30 grayscale' : ''}`}
       >
         <td className="pl-6 w-12 relative z-10">
            <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{label}</span>
@@ -146,7 +166,7 @@ export const SquadView: React.FC = () => {
         <td className="relative z-10">
            <div className="flex items-center gap-3">
               <div className="flex flex-col">
-                <span className={`text-sm font-black uppercase italic tracking-tight transition-colors ${(isSuspended || isSevereInjured) ? 'text-slate-500' : 'text-white group-hover:text-blue-400'}`}>
+                <span className={`text-sm font-black uppercase italic tracking-tight transition-colors ${(isSuspended || isSevereInjured || isOverfatigued) ? 'text-slate-500' : 'text-white group-hover:text-blue-400'}`}>
                   {player.lastName}
                 </span>
                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{player.firstName}</span>
@@ -154,6 +174,15 @@ export const SquadView: React.FC = () => {
               {player.isOnTransferList && (
                 <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[8px] font-black rounded border border-amber-500/30 shadow-sm shrink-0 leading-none">
                      LISTA
+                </span>
+              )}
+              {/* Badge zainteresowania transferowego — pojawia się gdy ≥1 klub AI obserwuje zawodnika */}
+              {player.interestedClubs && player.interestedClubs.length > 0 && (
+                <span
+                  title={`Zainteresowane kluby:\n${player.interestedClubs.map(id => clubs.find(c => c.id === id)?.name ?? id).join('\n')}`}
+                  className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[8px] font-black rounded border border-blue-500/30 shadow-sm shrink-0 leading-none cursor-help"
+                >
+                  INT
                 </span>
               )}
            </div>
@@ -209,15 +238,29 @@ export const SquadView: React.FC = () => {
       </div>
 
       {/* 2. BROADCAST HEADER */}
-      <header className="flex items-center justify-between px-10 py-6 bg-slate-900/40 rounded-[40px] border border-white/10 backdrop-blur-3xl shrink-0 shadow-2xl mb-6">
+      <header className="relative overflow-visible flex items-center justify-between px-10 py-[4px] bg-slate-900/40 rounded-[40px] border border-white/10 backdrop-blur-3xl shrink-0 shadow-2xl mb-6">
+         {/* Club logo / colors — floats over everything */}
+         {getClubLogo(myClub.id) ? (
+           <div className="absolute left-6 top-1/2 -translate-y-1/2" style={{ zIndex: 9999, pointerEvents: 'none' }}>
+             <div className="absolute inset-[-10px] rounded-3xl blur-xl opacity-20" style={{ backgroundColor: myClub.colorsHex[0] }} />
+             <img
+               src={getClubLogo(myClub.id)}
+               alt={myClub.name}
+               className="w-[172px] h-[172px] object-contain drop-shadow-2xl relative"
+               style={{ transform: 'rotate(-12deg)' }}
+             />
+           </div>
+         ) : (
+           <div className="absolute left-6 top-1/2 -translate-y-1/2 group" style={{ zIndex: 9999 }}>
+             <div className="absolute inset-[-10px] rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity" style={{ backgroundColor: myClub.colorsHex[0] }} />
+             <div className="w-20 h-20 rounded-[28px] flex flex-col overflow-hidden border-2 border-white/20 shadow-2xl transform group-hover:rotate-6 transition-transform duration-500 relative">
+               <div style={{ backgroundColor: myClub.colorsHex[0] }} className="flex-1" />
+               <div style={{ backgroundColor: myClub.colorsHex[1] || myClub.colorsHex[0] }} className="flex-1" />
+             </div>
+           </div>
+         )}
          <div className="flex items-center gap-8">
-            <div className="relative group">
-               <div className="absolute inset-[-10px] rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity" style={{ backgroundColor: myClub.colorsHex[0] }} />
-               <div className="w-20 h-20 rounded-[28px] flex flex-col overflow-hidden border-2 border-white/20 shadow-2xl transform group-hover:rotate-6 transition-transform duration-500 relative z-10">
-                  <div style={{ backgroundColor: myClub.colorsHex[0] }} className="flex-1" />
-                  <div style={{ backgroundColor: myClub.colorsHex[1] || myClub.colorsHex[0] }} className="flex-1" />
-               </div>
-            </div>
+            <div className="w-[140px] shrink-0" />
             <div>
                <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none drop-shadow-2xl">Zarządzanie <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-white">Kadrą</span></h1>
                <div className="flex items-center gap-8 mt-3">
@@ -256,11 +299,7 @@ export const SquadView: React.FC = () => {
            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-emerald-500/5 to-transparent pointer-events-none" />
 
-           <div className="w-full h-full max-w-[550px] aspect-[2/3.2] relative rounded-[40px] border-[12px] border-white/10 overflow-hidden shadow-[0_100px_150px_rgba(0,0,0,0.8)] bg-[#053d2e] transform perspective-[1500px] rotateX(15deg)">
-              {/* Pitch Texture & Grid */}
-              <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, #059669 0%, #059669 10%, #047857 10%, #047857 20%)' }} />
-              <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '10% 10%' }} />
-              
+           <div className="w-full h-full max-w-[550px] aspect-[2/3.2] relative rounded-none border-0 overflow-hidden shadow-[0_100px_150px_rgba(0,0,0,0.8)] transform perspective-[1500px] rotateX(15deg)" style={{ backgroundColor: 'rgba(5, 61, 1, 0.65)' }}>
               {/* Pitch Markings SVG */}
               <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 100 150" fill="none" stroke="white" strokeWidth="0.8">
                  <rect x="2" y="2" width="96" height="146" />
@@ -296,8 +335,13 @@ export const SquadView: React.FC = () => {
                      }}
                   >
                     {/* Role Tag */}
-                    <div className={`absolute -top-10 whitespace-nowrap px-3 py-1 rounded-lg shadow-2xl text-[10px] font-black border transition-all duration-500
-                       ${!player ? 'bg-rose-600 border-rose-400 text-white animate-pulse' : 'bg-black/80 border-white/20 text-slate-400 group-hover:text-white'}`}>
+                    <div className={`absolute -top-[20px] whitespace-nowrap px-[10px] py-[2px] rounded-none shadow-2xl text-[9px] font-black border transition-all duration-500
+                       ${!player ? 'bg-rose-600 border-rose-400 text-white animate-pulse' : `bg-black/80 border-white/20 ${
+                         slot.role === PlayerPosition.GK ? 'text-yellow-400' :
+                         slot.role === PlayerPosition.DEF ? 'text-blue-400' :
+                         slot.role === PlayerPosition.MID ? 'text-emerald-400' :
+                         'text-red-400'
+                       }`}`}>
                        {!player ? 'VACANT' : slot.role}
                     </div>
                     
@@ -307,31 +351,40 @@ export const SquadView: React.FC = () => {
                     )}
 
                     {/* Tactical Node */}
-                    <div className={`relative w-14 h-14 rounded-3xl flex items-center justify-center shadow-2xl border-[3px] transition-all duration-500 overflow-hidden
-                       ${isSelected ? 'bg-white border-white scale-110' : 'bg-slate-950/90 border-white/10'}
-                       ${!player ? 'border-dashed border-rose-500/40 bg-rose-950/20' : ''}
-                       ${isOutOfPosition && !isSelected ? 'border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.3)]' : ''}
-                    `}>
-                       {/* Identity Underlay */}
+                    <div
+                       className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-2xl border-[3px] transition-all duration-500 overflow-hidden
+                         ${isSelected ? 'scale-110' : ''}
+                         ${!player ? 'border-dashed border-rose-500/40 bg-rose-950/20' : ''}
+                         ${isOutOfPosition && !isSelected ? 'border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.3)]' : ''}
+                       `}
+                       style={isSelected ? { background: '#ffffff', borderColor: '#ffffff' } : player ? { borderColor: myClub.colorsHex[1] || myClub.colorsHex[0] } : {}}
+                    >
+                       {/* Kit layers: shirt (top 3/4) + shorts (bottom 1/4) */}
                        {player && !isSelected && (
-                          <div className="absolute inset-0 opacity-10" style={{ backgroundColor: myClub.colorsHex[0] }} />
+                         <>
+                           <div className="absolute inset-0" style={{ backgroundColor: myClub.colorsHex[0], bottom: '25%' }} />
+                           <div className="absolute left-0 right-0 bottom-0 h-[25%]" style={{ backgroundColor: myClub.colorsHex[1] || myClub.colorsHex[0] }} />
+                         </>
                        )}
-                       
-                       <span className={`text-xl font-black italic relative z-10 ${isSelected ? 'text-slate-900' : (player ? 'text-white' : 'text-rose-500')}`}>
+
+                       <span
+                         className={`text-xl font-black italic relative z-10 ${isSelected ? 'text-slate-900' : (player ? 'text-white' : 'text-rose-500')}`}
+                         style={player && !isSelected ? { textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7)' } : {}}
+                       >
                          {player ? player.overallRating : '!'}
                        </span>
 
                        {/* Mini Energy Bar inside Node */}
                        {player && (
-                         <div className="absolute bottom-0 left-0 w-full h-1 bg-black/40">
+                         <div className="absolute bottom-0 left-0 w-full h-1 bg-black/40 z-10">
                             <div className={`h-full ${PlayerPresentationService.getConditionColorClass(player.condition)}`} style={{ width: `${player.condition}%` }} />
                          </div>
                        )}
                     </div>
 
                     {/* Name Label */}
-                    <div className={`mt-3 px-4 py-1 rounded-xl border transition-all duration-500 backdrop-blur-md ${!player ? 'bg-rose-500/20 border-rose-500/30' : 'bg-black/70 border-white/10'} ${isOutOfPosition ? 'border-amber-500/40' : ''}`}>
-                       <span className={`text-[10px] font-black uppercase italic tracking-widest whitespace-nowrap ${!player ? 'text-rose-400' : (isOutOfPosition ? 'text-amber-200' : 'text-white')}`}>
+                    <div className="-mt-[7px]">
+                       <span className={`text-[10px] font-black uppercase italic tracking-widest whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${!player ? 'text-rose-400' : (isOutOfPosition ? 'text-amber-200' : 'text-white')}`}>
                           {player ? player.lastName : 'DEPLOY UNIT'}
                        </span>
                     </div>
@@ -404,7 +457,7 @@ export const SquadView: React.FC = () => {
 </div>
 
       {/* FOOTER DIAGNOSTIC BAR */}
-      <footer className="mt-6 h-12 bg-white/5 rounded-full border border-white/10 backdrop-blur-xl flex items-center justify-between px-12 shrink-0 shadow-2xl relative overflow-hidden">
+      <footer className="mt-6 h-6 bg-white/5 rounded-full border border-white/10 backdrop-blur-xl flex items-center justify-between px-12 shrink-0 shadow-2xl relative overflow-hidden">
          <div className="absolute inset-0 opacity-[0.03] animate-ticker" style={{ backgroundImage: 'linear-gradient(90deg, transparent, white, transparent)', backgroundSize: '200% 100%' }} />
          <div className="flex gap-12 text-[7px] font-black text-slate-600 uppercase tracking-[0.6em] relative z-10">
             <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" /> Taktyki gotowe</span>

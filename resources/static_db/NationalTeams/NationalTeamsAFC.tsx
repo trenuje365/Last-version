@@ -32,7 +32,6 @@ export const NATIONAL_TEAMS_AFC = [
   { name: "Bhutan", continent: "Asia", tier: 5, colors: ['#FFCC00','#FFFFFF','#FF6600'], stadium: "Changlimithang Stadium", capacity: 25000, reputation: 3 },
   { name: "Hongkong", continent: "Asia", tier: 3, colors: ['#DE2910','#FFFFFF','#DE2910'], stadium: "Hong Kong Stadium", capacity: 40000, reputation: 7 },
   { name: "Indie", continent: "Asia", tier: 3, colors: ['#FF9933','#FFFFFF','#138808'], stadium: "Salt Lake Stadium", capacity: 85000, reputation: 8 },
-  { name: "Kazachstan", continent: "Asia", tier: 2, colors: ['#00AFCA','#FFD100','#00AFCA'], stadium: "Astana Arena", capacity: 30000, reputation: 10 },
   { name: "Kirgistan", continent: "Asia", tier: 3, colors: ['#E8112D','#FFD100','#E8112D'], stadium: "Dolen Omurzakov Stadium", capacity: 23000, reputation: 8 },
   { name: "Malediwy", continent: "Asia", tier: 4, colors: ['#D21034','#007A3D','#D21034'], stadium: "National Football Stadium", capacity: 7000, reputation: 5 },
   { name: "Mongolia", continent: "Asia", tier: 5, colors: ['#C4272F','#0033A0','#F9CF02'], stadium: "MFF Football Centre", capacity: 5000, reputation: 3 },

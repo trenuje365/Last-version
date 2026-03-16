@@ -1,35 +1,47 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState, PlayerPosition, Player } from '../../types';
+
+const initialFilters = {
+  age: { min: 16, max: 45 },
+  pace: { min: 1, max: 99 },
+  strength: { min: 1, max: 99 },
+  stamina: { min: 1, max: 99 },
+  defending: { min: 1, max: 99 },
+  passing: { min: 1, max: 99 },
+  attacking: { min: 1, max: 99 },
+  finishing: { min: 1, max: 99 },
+  technique: { min: 1, max: 99 },
+  dribbling: { min: 1, max: 99 },
+  vision: { min: 1, max: 99 },
+  positioning: { min: 1, max: 99 },
+  goalkeeping: { min: 1, max: 99 }
+};
+
+// Persystencja filtrów między nawigacjami (stan modułowy, przeżywa odmontowanie komponentu)
+const _persisted = {
+  posFilter: 'ALL' as string,
+  searchTermPlayers: '' as string,
+  filters: { ...initialFilters } as typeof initialFilters,
+};
 
 export const JobMarketView: React.FC = () => {
   const { coaches, clubs, navigateTo, viewCoachDetails, viewClubDetails, players, viewPlayerDetails } = useGame();
 
-  // Filtry Piłkarzy - Nowa struktura zakresowa
-  const [searchTermPlayers, setSearchTermPlayers] = useState('');
-  const [posFilter, setPosFilter] = useState('ALL');
+  // Filtry Piłkarzy - inicjalizowane z ostatnich zapamiętanych wartości
+  const [searchTermPlayers, setSearchTermPlayers] = useState(_persisted.searchTermPlayers);
+  const [posFilter, setPosFilter] = useState(_persisted.posFilter);
   
   // Stan dla Listy Transferowej
   const [searchTermTransfer, setSearchTermTransfer] = useState('');
 
-  const initialFilters = {
-    age: { min: 16, max: 45 },
-    pace: { min: 1, max: 99 },
-    strength: { min: 1, max: 99 },
-    stamina: { min: 1, max: 99 },
-    defending: { min: 1, max: 99 },
-    passing: { min: 1, max: 99 },
-    attacking: { min: 1, max: 99 },
-    finishing: { min: 1, max: 99 },
-    technique: { min: 1, max: 99 },
-    dribbling: { min: 1, max: 99 },
-    vision: { min: 1, max: 99 },
-    positioning: { min: 1, max: 99 },
-    goalkeeping: { min: 1, max: 99 }
-  };
+  const [filters, setFilters] = useState<typeof initialFilters>(_persisted.filters);
 
-  const [filters, setFilters] = useState(initialFilters);
+  // Synchronizacja stanu do persystentnego obiektu modułowego
+  useEffect(() => { _persisted.posFilter = posFilter; }, [posFilter]);
+  useEffect(() => { _persisted.searchTermPlayers = searchTermPlayers; }, [searchTermPlayers]);
+  useEffect(() => { _persisted.filters = filters; }, [filters]);
 
   // SKASOWANO KOD: const [searchTermCoaches, setSearchTermCoaches] = useState('');
 
@@ -61,11 +73,30 @@ export const JobMarketView: React.FC = () => {
 
   // TUTAJ WSTAW TEN KOD: Logika pustej listy transferowej
   const transferListedPlayers = useMemo(() => {
-    const all = Object.values(players).flat();
-    return all
-      .filter(p => p.isOnTransferList)
-      .sort((a,b) => b.overallRating - a.overallRating);
-  }, [players]);
+    let list = Object.values(players).flat().filter(p => p.isOnTransferList);
+    if (searchTermPlayers) {
+      list = list.filter(p => p.lastName.toLowerCase().includes(searchTermPlayers.toLowerCase()) || p.firstName.toLowerCase().includes(searchTermPlayers.toLowerCase()));
+    }
+    if (posFilter !== 'ALL') {
+      list = list.filter(p => p.position === posFilter);
+    }
+    list = list.filter(p =>
+      p.age >= filters.age.min && p.age <= filters.age.max &&
+      p.attributes.pace >= filters.pace.min && p.attributes.pace <= filters.pace.max &&
+      p.attributes.strength >= filters.strength.min && p.attributes.strength <= filters.strength.max &&
+      p.attributes.stamina >= filters.stamina.min && p.attributes.stamina <= filters.stamina.max &&
+      p.attributes.defending >= filters.defending.min && p.attributes.defending <= filters.defending.max &&
+      p.attributes.passing >= filters.passing.min && p.attributes.passing <= filters.passing.max &&
+      p.attributes.attacking >= filters.attacking.min && p.attributes.attacking <= filters.attacking.max &&
+      p.attributes.finishing >= filters.finishing.min && p.attributes.finishing <= filters.finishing.max &&
+      p.attributes.technique >= filters.technique.min && p.attributes.technique <= filters.technique.max &&
+      p.attributes.dribbling >= filters.dribbling.min && p.attributes.dribbling <= filters.dribbling.max &&
+      p.attributes.vision >= filters.vision.min && p.attributes.vision <= filters.vision.max &&
+      p.attributes.positioning >= filters.positioning.min && p.attributes.positioning <= filters.positioning.max &&
+      p.attributes.goalkeeping >= filters.goalkeeping.min && p.attributes.goalkeeping <= filters.goalkeeping.max
+    );
+    return list.sort((a,b) => b.overallRating - a.overallRating);
+  }, [players, searchTermPlayers, posFilter, filters]);
 
   const freeAgentPlayers = useMemo(() => {
     let list = [...(players['FREE_AGENTS'] || [])];
@@ -202,7 +233,7 @@ export const JobMarketView: React.FC = () => {
               </div>
             </div>
             <button 
-              onClick={() => setFilters(initialFilters)}
+              onClick={() => { setFilters(initialFilters); _persisted.filters = { ...initialFilters }; }}
               className="mt-4 w-full py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white hover:bg-white/[0.08] transition-all"
             >
               Resetuj filtry
@@ -402,9 +433,11 @@ export const JobMarketView: React.FC = () => {
       </div>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #059669 rgba(0,0,0,0.3); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #059669; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
         .dual-range-input {
           -webkit-appearance: none;

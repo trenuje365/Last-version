@@ -17,48 +17,48 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
     role: 'Prezes Zarządu',
-    subject: 'Witamy w naszym klubie.',
-    body: 'Szanowny Panie Managerze, gratulujemy objęcia sterów w {CLUB}. Jako jeden z najpotężniejszych klubów w kraju, sądzimy, że posiadamy odpowiednie środki do zrealizowania najwyższych celów. Dysponuje Pan kadrą gotową na wielkie rzeczy. Oczekujemy, że od pierwszej kolejki narzucimy rywalom swój styl gry. Powodzenia, całe miasto oraz kibice liczą na solidna walkę o tytuł Mistrza Polski!'
+    subject: 'Objęcie stanowiska Pierwszego Trenera — oczekiwania Zarządu',
+    body: 'Szanowny Panie Managerze,\n\nW imieniu Zarządu {CLUB} formalnie witamy Pana na stanowisku Pierwszego Trenera i wyrażamy zadowolenie z podjętej decyzji o współpracy.\n\nPragnę jednak od razu nakreślić ramy, w jakich będziemy oceniać naszą współpracę. {CLUB} jest klubem o ugruntowanej pozycji i ogólnopolskiej rozpoznawalności. Oczekiwania Zarządu oraz kibiców są jednoznaczne: Mistrzostwo Polski i Puchar Polski to cele, które traktujemy jako obowiązek, nie aspirację. Dysponuje Pan kadrą o najwyższym potencjale w lidze — jej odpowiednie wykorzystanie leży wyłącznie w Pana gestii.\n\nJesteśmy do dyspozycji w sprawach organizacyjnych i budżetowych. Oczekujemy regularnych raportów i pełnej determinacji na boisku.\n\nZ poważaniem,\nWojciech Marcin Jankowski\nPrezes Zarządu, {CLUB}'
   },
   {
     id: 'board_welcome_pro',
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
     role: 'Prezes Zarządu',
-    subject: 'Witmy w klubie.',
-    body: 'Cieszymy się, że dołączył Pan do {CLUB}. Nasz zespół ma ogromny potencjał, który w ostatnim czasie nie był w pełni wykorzystany. W nadchodzącym sezonie naszym priorytetem jest walka o miejsca premiowane grą w europejskich pucharach, a przy odrobinie szczęscia może i Puchar Polski lub Mistrz Polski. Chcemy widzieć drużynę grającą ofensywnie i z pasją. Wierzymy, że pod Pana wodzą to możliwe.'
+    subject: 'Witamy w {CLUB} — cele na nadchodzący sezon',
+    body: 'Szanowny Panie Managerze,\n\nZ przyjemnością witamy Pana w strukturach {CLUB}. Cieszymy się, że podjął się Pan tego wyzwania i wierzymy, że wniesie Pan do klubu nową jakość zarówno pod względem sportowym, jak i organizacyjnym.\n\nW nadchodzącym sezonie naszym priorytetem jest regularna rywalizacja o miejsca w europejskich pucharach oraz realna walka o Puchar Polski. Zdajemy sobie sprawę, że liga jest wyrównana, jednak potencjał naszej kadry powinien plasować nas wyraźnie w czołówce tabeli.\n\nLiczymy na Pana profesjonalizm i zapraszamy do współpracy.\n\nZ poważaniem,\nMarcin Wiśniewski\nPrezes Zarządu, {CLUB}'
   },
   {
     id: 'board_welcome_elite_promotion',
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
     role: 'Prezes Zarządu',
-    subject: 'Witamy w {CLUB}! .',
-    body: 'Szanowny Panie Managerze, Nie będziemy ukrywać – ten klub i te trybuny nie pasują do obecnego szczebla rozgrywek. Naszym jedynym i bezdyskusyjnym celem jest AWANS do {TARGET_LEAGUE}. Ma Pan do dyspozycji najsilniejszy skład w stawce. Liczymy na szybki powrót tam, gdzie nasze miejsce.'
+    subject: 'Objęcie stanowiska Pierwszego Trenera — mandat Zarządu',
+    body: 'Szanowny Panie Managerze,\n\nWitamy Pana w {CLUB}. Dziękujemy za podjęcie się tego odpowiedzialnego zadania w szczególnym momencie dla naszego klubu.\n\nBędę bezpośredni: obecny szczebel rozgrywkowy jest stanem przejściowym, który nie odpowiada ani historii, ani ambicjom {CLUB}. Zarząd stawia przed Panem jeden, niepodlegający dyskusji cel — awans do {TARGET_LEAGUE} w tym sezonie. Dysponuje Pan kadrą znacząco przewyższającą poziom tej ligi.\n\nOczekujemy pełnego profesjonalizmu i skupienia na realizacji tego mandatu.\n\nZ poważaniem,\nTomasz Adamski\nPrezes Zarządu, {CLUB}'
   },
   {
     id: 'board_welcome_pro_promotion',
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
     role: 'Dyrektor Sportowy',
-    subject: 'Witamy w klubie.',
-    body: ' Cieszymy się, że podjął się Pan wyzwania poprowadzenia {CLUB}. Nasze ambicje sięgają wyżej niż obecna liga. W tym sezonie oczekujemy twardej walki o miejsca gwarantujące AWANS do {TARGET_LEAGUE}. Chcemy widzieć zespół zdeterminowany, który w każdym meczu narzuca swoje warunki. Powodzenia w realizacji tego celu.'
+    subject: 'Witamy w {CLUB} — priorytety sportowe sezonu',
+    body: 'Szanowny Panie Managerze,\n\nW imieniu Zarządu oraz Dyrekcji Sportowej {CLUB} serdecznie witamy Pana na nowym stanowisku. Doceniamy Pana zdecydowanie przy podejmowaniu tego wyzwania.\n\nNasze oczekiwania względem bieżącego sezonu są klarowne: priorytetem jest zajęcie miejsca gwarantującego awans do {TARGET_LEAGUE}. Ambicje klubu sięgają wyżej niż obecny szczebel rozgrywkowy, a posiadana kadra daje realne podstawy do osiągnięcia tego celu.\n\nDyrekcja Sportowa pozostaje do Pana dyspozycji we wszelkich kwestiach kadrowych i organizacyjnych.\n\nZ poważaniem,\nPaweł Nowak\nDyrektor Sportowy, {CLUB}'
   },
   {
     id: 'board_welcome_mid',
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
     role: 'Dyrektor Sportowy',
-    subject: 'Witamy na pokładzie,',
-    body: 'Nasza drużyna przechodzi obecnie proces przebudowy i naszym głównym celem jest spokój oraz bezpieczne miejsce w środku tabeli. Chcemy uniknąć nerwowej końcówki sezonu i zbudować solidne fundamenty pod przyszłe sukcesy. Proszę skupić się na zbalansowaniu kadry i wprowadzaniu stabilnego planu taktycznego. Zarząd ufa Pana wizji.'
+    subject: 'Witamy w {CLUB}',
+    body: 'Szanowny Panie Managerze,\n\nWitamy Pana w {CLUB} i dziękujemy za gotowość podjęcia się poprowadzenia naszej drużyny. Jesteśmy przekonani, że Pana doświadczenie i wiedza będą cennym wkładem w rozwój zespołu.\n\nNa ten sezon Zarząd wyznacza cel w postaci stabilnej, spokojnej pozycji w środku tabeli. Klub przechodzi etap budowania i konsolidacji kadry — zależy nam na stworzeniu solidnych fundamentów, które pozwolą na ambitniejsze plany w kolejnych rozgrywkach.\n\nLiczymy na Pana zaangażowanie i otwartą komunikację z Dyrekcją Sportową.\n\nZ poważaniem,\nKrzysztof Mazurek\nDyrektor Sportowy, {CLUB}'
   },
   {
     id: 'board_welcome_relegation',
     type: MailType.BOARD,
     sender: 'Zarząd Klubu',
     role: 'Właściciel Klubu',
-    subject: 'Witamy serdecznie w {CLUB}!',
-    body: 'Sytuacja nie jest łatwa, ale wierzymy, że jest Pan odpowiednią osobą na odpowiednim miejscu. W tym sezonie interesuje nas tylko jedno: utrzymanie w lidze za wszelką cenę. Każdy punkt będzie na wagę złota, a każdy mecz będzie bitwą o życie. Proszę natchnąć tych chłopców do walki. Jeśli uda się uniknąć spadku, uznamy sezon za udany.'
+    subject: 'Witamy w {CLUB} — pilna kwestia do omówienia',
+    body: 'Szanowny Panie Managerze,\n\nWitamy Pana w {CLUB}. Rozumiemy, że dołącza Pan do klubu w trudnym momencie, i doceniamy gotowość do podjęcia tego wyzwania.\n\nNie będę owijał w bawełnę — sytuacja sportowa jest poważna i wymaga natychmiastowych działań. Priorytetem absolutnym na ten sezon jest utrzymanie miejsca w lidze. Każdy zdobyty punkt ma dla nas kluczowe znaczenie. Proszę skupić się na stabilizacji gry defensywnej i odbudowie morale szatni — to fundament, od którego musimy zacząć.\n\nZarząd zapewnia Panu pełne wsparcie w granicach dostępnych zasobów. Oczekujemy regularnego kontaktu i rzetelnej oceny sytuacji.\n\nZ poważaniem,\nAndrzej Karpowicz\nWłaściciel, {CLUB}'
   },
 
   // --- PERFORMANCE TRACKING (BOARD) ---
@@ -93,6 +93,14 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     role: 'Właściciel Klubu',
     subject: 'Niezadowolenie z miejsca w tabeli',
     body: 'Obecna lokata {CLUB} w tabeli jest upokarzająca dla marki o takiej reputacji. Nie po to inwestujemy w kadrę, by oglądać plecy znacznie słabszych zespołów. Oczekujemy jak najszybszej poprawy wyników.'
+  },
+  {
+    id: 'board_watching_patience',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Obserwujemy sytuację w tabeli',
+    body: 'Zarząd uważnie śledzi poczynania {CLUB} na boisku i w tabeli. Zdajemy sobie sprawę, że sezon jest jeszcze w toku, dlatego cierpliwie czekamy na przełom. Liczymy jednak, że w nadchodzących kolejkach drużyna potwierdzi swój potencjał i zacznie wspinać się w klasyfikacji.'
   },
 
   // --- MATCH EVENTS (FIXED LOGIC) ---
@@ -147,6 +155,14 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     role: 'Lekarz Klubowy',
     subject: 'Raport medyczny: {PLAYER}',
     body: 'Niestety, badania potwierdziły uraz u zawodnika {PLAYER}. Przewidywany rozbrat z futbollem to około {DAYS} dni. To spore wyzwanie dla składu, ale rozpoczynamy intensywną rehabilitację.'
+  },
+  {
+    id: 'board_league_champion',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: '🏆 MISTRZOWIE POLSKI! HISTORIA NAPISANA NA NOWO!',
+    body: 'Panie Managerze, ZROBIŁ PAN TO! Tytuł Mistrza Polski należy do {CLUB}! To jeden z najwspanialszych momentów w historii naszego klubu. Całe miasto świętuje, kibice wylegli na ulice, a my — zarząd — jesteśmy po prostu dumni. To sukces całego sztabu, całej drużyny i Pana niesamowitej pracy przez cały sezon. Dziękujemy z całego serca. Trofeum trafia do naszej gabloty na zawsze!'
   },
   {
     id: 'board_cup_victory',

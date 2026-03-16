@@ -124,6 +124,13 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
   const logsEndRef = useRef<HTMLDivElement>(null);
  
 
+// NOWY SYSTEM KOMENTARZY
+  const [pitchCommentary, setPitchCommentary] = useState<{
+    text: string;
+    side: 'HOME' | 'AWAY' | null;
+  } | null>(null);
+
+const penaltyPendingRef = useRef<null | { side: 'HOME' | 'AWAY', scorer: any, minute: number }>(null);
 
   const ctx = useMemo(() => {
     const fixture = fixtures.find(f => 
@@ -145,6 +152,8 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
 
   const kitColors = useMemo(() => ctx ? KitSelectionService.selectOptimalKits(ctx.homeClub, ctx.awayClub) : null, [ctx]);
   
+
+
   const env = useMemo(() => {
     if (!ctx) return null;
     const seed = `${ctx.fixture.id}_CUP`;
@@ -236,6 +245,25 @@ expiryMinute: 0
 
   useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [matchState?.logs]);
 
+// NOWY useEffect: aktualizuje komentarz na boisku przy każdej zmianie logów
+  useEffect(() => {
+    if (!matchState || !matchState.logs.length) return;
+
+    if (matchState.isHalfTime || matchState.isFinished || matchState.isPenalties) {
+      setPitchCommentary(null);
+      return;
+    }
+
+    // Szukamy pierwszego logu który ma jakąś treść meczową (nie pusty init)
+    const latest = matchState.logs[0];
+    if (!latest) return;
+
+    const side = latest.teamSide ?? null;
+    setPitchCommentary({ text: latest.text, side });
+
+  }, [matchState?.logs[0]?.id]);
+
+
   useEffect(() => {
     if (matchState && (matchState.homeScore > 0 || matchState.awayScore > 0) && !matchState.isPenalties) {
       setIsCelebratingGoal(true);
@@ -243,6 +271,61 @@ expiryMinute: 0
       return () => clearTimeout(timer);
     }
   }, [matchState?.homeScore, matchState?.awayScore]);
+
+useEffect(() => {
+    if (!matchState?.isPausedForEvent || !penaltyPendingRef.current) return;
+    const { side, scorer, minute } = penaltyPendingRef.current;
+    const timer = setTimeout(() => {
+      penaltyPendingRef.current = null;
+      const isScored = Math.random() < 0.80;
+      if (!isScored) {
+        setShowMissedPenalty(true);
+        setTimeout(() => setShowMissedPenalty(false), 2000);
+      }
+      setMatchState(latest => {
+        if (!latest) return latest;
+        const finalHScore = (side === 'HOME' && isScored) ? latest.homeScore + 1 : latest.homeScore;
+        const finalAScore = (side === 'AWAY' && isScored) ? latest.awayScore + 1 : latest.awayScore;
+        const finalHGoals = [...latest.homeGoals];
+        const finalAGoals = [...latest.awayGoals];
+        const eventInfo = {
+          playerName: `${scorer.firstName.charAt(0)}. ${scorer.lastName}`,
+          minute: latest.minute,
+          isPenalty: true,
+          isMiss: !isScored
+        };
+        if (side === 'HOME') finalHGoals.push(eventInfo);
+        else finalAGoals.push(eventInfo);
+        const penLog = {
+          id: `PEN_AWARDED_${minute}`,
+          minute: minute,
+          text: `👉 RZUT KARNY!`,
+          type: MatchEventType.PENALTY_AWARDED,
+          teamSide: side,
+          playerName: scorer.lastName
+        };
+        return {
+          ...latest,
+          homeScore: finalHScore,
+          awayScore: finalAScore,
+          homeGoals: finalHGoals,
+          awayGoals: finalAGoals,
+          isPaused: false,
+          isPausedForEvent: false,
+          logs: [{
+            id: `PEN_RES_${minute}`,
+            minute: minute,
+            text: isScored ? `⚽ GOL! ${scorer.lastName} z karnego!` : `❌ Pudło! ${scorer.lastName} marnuje szansę!`,
+            type: isScored ? MatchEventType.GOAL : MatchEventType.PENALTY_MISSED,
+            teamSide: side
+          }, penLog, ...latest.logs]
+        };
+      });
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [matchState?.isPausedForEvent]);
+
+
 
   const seededRng = (seed: number, minute: number, offset: number = 0) => {
     let s = seed + minute + offset;
@@ -434,10 +517,10 @@ expiryMinute: 0
         let nextAwayInjuries = { ...prev.awayInjuries };
         let nextMomentum = prev.momentum;
         // === BALANS 2025 – stałe do łatwego tuningu ===
-        const RED_CARD_CHANCE        = 0.0012;   // ~0.12% na minutę
-        const SEVERE_INJURY_CHANCE   = 0.0020;
+        const RED_CARD_CHANCE        = 0.0009;   // ~0.12% na minutę
+        const SEVERE_INJURY_CHANCE   = 0.0005;
         const LIGHT_INJURY_CHANCE    = 0.0080;
-        const YELLOW_CARD_CHANCE     = 0.0100;
+        const YELLOW_CARD_CHANCE     = 0.0120;
         const BASE_EVENT_THRESHOLD   = 0.42;
         const BASE_GOAL_THRESHOLD    = 0.065;
         const MOMENTUM_INERTIA       = 0.88;
@@ -475,7 +558,7 @@ expiryMinute: 0
         if (currentAiShout && !currentAiShout.isExpired && nextMinute >= currentAiShout.expiryMinute) {
            // STAGE 1 PRO: Tactical Trace - oznaczamy jako wygasłe, by UI wiedziało o fazie analizy
            currentAiShout = { ...currentAiShout, isExpired: true };
-           updatedLogs = [{ id: `shout_trace_${nextMinute}`, minute: nextMinute, text: `Trener analizuje sytuację...`, type: MatchEventType.GENERIC }, ...updatedLogs];
+           updatedLogs = [{ id: `shout_trace_${nextMinute}`, minute: nextMinute, text: `Trener analizuje sytuację...`, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
         }
 
         // 2. Kalkulacja nowej decyzji (Reaction Time)
@@ -503,7 +586,7 @@ expiryMinute: 0
                  intensity: (brainDecision.intensity || 'NORMAL') as any
               };
               if (brainDecision.log) {
-                 updatedLogs = [{ id: `ai_shout_${nextMinute}`, minute: nextMinute, text: brainDecision.log, type: MatchEventType.GENERIC }, ...updatedLogs];
+              updatedLogs = [{ id: `ai_shout_${nextMinute}`, minute: nextMinute, text: brainDecision.log, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
               }
            }
         }
@@ -785,92 +868,41 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
            aiAdvantageFactor = aiGoalMultiplier;
         }
 
-        let hScore = prev.homeScore;
-        let aScore = prev.awayScore;
-        let eventType: MatchEventType | undefined;
-        let eventSide: 'HOME' | 'AWAY' = 'HOME';
-        let currentScorerName = "";
-
-        // --- GLOBAL PENALTY LOGIC (FIXED) ---
+         let hScore = prev.homeScore;
+                let aScore = prev.awayScore;
+                let eventType: MatchEventType | undefined;
+                let eventSide: 'HOME' | 'AWAY' = 'HOME';
+                let currentScorerName = "";
+     
         // --- GLOBAL PENALTY LOGIC (Z MODYFIKATOREM INTENSYWNOŚCI) ---
-        let penaltyThreshold = (1 / 321);
-        if (prev.userInstructions.intensity === 'AGGRESSIVE') {
-           const oppAttMid = userSide === 'HOME' ? aAttMid : pAttMid;
-           const myDefMid = userSide === 'HOME' ? pDefMid : aDefMid;
-           if (oppAttMid > myDefMid + 10) {
-              // e) Większe prawdopodobieństwo karnego dla rywala (1% do 4%)
-              penaltyThreshold += (0.01 + seededRng(currentSeed, nextMinute, 123) * 0.03);
-           }
-        }
+        let penaltyThreshold = (1 / 327);
+       
+               
+               if (prev.userInstructions.intensity === 'AGGRESSIVE') {
+                  const oppAttMid = userSide === 'HOME' ? aAttMid : pAttMid;
+                  const myDefMid = userSide === 'HOME' ? pDefMid : aDefMid;
+                  if (oppAttMid > myDefMid + 10) {
+                     // e) Większe prawdopodobieństwo karnego dla rywala (1% do 4%)
+                     penaltyThreshold += (0.01 + seededRng(currentSeed, nextMinute, 123) * 0.03);
+                  }
+               }
+       
+               const globalPenaltyRoll = seededRng(currentSeed, nextMinute, 5555);
+             
+               if (globalPenaltyRoll < penaltyThreshold) {
+  const side: 'HOME' | 'AWAY' = seededRng(currentSeed, nextMinute, 6666) < 0.5 ? 'HOME' : 'AWAY';
+  const teamName = side === 'HOME' ? ctx.homeClub.name : ctx.awayClub.name;
+  const kickerTeam = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+  const kickerXI = side === 'HOME' ? prev.homeLineup.startingXI : prev.awayLineup.startingXI;
+  const scorer = GoalAttributionService.pickScorer(kickerTeam, kickerXI as string[], false, () => seededRng(currentSeed, nextMinute, 7777));
 
-        const globalPenaltyRoll = seededRng(currentSeed, nextMinute, 5555);
-        if (globalPenaltyRoll < penaltyThreshold) {
-           const side: 'HOME' | 'AWAY' = seededRng(currentSeed, nextMinute, 6666) < 0.5 ? 'HOME' : 'AWAY';
-           const teamName = side === 'HOME' ? ctx.homeClub.name : ctx.awayClub.name;
-           const kickerTeam = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
-           const kickerXI = side === 'HOME' ? prev.homeLineup.startingXI : prev.awayLineup.startingXI;
-           const scorer = GoalAttributionService.pickScorer(kickerTeam, kickerXI as string[], false, () => seededRng(currentSeed, nextMinute, 7777));
-           
-           setPenaltyNotice(teamName);
-           
-           const penLog: MatchLogEntry = {
-             id: `PEN_AWARDED_${nextMinute}`,
-             minute: nextMinute,
-             text: `👉 RZUT KARNY dla ${side === 'HOME' ? ctx.homeClub.shortName : ctx.awayClub.shortName}!`,
-             type: MatchEventType.PENALTY_AWARDED,
-             teamSide: side,
-             playerName: scorer.lastName
-           };
+  setPenaltyNotice(teamName);
+  setTimeout(() => setPenaltyNotice(null), 3000);
 
-         setTimeout(() => {
-              setPenaltyNotice(null);
-              const isScored = Math.random() < 0.80; 
-              
-              // STAGE 1 PRO: Reakcja na zmarnowany karny
-              if (!isScored) {
-                 setShowMissedPenalty(true);
-                 setTimeout(() => setShowMissedPenalty(false), 2000);
-              }
+  penaltyPendingRef.current = { side, scorer, minute: nextMinute };
 
-              setMatchState(latest => {
-                 if (!latest) return latest;
-                 const finalHScore = (side === 'HOME' && isScored) ? latest.homeScore + 1 : latest.homeScore;
-               const finalAScore = (side === 'AWAY' && isScored) ? latest.awayScore + 1 : latest.awayScore;
-                 const finalHGoals = [...latest.homeGoals];
-                 const finalAGoals = [...latest.awayGoals];
-
-                 // Logika PRO: Zapisujemy zdarzenie w tickerze (STAGE 1 PRO FIX: Unifikacja formatu nazwiska)
-                 const eventInfo = { 
-                    playerName: `${scorer.firstName.charAt(0)}. ${scorer.lastName}`, 
-                    minute: latest.minute, 
-                    isPenalty: true, 
-                    isMiss: !isScored 
-                 };
-                 
-                 if (side === 'HOME') finalHGoals.push(eventInfo); 
-                 else finalAGoals.push(eventInfo);
-
-                 return {
-                    ...latest,
-                    homeScore: finalHScore,
-                    awayScore: finalAScore,
-                    homeGoals: finalHGoals,
-                    awayGoals: finalAGoals,
-                    isPausedForEvent: false,
-                    logs: [{
-                       id: `PEN_RES_${latest.minute}`,
-                       minute: latest.minute,
-                       text: isScored ? `⚽ GOL! ${scorer.lastName} z karnego!` : `❌ Pudło! ${scorer.lastName} marnuje szansę!`,
-                       type: isScored ? MatchEventType.GOAL : MatchEventType.PENALTY_MISSED,
-                       teamSide: side
-                    }, penLog, ...latest.logs]
-                 };
-              });
-           }, 3000);
-
-           // FIX: Inkrementujemy minutę od razu, aby wyjść z deterministycznej pętli rollowania tego samego karnego
-           return { ...prev, minute: nextMinute, isPausedForEvent: true };
-        }
+  return { ...prev, minute: nextMinute + 1, isPaused: true, isPausedForEvent: true };
+}
 
 // --- STAGE 1 PRO: UJEDNOLICONA LOGIKA AGRESJI (USER + AI) ---
         const incidentSide: 'HOME' | 'AWAY' = seededRng(currentSeed, nextMinute, 8888) < 0.5 ? 'HOME' : 'AWAY';
@@ -892,12 +924,11 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
         let injuryModifier = 0.009;
 
         // Kartki zależą tylko od agresji strony rozpatrywanej (side)
-        if (sideIntensity === 'AGGRESSIVE') cardModifier = 0.009;
-        else if (sideIntensity === 'CAUTIOUS') cardModifier = -0.0015;
+        if (sideIntensity === 'AGGRESSIVE') cardModifier = 0.010;
+        else if (sideIntensity === 'CAUTIOUS') cardModifier = -0.0011;
 
-        // Kontuzje zależą tylko od agresji PRZECIWNIKA (other)
-        if (otherIntensity === 'AGGRESSIVE') injuryModifier = 0.030;
-
+        // Jeśli którakolwiek drużyna gra agresywnie - rośnie ryzyko kontuzji po obu stronach
+        if (sideIntensity === 'AGGRESSIVE' || otherIntensity === 'AGGRESSIVE') injuryModifier = 0.011;
         const baseRoll = seededRng(currentSeed, nextMinute, 9999);
         
         // Finalna logika sprawdzania (używamy różnych modyfikatorów w zależności od testu)
@@ -1063,12 +1094,32 @@ if (targetPlayer && !prev.isPausedForEvent) {
 
  if (homeWins >= 5) {
             nextMomentum += 12; // Nagły skok - zamknięcie rywala w "zamku"
-            if (Math.random() < 0.3) updatedLogs = [{ id: `burst_h_${nextMinute}`, minute: nextMinute, text: `AI: ${ctx.homeClub.shortName} całkowicie kontroluje środek pola!`, type: MatchEventType.PRESSURE }, ...updatedLogs];
+            if (Math.random() < 0.3) updatedLogs = [{ id: `burst_h_${nextMinute}`, minute: nextMinute, text: ` ${ctx.homeClub.shortName} całkowicie kontroluje środek pola!`, type: MatchEventType.PRESSURE, teamSide: 'HOME' }, ...updatedLogs];
         } else if (awayWins >= 5) {
             nextMomentum -= 12;
-            if (Math.random() < 0.3) updatedLogs = [{ id: `burst_a_${nextMinute}`, minute: nextMinute, text: `AI: ${ctx.awayClub.shortName} narzuca mordercze tempo gry!`, type: MatchEventType.PRESSURE }, ...updatedLogs];
+            if (Math.random() < 0.3) updatedLogs = [{ id: `burst_a_${nextMinute}`, minute: nextMinute, text: ` ${ctx.awayClub.shortName} narzuca mordercze tempo gry!`, type: MatchEventType.PRESSURE, teamSide: 'AWAY' }, ...updatedLogs];
         }
 
+        // MIEJSCE A: wyrównana walka - nikt nie dominuje
+        if (homeWins < 5 && awayWins < 5 && Math.random() < 0.30) {
+            const midRoll = seededRng(currentSeed, nextMinute, 1111);
+            const midEventType = midRoll < 0.4
+                ? MatchEventType.MISPLACED_PASS
+                : midRoll < 0.7
+                ? MatchEventType.PLAY_BACK
+                : MatchEventType.PLAY_LEFT;
+            const midPool = MATCH_COMMENTARY_DB[midEventType] || [];
+            if (midPool.length > 0) {
+                const midComment = midPool[Math.floor(seededRng(currentSeed, nextMinute, 2222) * midPool.length)];
+                updatedLogs = [{ 
+                    id: `mid_${nextMinute}`, 
+                    minute: nextMinute, 
+                    text: midComment, 
+                    type: midEventType, 
+                    teamSide: eventSide 
+                }, ...updatedLogs];
+            }
+        }
 
         eventSide = homeWins >= awayWins ? 'HOME' : 'AWAY';
         // --- FAZA 2: PROGRESJA ATAKU (5-12 RZUTÓW) ---
@@ -1090,13 +1141,35 @@ if (targetPlayer && !prev.isPausedForEvent) {
         if (interceptRoll < 0.15 && successfulPasses < (diceRolls * 0.4)) {
             // Obrona przejęła piłkę - gwałtowny odwrót momentum (Kontra!)
             nextMomentum = (eventSide === 'HOME' ? -15 : 15);
-            updatedLogs = [{ id: `intercept_${nextMinute}`, minute: nextMinute, text: `AI: Genialny przechwyt i błyskawiczna kontra ${eventSide === 'HOME' ? ctx.awayClub.shortName : ctx.homeClub.shortName}!`, type: MatchEventType.MIDFIELD_CONTROL }, ...updatedLogs];
+            updatedLogs = [{ id: `intercept_${nextMinute}`, minute: nextMinute, text: `Genialny przechwyt i błyskawiczna kontra ${eventSide === 'HOME' ? ctx.awayClub.shortName : ctx.homeClub.shortName}!`, type: MatchEventType.MIDFIELD_CONTROL, teamSide: eventSide === 'HOME' ? 'AWAY' : 'HOME' }, ...updatedLogs];
             successfulPasses = 0; // Przerwij strzał w tej minucie
 
             nextIsPausedForEvent = true; 
             setTimeout(() => { setMatchState(s => s ? {...s, isPausedForEvent: false} : s) }, 400);
         }
         
+// MIEJSCE B: dodatkowy event przy przechwycie
+        if (interceptRoll < 0.15 && successfulPasses < (diceRolls * 0.4)) {
+            const interceptEventRoll = seededRng(currentSeed, nextMinute, 3333);
+            const interceptEventType = interceptEventRoll < 0.4
+                ? MatchEventType.FOUL
+                : interceptEventRoll < 0.7
+                ? MatchEventType.FREE_KICK
+                : MatchEventType.THROW_IN;
+            const interceptPool = MATCH_COMMENTARY_DB[interceptEventType] || [];
+            if (interceptPool.length > 0) {
+                const interceptComment = interceptPool[Math.floor(seededRng(currentSeed, nextMinute, 4444) * interceptPool.length)];
+                updatedLogs = [{ 
+                    id: `intercept_ev_${nextMinute}`, 
+                    minute: nextMinute, 
+                    text: interceptComment, 
+                    type: interceptEventType, 
+                    teamSide: eventSide === 'HOME' ? 'AWAY' : 'HOME' 
+                }, ...updatedLogs];
+            }
+        }
+
+
         // Dynamiczny próg strzału: im większa przewaga na pasku, tym łatwiej o strzał (od 0.55 do 0.40)
  const momentumBonus = Math.abs(nextMomentum) / 250;
 
@@ -1157,14 +1230,21 @@ if (targetPlayer && !prev.isPausedForEvent) {
 
  if (env.weather.description.toLowerCase().includes('deszcz') && scorer.attributes.technique < 50) {
                 if (seededRng(currentSeed, nextMinute, 123) < 0.22) { // 22% szansy na kiks przy słabej technice
-                    updatedLogs = [{ id: `rain_kiks_${nextMinute}`, minute: nextMinute, text: `AI: Piłka uciekła ${scorer.lastName} na mokrej trawie! Co za fatalny kiks!`, type: MatchEventType.BLUNDER, teamSide: eventSide }, ...updatedLogs];
+                    updatedLogs = [{ id: `rain_kiks_${nextMinute}`, minute: nextMinute, text: `Piłka uciekła ${scorer.lastName} na mokrej trawie! Co za fatalny kiks!`, type: MatchEventType.BLUNDER, teamSide: eventSide }, ...updatedLogs];
                     nextMomentum += (eventSide === 'HOME' ? -10 : 10);
                     return { ...prev, minute: nextMinute, momentum: nextMomentum, logs: updatedLogs }; // Przerwij akcję strzału
-                }
+        
             }
+        }
 
-
-         if (shotPower > savePower) {
+        const wasPenaltyThisMinute = updatedLogs.some(log => log.minute === nextMinute && (
+  log.type === MatchEventType.PENALTY_AWARDED ||
+  log.type === MatchEventType.GOAL ||
+  log.type === MatchEventType.PENALTY_MISSED
+));
+         if (shotPower > savePower && !wasPenaltyThisMinute) {
+         
+         
                 eventType = MatchEventType.GOAL;
                 const formattedName = `${scorer.firstName.charAt(0)}. ${scorer.lastName}`;
                 currentScorerName = formattedName;
@@ -1181,7 +1261,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
                    (prev as any).comebackPower = 2 + (Math.random() * 8); // 2-10% boostu
                    (prev as any).comebackExpiry = nextMinute + 2 + Math.floor(Math.random() * 6); // czas trwania 2-7 min
                    (prev as any).comebackSide = eventSide;
-                   updatedLogs = [{ id: `comeback_${nextMinute}`, minute: nextMinute, text: `AI: BRAMKA KONTAKTOWA! ${eventSide === 'HOME' ? ctx.homeClub.shortName : ctx.awayClub.shortName} łapie wiatr w żagle!`, type: MatchEventType.PRESSURE }, ...updatedLogs];
+                   updatedLogs = [{ id: `comeback_${nextMinute}`, minute: nextMinute, text: `BRAMKA KONTAKTOWA! ${eventSide === 'HOME' ? ctx.homeClub.shortName : ctx.awayClub.shortName} łapie wiatr w żagle!`, type: MatchEventType.PRESSURE, teamSide: eventSide }, ...updatedLogs];
                 }
 
                 // TUTAJ ZASTĄP TEN KOD (UTRWALENIE BLOKADY + RESET MOMENTUM)
@@ -1199,15 +1279,50 @@ if (targetPlayer && !prev.isPausedForEvent) {
                 } else {
                    (prev as any).postGoalPenaltyPct = 0.02 + (Math.random() * 0.18); // 2-20%
                 }
-            } else {
-                eventType = MatchEventType.SHOT_ON_TARGET;
-                nextMomentum += (eventSide === 'HOME' ? -8 : 8); // Nagroda dla bramkarza
+           } else {
+                const saveRoll = seededRng(currentSeed, nextMinute, 7777);
+                if (saveRoll < 0.12) {
+                    eventType = MatchEventType.SHOT_POST;
+                } else if (saveRoll < 0.22) {
+                    eventType = MatchEventType.SHOT_BAR;
+                } else if (saveRoll < 0.45) {
+                    eventType = MatchEventType.ONE_ON_ONE_SAVE;
+                } else {
+                    eventType = MatchEventType.SHOT_ON_TARGET;
+                }
+                nextMomentum += (eventSide === 'HOME' ? -8 : 8);
             }
 
            const pool = MATCH_COMMENTARY_DB[eventType] || ["Akcja podbramkowa!"];
             const comment = pool[Math.floor(seededRng(currentSeed, nextMinute, 99) * pool.length)].replace("{Nazwisko}", scorer.lastName);
             updatedLogs = [{ id: `pro_${nextMinute}`, minute: nextMinute, text: `[${eventSide === 'HOME' ? ctx.homeClub.shortName : ctx.awayClub.shortName}] ${comment}`, type: eventType, teamSide: eventSide, playerName: scorer.lastName }, ...updatedLogs];
+        
+        } else {
+            // MIEJSCE C: atak zatrzymany przed polem karnym
+            const noShotRoll = seededRng(currentSeed, nextMinute, 5555);
+            const noShotEventType = noShotRoll < 0.25
+                ? MatchEventType.OFFSIDE
+                : noShotRoll < 0.45
+                ? MatchEventType.CORNER
+                : noShotRoll < 0.65
+                ? MatchEventType.WINGER_STOPPED
+                : noShotRoll < 0.80
+                ? MatchEventType.DRIBBLING
+                : MatchEventType.PLAY_SIDE;
+            const noShotPool = MATCH_COMMENTARY_DB[noShotEventType] || [];
+            if (noShotPool.length > 0) {
+                const noShotComment = noShotPool[Math.floor(seededRng(currentSeed, nextMinute, 6666) * noShotPool.length)]
+                    .replace("{Nazwisko}", "");
+                updatedLogs = [{ 
+                    id: `noshot_${nextMinute}`, 
+                    minute: nextMinute, 
+                    text: noShotComment, 
+                    type: noShotEventType, 
+                    teamSide: eventSide 
+                }, ...updatedLogs];
+
         }
+          }
 
         // TUTAJ WSTAW TEN KOD (POPRAWKA SPOJNOŚCI RESETU)
         // Jeśli właśnie padł gol, nie pozwalamy serwisowi Momentum obliczać impulsu - wymuszamy twarde 0.
@@ -1258,7 +1373,7 @@ nextMomentum = prev.momentum + (momentumChange * cupVolatility);
                 // Czas trwania efektu: 5-20 minut
                 nextTacticalExpiry = nextMinute + 5 + Math.floor(Math.random() * 16);
                 nextMomentum += tacticalBoostAmt; // Natychmiastowy skok
-                updatedLogs = [{ id: `impulse_${nextMinute}`, minute: nextMinute, text: `AI: Drużyna gwałtownie zmienia rytm gry!`, type: MatchEventType.GENERIC }, ...updatedLogs];
+               updatedLogs = [{ id: `impulse_${nextMinute}`, minute: nextMinute, text: `Przeciwnik gwałtownie zmienia rytm gry!`, type: MatchEventType.GENERIC, teamSide: userSide }, ...updatedLogs];
             }
         }
 
@@ -1267,7 +1382,7 @@ nextMomentum = prev.momentum + (momentumChange * cupVolatility);
             nextMomentum -= nextTacticalBoost; // Oddajemy dług do Momentum
             nextTacticalBoost = 0; 
             nextTacticalExpiry = 0;
-            updatedLogs = [{ id: `revert_${nextMinute}`, minute: nextMinute, text: `AI: Intensywność zrywu opadła. Gra wraca do normy.`, type: MatchEventType.GENERIC }, ...updatedLogs];
+            updatedLogs = [{ id: `revert_${nextMinute}`, minute: nextMinute, text: `Intensywność przeciwnika opadła. Gra wraca do normy.`, type: MatchEventType.GENERIC, teamSide: userSide }, ...updatedLogs];
         }
 
 // Jeśli okno wygasło, instrukcje gracza wracają do 'NEUTRAL' / 'NORMAL' dla silnika
@@ -1476,7 +1591,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
 
            if (decision.logs) {
               decision.logs.forEach(l => {
-                 updatedLogs = [{ id: `AI_C_LOG_${Math.random()}`, minute: nextMinute, text: l, type: MatchEventType.GENERIC }, ...updatedLogs];
+                 updatedLogs = [{ id: `AI_C_LOG_${Math.random()}`, minute: nextMinute, text: l, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
               });
            }
 
@@ -1485,6 +1600,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
            }
         } // Zamyka blok if (true)
 
+       
         return {
           ...prev, 
           homeFatigue: localHomeFatigue,
@@ -1679,8 +1795,8 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
     if (!lineup || !teamPlayers) return null;
 
     return (
-      <div className={`w-64 rounded-[35px] border border-white/5 p-4 flex flex-col gap-2 overflow-hidden shadow-2xl backdrop-blur-xl`}>
-         <div className="flex items-center gap-3 mb-2 px-2">
+      <div className={`w-60 rounded-[35px] border border-white/5 p-2 flex flex-col gap-1 overflow-hidden shadow-2xl backdrop-blur-xl relative z-0`}>
+         <div className="flex items-center gap-2 mb-1 px-1">
             <div className="w-8 h-8 rounded-lg flex flex-col overflow-hidden border border-white/10 shrink-0">
                <div className="flex-1" style={{ backgroundColor: club?.colorsHex[0] }} />
                <div className="flex-1" style={{ backgroundColor: club?.colorsHex[1] || club?.colorsHex[0] }} />
@@ -1693,7 +1809,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
          {side !== userSide && matchState.aiActiveShout && (
            <div className="bg-black/40 p-3 rounded-2xl border border-white/5 mb-2 flex flex-col gap-2 shadow-inner">
               <div className="flex justify-between items-center">
-                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">USTAWIENIE I TAKTYKA </span>
+                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">USTAWIENIE I TAKTYKA </span>
                  <span className="text-[8px] font-black text-white italic">{TacticRepository.getById(matchState[side === 'HOME' ? 'homeLineup' : 'awayLineup'].tacticId).name}</span>
               </div>
               <div className={`flex gap-1.5 transition-opacity duration-500 ${(matchState.aiActiveShout as any).isExpired ? 'opacity-40' : 'opacity-100'}`}>
@@ -1723,7 +1839,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
                const fatigueDrop = Math.max(0, p.condition - currentFatigue).toFixed(1);
 
                return (
-                 <div key={p.id} className="flex items-center gap-3 py-1.5 px-3 rounded-xl bg-white/[0.02] border border-white/[0.05] transition-all">
+                 <div key={p.id} className="flex items-center gap-3 py-0.7 px-0.2 rounded-xs bg-white/[0.02] border border-white/[0.05] transition-all">
                     <span className={`font-mono font-black text-[9px] w-6 ${PlayerPresentationService.getPositionColorClass(p.position)}`}>{p.position}</span>
                     <div className="flex-1 flex flex-col min-w-0">
                        <span className="text-[10px] text-slate-200 font-bold uppercase italic truncate">{p.firstName.charAt(0)}. {p.lastName}</span>
@@ -1753,7 +1869,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
             })}
          </div>
          <div className="mt-4 pt-3 border-t border-white/5 space-y-1">
-            <h5 className="text-[7px] font-black text-slate-500 uppercase tracking-widest px-2">Zmiany</h5>
+            <h5 className="text-[14px] font-black italic text-slate-500 uppercase tracking-widest px-2">ZMIANY</h5>
             {(side === 'HOME' ? matchState.homeSubsHistory : matchState.awaySubsHistory).map((sub, sIdx) => {
                const pIn = teamPlayers.find(p => p.id === sub.playerInId);
                const pOut = teamPlayers.find(p => p.id === sub.playerOutId);
@@ -1773,7 +1889,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
   if (!matchState || !ctx || !kitColors) return null;
 
   return (
-    <div className="h-screen w-full text-slate-100 flex flex-col p-6 gap-6 animate-fade-in overflow-hidden relative selection:bg-rose-500">
+    <div className="h-screen w-full text-slate-100 flex flex-col p-2 gap-2 animate-fade-in overflow-hidden relative selection:bg-rose-500">
     
 
 
@@ -1789,9 +1905,9 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
 
       <header className="flex items-center justify-between h-32 bg-slate-900/60 backdrop-blur-3xl rounded-[40px] border border-white/10 px-12 shadow-2xl shrink-0">
          <div className="flex-1 flex flex-col justify-center">
-            <div className="flex items-center gap-6">
-              <BigJerseyIcon primary={kitColors.home.primary} secondary={kitColors.home.secondary} size="w-16 h-16" />
-              <h2 className="text-5xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{ctx.homeClub.name}</h2>
+            <div className="flex items-center gap-3">
+              <BigJerseyIcon primary={kitColors.home.primary} secondary={kitColors.home.secondary} size="w-20 h-20" />
+              <h2 className="text-6xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{ctx.homeClub.name}</h2>
             </div>
             <div className="flex flex-wrap gap-2 mt-1">
               {matchState.homeGoals.map((g, i) => (
@@ -1809,33 +1925,33 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
             </div>
          </div>
 
-        <div className="flex flex-col items-center gap-3 w-64">
+        <div className="flex flex-col items-center gap-3 w-80 relative">
             {isCelebratingGoal ? (
                <div className="flex flex-col items-center justify-center animate-pulse-gold">
-                  <span className="text-6xl font-black italic text-rose-500 tracking-tighter drop-shadow-[0_0_30px_rgba(225,29,72,1)]">GOL!</span>
+                  <span className="text-7xl font-black italic text-yellow-500 tracking-tighter drop-shadow-[0_0_30px_rgba(225,29,72,1)]">GOL!</span>
                </div>
             ) : (
-               <div className="text-7xl font-black font-mono tracking-tighter tabular-nums flex items-center gap-4 animate-fade-in">
-                  {matchState.homeScore} <span className="text-slate-700 opacity-50">:</span> {matchState.awayScore}
+               <div className="text-9xl font-black uppercase tracking-tighter tabular-nums flex items-center gap-4 animate-fade-in">
+                  {matchState.homeScore} <span className="text-slate-700 opacity-50">&nbsp;&nbsp;&nbsp;&nbsp; </span> {matchState.awayScore}
                </div>
             )}
             {matchState.isPenalties && (
                <div className="text-2xl font-black text-rose-500 animate-pulse">
-                  KARNE: {matchState.homePenaltyScore} : {matchState.awayPenaltyScore}
+                  KARNE: {matchState.homePenaltyScore} - {matchState.awayPenaltyScore}
                </div>
             )}
-            <div className="flex items-center gap-3">
-               <div className="px-4 py-1 bg-rose-600/20 border border-rose-500/30 rounded-xl">
-                  <span className="text-lg font-mono text-rose-500 font-bold tracking-widest">{matchState.minute}'</span>
+           <div className="absolute flex flex-col items-center gap-1" style={{ bottom: 'calc(100% - 120px)' }}>
+               <div className="px-3 py-0.5 bg-black-600/20 border border-yellow-500/30 rounded-xs">
+                  <span className="text-3xl font-black text-yellow-500 font-bold tracking-widest">{matchState.minute}</span>
                </div>
-               {(matchState.isExtraTime && !matchState.isPenalties) && <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest animate-pulse">DOGRYWKA</span>}
+               {(matchState.isExtraTime && !matchState.isPenalties) && <span className="text-[8px] font-black text-yellow-400 uppercase tracking-widest animate-pulse">DOGRYWKA</span>}
             </div>
          </div>
 
          <div className="flex-1 flex flex-col justify-center items-end">
-            <div className="flex items-center gap-6 text-right">
-              <h2 className="text-5xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{ctx.awayClub.name}</h2>
-              <BigJerseyIcon primary={kitColors.away.primary} secondary={kitColors.away.secondary} size="w-16 h-16" />
+            <div className="flex items-center gap-3 text-right">
+              <h2 className="text-6xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{ctx.awayClub.name}</h2>
+              <BigJerseyIcon primary={kitColors.away.primary} secondary={kitColors.away.secondary} size="w-20 h-20" />
             </div>
             <div className="flex flex-wrap gap-2 mt-1 justify-end">
               {matchState.awayGoals.map((g, i) => (
@@ -1854,11 +1970,11 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
          </div>
       </header>
 
-      <div className="flex-1 flex flex-col gap-6 min-w-0 relative">
+      <div className="flex-1 flex flex-col gap-2 min-w-0 relative">
          
-         <div className="h-6 w-full max-w-5xl mx-auto bg-black/40 rounded-full overflow-hidden border border-white/10 flex shadow-2xl shrink-0 p-0.5 backdrop-blur-xl relative">
+         <div className="h-7 w-full max-w-4xl mx-auto bg-black/40 rounded-full overflow-hidden border border-white/10 flex shadow-2xl shrink-0 p-0.5 backdrop-blur-xl relative">
             <div 
-              className="h-full transition-all duration-500 flex items-center justify-end pr-4 text-[9px] font-black rounded-l-full relative overflow-hidden" 
+              className="h-full transition-all duration-500 flex items-center justify-end pr-2 text-[11px] font-black rounded-l-full relative overflow-hidden" 
               style={{ backgroundColor: kitColors.home.primary, width: `${50 + matchState.momentum / 2}%`, color: kitColors.home.text }}
             >
                <div className="absolute inset-0 bg-white/10 opacity-20 animate-pulse" />
@@ -1873,10 +1989,10 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
             </div>
          </div>
 
-         <div className="flex-1 flex gap-8 min-h-0 relative">
+         <div className="flex-1 flex gap-3 min-h-0 relative z-10">
             {renderSquad('HOME')}
 
-            <div className="flex-1 relative overflow-hidden">
+            <div className="flex-none shrink-0 relative z-20 w-[1150px] h-[800px] mx-auto">
                {penaltyNotice && (
                   <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
                      <div className="bg-white/50 backdrop-blur-sm px-10 py-6 rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.4)] border-4 border-red-600 animate-bounce">
@@ -1913,8 +2029,8 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
                   </div>
                )}
 
-<div className="w-full h-full rounded-[0px] border-1 border-emerald-900/1 relative overflow-hidden flex items-center justify-center">
-  <div className="absolute inset-0 rounded-[1px] overflow-hidden"
+<div className="w-full h-full rounded-[0px] border-1 border-emerald-900/1 relative flex items-center justify-center" style={{ transform: 'scale(0.7) translateY(-200px)' }}>
+  <div className="absolute inset-0 rounded-[0.7px]"
     style={{
       background: '#064c2f',
       backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 5%, rgba(255,255,255,0.015) 12%, rgba(255,255,255,0.015) 24%)',
@@ -1925,16 +2041,18 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
     }}
   ></div>
   
-  <div className="absolute inset-0 pointer-events-none opacity-50 rounded-[36px] overflow-hidden" 
+  <div className="absolute inset-0 pointer-events-none opacity-50 rounded-[36px]" 
     style={{ 
       padding: '16px',
       transform: 'perspective(950px) rotateX(24deg)',
       transformOrigin: 'center center',
-      transformStyle: 'preserve-3d'
+      transformStyle: 'preserve-3d',
+      pointerEvents: 'none'
     }}>
     <div className="absolute top-4 left-4 right-4 bottom-4 border-2 border-white/70" />
     <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-white/70 -translate-y-1/2" />
-    <div className="absolute top-1/2 left-1/2 w-28 h-28 border-2 border-white/70 rounded-full -translate-x-1/2 -translate-y-1/2" />
+    
+        <div className="absolute top-1/2 left-1/2 w-52 h-52 border-2 border-white/70 rounded-full -translate-x-1/2 -translate-y-1/2" />
     <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white/70 rounded-full -translate-x-1/2 -translate-y-1/2" />
     <div className="absolute top-4 left-1/2 w-[50%] h-[20%] -translate-x-1/2">
       <div className="absolute top-0 left-0 w-0.5 h-full bg-white/70" />
@@ -2039,9 +2157,9 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
       <div className="flex flex-col items-center gap-4">
         <div className="text-7xl filter drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">➕</div>
        <div className="text-center">
-      <span className="text-[10px] font-black text-red-500 tracking-[0.5em] mb-2 uppercase block">Dokonaj zmiany</span>
+      <span className="text-[10px] font-black text-red-500 tracking-[0.5em] mb-2 uppercase block">KONIECZNA ZMIANA</span>
       <h2 className="text-4xl font-black italic text-white uppercase tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-        KONTUZJA W TWOJEJ DRUŻYNIE<br/>LEKARZE NA BOISKU.
+        KONTUZJA W DRUŻYNIE<br/>LEKARZE NA BOISKU.
       </h2>
       <span className="block text-xs font-black text-slate-400 uppercase tracking-widest mt-4 animate-pulse">DOKONAJ ZMIANY</span>
     </div>
@@ -2086,7 +2204,53 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
   </div>
 )}
 
-
+{/* ================================================ */}
+{/* KOMENTARZ NA ŚRODKU BOISKA                        */}
+{/* Kolory kitu drużyny, znika podczas przerw/końca   */}
+{/* ================================================ */}
+{/* KOMENTARZ NA ŚRODKU BOISKA */}
+{pitchCommentary && !matchState.isHalfTime && !matchState.isFinished && !matchState.isPenalties && !matchState.isPaused && kitColors && (
+  <div
+    className="absolute inset-0 z-[35] flex items-center justify-center pointer-events-none"
+    style={{ transform: 'rotateX(-24deg)' }}
+  >
+    <div
+      key={pitchCommentary.text}
+      className="w-[100%] px-10 py-5 rounded-[18px] backdrop-blur-xl animate-slide-up"
+      style={{
+        backgroundColor: pitchCommentary.side === 'HOME'
+          ? `${kitColors.home.primary}cc`
+          : pitchCommentary.side === 'AWAY'
+          ? `${kitColors.away.primary}cc`
+          : 'rgba(15,23,42,0.85)',
+        border: `2px solid ${pitchCommentary.side === 'HOME'
+          ? kitColors.home.secondary
+          : pitchCommentary.side === 'AWAY'
+          ? kitColors.away.secondary
+          : 'rgba(255,255,255,0.15)'}99`,
+        boxShadow: `0 0 60px ${pitchCommentary.side === 'HOME'
+          ? kitColors.home.primary
+          : pitchCommentary.side === 'AWAY'
+          ? kitColors.away.primary
+          : '#000'}44`,
+      }}
+    >
+      
+      <p
+        className="text-center text-4xl font-black italic uppercase tracking-tight leading-snug"
+        style={{
+          color: pitchCommentary.side === 'HOME'
+            ? kitColors.home.text
+            : pitchCommentary.side === 'AWAY'
+            ? kitColors.away.text
+            : 'white'
+        }}
+      >
+        {pitchCommentary.text}
+      </p>
+    </div>
+  </div>
+)}
 
   {TacticRepository.getById(matchState.homeLineup.tacticId).slots.map((slot, i) => {
     const pId = matchState.homeLineup.startingXI[i];
@@ -2101,7 +2265,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
         style={{
           left: `${slot.x * 100}%`,
           top: `${(slot.y * 0.42 + 0.54) * 100}%`,
-          transform: 'translate(-50%, -50%) scale(1.15)',
+          transform: 'translate(-50%, calc(-50% + 30px)) scale(1.15)',
           willChange: 'transform'
         }}
       >
@@ -2165,7 +2329,7 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
         style={{
           left: `${slot.x * 100}%`,
           top: `${(0.48 - slot.y * 0.42) * 100}%`,
-          transform: 'translate(-50%, -50%) scale(1.4)'
+          transform: 'translate(-50%, calc(-50% + 20px)) scale(1.4)'
         }}
       >
         <div className="relative">
@@ -2217,149 +2381,122 @@ const diffAi = aiSide === 'HOME' ? (hScore - aScore) : (aScore - hScore);
             {renderSquad('AWAY')}
          </div>
       </div>
+<footer className="h-36 flex justify-center items-center gap-4 px-2 pb-1 relative -top-6">
 
-<footer className="h-44 flex gap-4 shrink-0 px-4 pb-2">
-        {/* LEWA SEKCJA: LIVE TACTICS UNIT */}
-        <div className="w-72 bg-slate-900/60 rounded-[35px] border border-white/10 backdrop-blur-3xl p-4 flex flex-col justify-between shadow-2xl">
-          <span className="text-[8px] font-black text-rose-500 uppercase tracking-[0.4em] mb-2 px-2">Live Tactical Console</span>
-          <div className="space-y-2">
-            {[
-              { label: 'TEMPO', key: 'tempo', options: [{v:'SLOW', l:'Wolne'}, {v:'NORMAL', l:'Normalne'}, {v:'FAST', l:'Szybkie'}] },
-              { label: 'MINDSET', key: 'mindset', options: [{v:'DEFENSIVE', l:'Defensywne'}, {v:'NEUTRAL', l:'Neutralne'}, {v:'OFFENSIVE', l:'Ofensywne'}] },
-              { label: 'INTENSITY', key: 'intensity', options: [{v:'CAUTIOUS', l:'Ostrożnie'}, {v:'NORMAL', l:'Normalnie'}, {v:'AGGRESSIVE', l:'Agresywnie'}] }
-            ].map(group => (
-              <div key={group.key} className="flex items-center justify-between gap-3 bg-black/20 p-1.5 rounded-xl border border-white/5">
-                <span className="text-[7px] font-black text-slate-500 uppercase w-14">{group.label}</span>
-                <select 
-                  disabled={matchState.minute - matchState.userInstructions.lastChangeMinute < 2}
-                  value={matchState.userInstructions[group.key as keyof typeof matchState.userInstructions]}
-                  onChange={(e) => {
-                    const val = e.target.value as any;
-                    const randomDuration = Math.floor(Math.random() * 11) + 5; 
-                    setMatchState(s => s ? {
-                      ...s, 
-                      userInstructions: { 
-                        ...s.userInstructions, 
-                        [group.key]: val, 
-                        lastChangeMinute: s.minute,
-                        expiryMinute: s.minute + randomDuration
-                      }
-                    } : s);
-                  }}
-                  className="bg-transparent text-white text-[10px] font-black uppercase outline-none cursor-pointer flex-1 text-right"
-                >
-                  {group.options.map(opt => <option key={opt.v} value={opt.v} className="bg-slate-900">{opt.l}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ŚRODKOWA SEKCJA: MATCH NARRATIVE HUB */}
-        <div className="flex-1 bg-slate-900/60 rounded-[35px] border border-white/10 overflow-hidden flex flex-col backdrop-blur-3xl shadow-2xl relative">
-          <div className="px-6 py-2 border-b border-white/5 bg-black/20 flex justify-between items-center shrink-0">
-            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white italic">Broadcast Commentary System</span>
-            <div className="flex gap-1">
-               <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
-               <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-            {[...matchState.logs].reverse().map((l, i) => (
-              <div
-                key={i}
-                className={`text-[13px] font-black italic uppercase tracking-tighter p-2.5 rounded-xl border-l-4 transition-all
-                            ${i === 0 ? 'bg-rose-950/30 border-rose-500 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 opacity-60 hover:opacity-100'}`}
-              >
-                <span className="text-rose-500 mr-3 font-mono">{l.minute}'</span>
-                {l.text.toUpperCase()}
-              </div>
-            ))}
-            <div ref={logsEndRef} />
-          </div>
-        </div>
-
-        {/* PRAWA SEKCJA: ACTION & SPEED CONTROL */}
-        <div className="w-80 flex flex-col gap-3">
-          {/* Speed Selector Row */}
-          <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 shrink-0">
-            {[1, 2.5, 5].map((s) => (
-              <button
-                key={s}
-                onClick={() => setMatchState(prev => prev ? { ...prev, speed: s as any } : prev)}
-                className={`flex-1 py-2 rounded-xl font-black text-[9px] transition-all uppercase tracking-widest
-                  ${matchState.speed === s 
-                    ? 'bg-white text-slate-900 shadow-xl' 
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
-              >
-                x{s}
-              </button>
-            ))}
-          </div>
-
-          {matchState.isFinished ? (
-            <button 
-              onClick={handleFinish}
-              className="flex-1 bg-emerald-600 border-b-4 border-emerald-800 text-white rounded-3xl font-black uppercase italic text-lg shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
-            >
-              ZAKOŃCZ MECZ <span className="text-2xl">🏁</span>
-            </button>
-          ) : (
-         <div className="flex-1 flex flex-col gap-2">
-              <button 
-                onClick={() => setMatchState(s => {
-                  if (!s) return s;
-                  
-                  // --- TUTAJ WSTAW TEN KOD (Poprawka skoku czasu i okresów) ---
-                  // 1. Inicjacja Dogrywki (z 90 min na 91 min)
-           // 1. Inicjacja Dogrywki (z 90 min na 91 min)
-                  if (!s.isExtraTime && s.homeScore === s.awayScore && s.minute >= 90 + (s.addedTime ?? 0)) {
-                    return { 
-                      ...s, 
-                      minute: 90, 
-                      period: 3,
-                      momentum: 0, // TUTAJ WSTAW TEN KOD: Reset na start dogrywki
-                      isExtraTime: true, 
-                      addedTime: 0, 
-                      isPaused: false, 
-                      isHalfTime: false, 
-                      logs: [{ id: `et_${Date.now()}`, minute: 90, text: "ROZPOCZYNAMY DOGRYWKĘ!", type: MatchEventType.GENERIC }, ...s.logs] 
-                    };
-                  }
-                  
-                  // 2. Wznowienie po przerwie (Half-Time)
-                  if (s.isHalfTime) {
-                    const baseResumedState = { ...s, isHalfTime: false, isPaused: false, momentum: 0 }; // TUTAJ WSTAW TEN KOD: Reset na start połowy
-                    
-                    if (s.isExtraTime) {
-                       return { ...baseResumedState, period: 4, minute: 105 };
-                    }
-                    return { ...baseResumedState, period: 2, minute: 45 };
-                  }
-                  // --- KONIEC KODU ---
-
-                  return { ...s, isPaused: !s.isPaused };
-                })} 
-                className={`flex-1 rounded-3xl font-black uppercase italic text-xl shadow-2xl transition-all hover:scale-[1.02] active:scale-95 border-b-4
-                  ${matchState.isHalfTime ? 'bg-blue-600 border-blue-800 text-white' : 
-                    (matchState.isPaused ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-800 border-black text-slate-500')}`}
-              >
-               {/* STAGE 1 PRO: Dynamiczne napisy przycisku akcji */}
-    {matchState.minute === 0 && matchState.isPaused ? 'ROZPOCZNIJ' : 
-     (matchState.isHalfTime ? 'ROZPOCZNIJ II POŁOWĘ' : 
-     (matchState.isPaused ? 'WZNÓW' : 'PAUZA'))}
-              </button>
-
-              <button 
-                onClick={() => { setIsTacticsOpen(true); setMatchState(s => s ? {...s, isPaused: true} : s); }}
-                className="h-12 bg-white/5 border border-white/10 text-slate-300 font-black italic uppercase tracking-widest text-[10px] rounded-2xl hover:bg-white/10 hover:text-white transition-all shadow-xl"
-              >
-                ⚙ TAKTYKA
-              </button>
-            </div>
-          )}
-        </div>
       </footer>
+
+
+
+        {/* FIXED: oba panele – wycentrowane, niezależne od layoutu; regulacja od dołu ekranu */}
+<div className="fixed inset-x-0 bottom-[100px] z-50 flex items-stretch justify-center gap-4 pointer-events-none">
+  {/* LEWY PANEL: Live Tactical Console */}
+  <div className="w-48 bg-slate-900/60 rounded-[35px] border border-white/10 backdrop-blur-3xl p-2 flex flex-col justify-between shadow-2xl pointer-events-auto">
+    <span className="text-[8px] font-black text-yellow-500 uppercase tracking-[0.4em] mb-2 px-2">USTAWIENIA DRUŻYNY</span>
+    <div className="space-y-2">
+      {[
+        { label: 'TEMPO', key: 'tempo', options: [{v:'SLOW', l:'Wolne'}, {v:'NORMAL', l:'Normalne'}, {v:'FAST', l:'Szybkie'}] },
+        { label: 'MINDSET', key: 'mindset', options: [{v:'DEFENSIVE', l:'Defensywne'}, {v:'NEUTRAL', l:'Neutralne'}, {v:'OFFENSIVE', l:'Ofensywne'}] },
+        { label: 'INTENSITY', key: 'intensity', options: [{v:'CAUTIOUS', l:'Ostrożnie'}, {v:'NORMAL', l:'Normalnie'}, {v:'AGGRESSIVE', l:'Agresywnie'}] }
+      ].map(group => (
+        <div key={group.key} className="flex items-center justify-between gap-3 bg-black/20 p-1.5 rounded-xl border border-white/5">
+          <span className="text-[7px] font-black text-slate-500 uppercase w-14">{group.label}</span>
+          <select 
+            disabled={matchState.minute - matchState.userInstructions.lastChangeMinute < 2}
+            value={matchState.userInstructions[group.key as keyof typeof matchState.userInstructions]}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              const randomDuration = Math.floor(Math.random() * 11) + 5; 
+              setMatchState(s => s ? {
+                ...s, 
+                userInstructions: { 
+                  ...s.userInstructions, 
+                  [group.key]: val, 
+                  lastChangeMinute: s.minute,
+                  expiryMinute: s.minute + randomDuration
+                }
+              } : s);
+            }}
+            className="bg-transparent text-white text-[10px] font-black uppercase outline-none cursor-pointer flex-1 text-right"
+          >
+            {group.options.map(opt => <option key={opt.v} value={opt.v} className="bg-slate-900">{opt.l}</option>)}
+          </select>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* PRAWY PANEL: Action & Speed Control */}
+  <div className="w-56 flex flex-col gap-1 pointer-events-auto">
+    {/* Speed Selector Row */}
+    <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 shrink-0">
+      {[1, 2.5, 5].map((s) => (
+        <button
+          key={s}
+          onClick={() => setMatchState(prev => prev ? { ...prev, speed: s as any } : prev)}
+          className={`flex-1 py-2 rounded-xl font-black text-[9px] transition-all uppercase tracking-widest
+            ${matchState.speed === s 
+              ? 'bg-white text-slate-900 shadow-xl' 
+              : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+        >
+          x{s}
+        </button>
+      ))}
+    </div>
+
+    {matchState.isFinished ? (
+      <button 
+        onClick={handleFinish}
+        className="flex-1 bg-emerald-600 border-b-4 border-emerald-800 text-white rounded-3xl font-black uppercase italic text-lg shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+      >
+        ZAKOŃCZ MECZ <span className="text-2xl"></span>
+      </button>
+    ) : (
+      <div className="flex-1 flex flex-col gap-2">
+        <button 
+          onClick={() => setMatchState(s => {
+            if (!s) return s;
+
+            if (!s.isExtraTime && s.homeScore === s.awayScore && s.minute >= 90 + (s.addedTime ?? 0)) {
+              return { 
+                ...s, 
+                minute: 90, 
+                period: 3,
+                momentum: 0,
+                isExtraTime: true, 
+                addedTime: 0, 
+                isPaused: false, 
+                isHalfTime: false, 
+                logs: [{ id: `et_${Date.now()}`, minute: 90, text: "ROZPOCZYNAMY DOGRYWKĘ!", type: MatchEventType.GENERIC }, ...s.logs] 
+              };
+            }
+            if (s.isHalfTime) {
+              const baseResumedState = { ...s, isHalfTime: false, isPaused: false, momentum: 0 };
+              if (s.isExtraTime) {
+                 return { ...baseResumedState, period: 4, minute: 105 };
+              }
+              return { ...baseResumedState, period: 2, minute: 45 };
+            }
+            return { ...s, isPaused: !s.isPaused };
+          })} 
+          className={`flex-1 rounded-3xl font-black uppercase italic text-xl shadow-2xl transition-all hover:scale-[1.02] active:scale-95 border-b-4
+            ${matchState.isHalfTime ? 'bg-blue-600 border-blue-800 text-white' : 
+              (matchState.isPaused ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-800 border-black text-slate-500')}`}
+        >
+          {matchState.minute === 0 && matchState.isPaused ? 'ROZPOCZNIJ' : 
+           (matchState.isHalfTime ? 'ROZPOCZNIJ II POŁOWĘ' : 
+           (matchState.isPaused ? 'WZNÓW' : 'PAUZA'))}
+        </button>
+
+        <button 
+          onClick={() => { setIsTacticsOpen(true); setMatchState(s => s ? {...s, isPaused: true} : s); }}
+          className="h-12 bg-white/5 border border-white/10 text-slate-300 font-black italic uppercase tracking-widest text-[10px] rounded-2xl hover:bg-white/10 hover:text-white transition-all shadow-xl"
+        >
+          ⚙ TAKTYKA
+        </button>
+      </div>
+    )}
+  </div>
+</div>
 
   {isTacticsOpen && (
         <MatchCupTacticsModal 

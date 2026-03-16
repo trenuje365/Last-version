@@ -12,10 +12,11 @@ export const AiMatchDecisionService = {
     side: 'HOME' | 'AWAY',
     isPriority: boolean = false,
     isHalftime: boolean = false
-  ): { newLineup?: Lineup, newSubsCount?: number, subRecord?: SubstitutionRecord, newTacticId?: string, lastAiActionMinute?: number, logs: string[] } => {
+  ): { newLineup?: Lineup, newSubsCount?: number, subRecord?: SubstitutionRecord, newTacticId?: string, lastAiActionMinute?: number, aiTacticLocked?: boolean, logs: string[] } => {
     
     const isHome = side === 'HOME';
     const logs: string[] = [];
+    let aiTacticLockResult: boolean | undefined = undefined;
     
     // 1. CZAS REAKCJI (COOLDOWN)
     const cooldown = isPriority || isHalftime ? 0 : 4; 
@@ -79,7 +80,7 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
              newLineup.bench = newLineup.bench.filter(id => id !== bestGkOnBench.id);
              newSubsCount++;
              subRecord = { playerOutId, playerInId: bestGkOnBench.id, minute: state.minute };
-             logs.push(`${state.minute}' - AI: Bramkarz rezerwowy ${bestGkOnBench.lastName} zastępuje gracza z pola!`);
+             logs.push(` Bramkarz rezerwowy ${bestGkOnBench.lastName} zastępuje gracza z pola!`);
           }
        } 
        // OPCJA B: Brak zmian LUB brak GK na ławce -> Gracz z pola musi wejść do bramki
@@ -94,23 +95,33 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
              const bestCandidate = fieldCandidates[0];
              newLineup.startingXI[0] = bestCandidate.id;
              newLineup.startingXI[bestCandidate.idx] = null; 
-             logs.push(`${state.minute}' - AI: DRAMAT! ${bestCandidate.p.lastName} musi stanąć między słupkami!`);
+             logs.push(` Niecodzienna sytuacja na boisku. ${bestCandidate.p.lastName} musi stanąć między słupkami!`);
           }
        }
     }
 
 
 // --- SYSTEM KONSOLIDACJI DEFENSYWNEJ (SKD) ---
-    // Logika: Jeśli wygrywamy i mamy czerwoną kartkę, priorytetem jest szczelność obrony.
+    // Logika: Czerwona kartka = zawsze przejdź na defensywę, niezależnie od wyniku.
     const mySentOffCount = state.sentOffIds.filter(id => myPlayers.some(p => p.id === id)).length;
-    
-    // SKASUJ TEN KOD (zmienna outIds jest już zdefiniowana wyżej)
-    
-    if (scoreDiff > 0 && mySentOffCount > 0) {
-       // A. Natychmiastowa zmiana taktyki na ultra-defensywną
-       if (newLineup.tacticId !== '5-4-1' && newLineup.tacticId !== '6-3-1') {
-          newTacticId = '5-4-1';
-          logs.push(`${state.minute}' - AI: System Konsolidacji Defensywnej aktywny. Przejście na 5-4-1.`);
+
+    if (mySentOffCount > 0) {
+       // A. Zmiana taktyki na defensywną (jeśli nie zablokowana i nie ustawiona wcześniej w tej tuce)
+       if (!newTacticId && !state.aiTacticLocked) {
+         // Wygrywa/remis → ultra-defensywna | Przegrywa → solidna defensywa (nie kapitulacja)
+         const ultraDefTactics = ['5-4-1', '4-4-2-DEF', '5-3-2', '6-3-1', '4-5-1'];
+         const solidDefTactics = ['4-4-2-DEF', '5-3-2', '4-5-1', '5-2-1-2'];
+         const tacticPool = scoreDiff >= 0 ? ultraDefTactics : solidDefTactics;
+         const candidates = tacticPool.filter(t => t !== newLineup.tacticId);
+         if (candidates.length > 0) {
+           newTacticId = candidates[Math.floor(Math.random() * candidates.length)];
+           updatedActionMinute = state.minute;
+           aiTacticLockResult = true;
+           logs.push(`Zmiana taktyki po czerwonej kartce: ${newTacticId}.`);
+         }
+       } else if (state.aiTacticLocked) {
+         // Taktyka już zablokowana — tylko zaloguj jeśli jeszcze nie ustawiona
+         aiTacticLockResult = true; // podtrzymaj blokadę
        }
 
        // B. Sprawdzenie czy w linii obrony jest "dziura" (null)
@@ -143,7 +154,7 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
                    newLineup.bench = newLineup.bench.filter(id => id !== bestDefOnBench.id);
                    newSubsCount++;
                    subRecord = { playerOutId, playerInId: bestDefOnBench.id, minute: state.minute };
-                   logs.push(`${state.minute}' - AI: Poświęcenie ofensywy dla ratowania tyłów. ${bestDefOnBench.lastName} wchodzi do obrony.`);
+                   logs.push(`Zmiana wymuszona sytuacją. ${bestDefOnBench.lastName} wchodzi do obrony.`);
                 }
              }
           } 
@@ -158,7 +169,7 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
              if (bestInternalCover) {
                 newLineup.startingXI[emptyDefIdx] = bestInternalCover.id;
                 newLineup.startingXI[bestInternalCover.idx] = null;
-                logs.push(`${state.minute}' - AI: Brak zmian. ${bestInternalCover.p.lastName} przesunięty do linii obrony.`);
+                logs.push(` Brak zmian w drużynie. ${bestInternalCover.p.lastName} musi zagrać w obronie.`);
              }
           }
        }
@@ -199,7 +210,7 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
              newSubsCount = currentSubsCount + 1;
              subRecord = { playerOutId: 'NONE', playerInId: bestSub.id, minute: state.minute };
              updatedActionMinute = state.minute;
-             logs.push(`${state.minute}' - AI: ${bestSub.lastName} wchodzi w miejsce zniesionego gracza.`);
+             logs.push(`Zmiana, ${bestSub.lastName} wchodzi w miejsce zniesionego gracza.`);
           }
         }
       }
@@ -226,14 +237,14 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
 
         if (candidates.length > 0) {
           playerOutId = candidates[0].id;
-          reason = isHalftime ? "korekta taktyczna" : "odświeżenie składu";
+          reason = isHalftime ? "Zmiana taktyczna" : "";
         } else if (isHalftime && scoreDiff < 0) {
           const fieldPlayers = newLineup.startingXI
             .slice(1)
             .filter(id => id !== null)
             .map(id => myPlayers.find(p => p.id === id))
             .filter((p): p is Player => p !== undefined)
-            .sort((a, b) => a.overallRating - a.overallRating);
+            .sort((a, b) => a.overallRating - b.overallRating);
           
           if (fieldPlayers.length > 0) {
             playerOutId = fieldPlayers[0].id;
@@ -270,22 +281,38 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
           newLineup = LineupService.swapPlayers(newLineup, playerOutId, bestSub.id, slotIdx);
           newSubsCount = currentSubsCount + 1;
           subRecord = { playerOutId, playerInId: bestSub.id, minute: state.minute };
-          logs.push(`${isHalftime ? 'Przerwa' : state.minute + '\''} - Zmiana ${bestSub.lastName} zastępuje ${pOut?.lastName} (${reason}).`);
+          logs.push(`${isHalftime ? '' : state.minute + '\''} ${bestSub.lastName} zastępuje ${pOut?.lastName} (${reason}).`);
         }
       }
     }
 
-    // --- REAKCJA TAKTYCZNA ---
-    if (state.minute > 20 && !newTacticId) {
-      if (scoreDiff < -1 && state.minute > 45 && currentLineup.tacticId !== '3-4-3') {
-           newTacticId = '3-4-3';
-           logs.push(`${state.minute}' - Zmiana ustawienia na 3-4-3.`);
-      }
-     else if (scoreDiff > 0 && state.minute > 75 && currentLineup.tacticId !== '5-4-1' && mySentOffCount === 0) {
-        newTacticId = '5-4-1';
-        logs.push(`${state.minute}' - Przeciwnik przechodzi na grę defensywną (5-4-1).`);
-      }
+   // --- REAKCJA TAKTYCZNA ---
+const tacticCooldown = 12; // min. 12 minut między zmianami taktyki
+const canChangeTactic = !state.aiTacticLocked && (state.minute - (state.lastAiActionMinute || 0)) >= tacticCooldown;
+
+if (state.minute > 20 && !newTacticId && canChangeTactic) {
+
+  // PRZEGRANA o 2+ po 45' → przejdź na losową taktykę ofensywną (inną niż aktualna)
+  if (scoreDiff < -1 && state.minute > 45) {
+    const offensiveTactics = ['3-4-3', '4-4-2-OFF', '4-3-3', '4-2-4', '3-5-2', '4-3-2-1', '3-4-2-1', '4-3-3-F9'];
+    const candidates = offensiveTactics.filter(t => t !== currentLineup.tacticId);
+    if (candidates.length > 0) {
+      newTacticId = candidates[Math.floor(Math.random() * candidates.length)];
+      updatedActionMinute = state.minute; // cooldown startuje od tej minuty
+      logs.push(`Zmiana ustawienia na ${newTacticId}.`);
     }
+  }
+  // WYGRANA po 75' bez czerwonej kartki → przejdź na losową taktykę defensywną (inną niż aktualna)
+  else if (scoreDiff > 0 && state.minute > 75 && mySentOffCount === 0) {
+    const defensiveTactics = ['5-4-1', '4-4-2-DEF', '5-3-2', '6-3-1', '5-2-1-2', '4-5-1'];
+    const candidates = defensiveTactics.filter(t => t !== currentLineup.tacticId);
+    if (candidates.length > 0) {
+      newTacticId = candidates[Math.floor(Math.random() * candidates.length)];
+      updatedActionMinute = state.minute; // cooldown startuje od tej minuty
+      logs.push(`Zmiana ustawienia na ${newTacticId}.`);
+    }
+  }
+}
 
     return { 
       newLineup, 
@@ -293,6 +320,7 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
       subRecord,
       newTacticId,
       lastAiActionMinute: updatedActionMinute,
+      aiTacticLocked: aiTacticLockResult,
       logs 
     };
   }

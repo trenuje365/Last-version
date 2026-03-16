@@ -3,7 +3,7 @@
 /* Podstawowe style, aby sprawdzić czy działa */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background-color: #242424;
+  background-color: #020617;
   color: rgba(255, 255, 255, 0.87);
 }
 
@@ -15,9 +15,19 @@ body {
   align-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background: transparent;
 }
 
 #root {
   width: 100%;
   height: 100%;
+  background: transparent;
+}
+
+/* Hide scrollbars globally */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
 }

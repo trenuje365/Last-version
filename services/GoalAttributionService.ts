@@ -6,28 +6,25 @@ export const GoalAttributionService = {
    * Calculates if a shot results in a goal based on GK attributes and defensive pressure.
    * v4.6: Added dedicated penalty logic and removed "ghost defender" bias.
    */
-  checkShotSuccess: (attacker: Player, goalkeeper: Player, defenders: Player[], isHeader: boolean, rng: () => number, isPenalty: boolean = false): boolean => {
+  checkShotSuccess: (attacker: Player, goalkeeper: Player, defenders: Player[], isHeader: boolean, rng: () => number, isPenalty: boolean = false, scorerLiveFatigue: number = 100, gkLiveFatigue: number = 100, scorerFitMod: number = 1.0, gkFitMod: number = 1.0, defFatigueMap: Record<string, number> = {}): boolean => {
     
-    // TUTAJ WSTAW TEN KOD - Failsafe dla brakujących graczy (np. po czerwonej kartce przed zmianą AI)
+    // Failsafe dla brakujących graczy (np. po czerwonej kartce przed zmianą AI)
     if (!attacker) return false;
-    
-    // OBLICZANIE KAR ZA PRZEMĘCZENIE (Stage 1 Pro)
-    const calculateFatigueImpact = (p: Player) => {
-      if (!p) return 1.0; // Jeśli brak gracza (np. pusta bramka), nie ma modyfikatora zmęczenia
-      const debt = p.fatigueDebt || 0;
-      if (debt > 40) return 0.70; // -30% do statystyk przy ogromnym długu
-      if (debt > 20) return 0.85; // -15% do statystyk
-      if (debt > 10) return 0.95; // -5% do statystyk
-      return 1.0;
-    };
+    if (!goalkeeper) return rng() < 0.98; // Brak bramkarza = prawie pewny gol
 
-    const attMod = calculateFatigueImpact(attacker);
-    const gkMod = calculateFatigueImpact(goalkeeper);
+    // PROGRESYWNA KRZYWA ZMĘCZENIA (kwadratowa)
+    // Świeży (100) → 1.00 | Pomarańczowy (50%) → 0.863 | Czerwony (25%) → 0.691 | Leżący (0%) → 0.45
+    const progressiveMod = (fatigue: number): number => {
+      const f = Math.max(0, Math.min(100, fatigue)) / 100;
+      return Math.max(0.45, 1.0 - Math.pow(1 - f, 2) * 0.55);
+    };
+    const attMod = progressiveMod(scorerLiveFatigue) * scorerFitMod;
+    const gkMod  = progressiveMod(gkLiveFatigue)    * gkFitMod;
 
     if (isPenalty) {
       const baseProb = 0.94;
       // Minimalny wpływ statystyk (zachowanie 10:1 przewagi strzelca)
-     const statInfluence = ((attacker.attributes.finishing * attMod) - (goalkeeper.attributes.goalkeeping * gkMod)) / 400;
+      const statInfluence = ((attacker.attributes.finishing * attMod) - (goalkeeper.attributes.goalkeeping * gkMod)) / 400;
       return rng() < Math.max(0.88, Math.min(0.97, baseProb + statInfluence));
     }
 
@@ -45,11 +42,18 @@ export const GoalAttributionService = {
     
     // POPRAWKA: Usunięcie sztywnej wartości 30 (Duch Obrońcy). 
     // Przy braku obrońców (czyste 1v1) presja wynosi 0.
+    // Zmęczeni obrońcy bronią gorzej (ważone przez progressiveMod)
     const avgDef = topDefenders.length > 0 
-      ? topDefenders.reduce((acc, d) => acc + d.attributes.defending, 0) / topDefenders.length
+      ? topDefenders.reduce((acc, d) => {
+          const defFatigue = defFatigueMap[d.id] ?? 100;
+          return acc + d.attributes.defending * progressiveMod(defFatigue);
+        }, 0) / topDefenders.length
       : 0;
-    
-    attackPower -= (avgDef * 0.25);
+
+    // Krok 6: Dribbling redukuje presję defensywną (zakres PL: 45-77)
+    // dribbling 45 → mod 0.865 | dribbling 65 → mod 0.805 | dribbling 77 → mod 0.769
+    const dribblingMod = 1.0 - (attacker.attributes.dribbling / 100) * 0.30;
+    attackPower -= (avgDef * 0.25 * dribblingMod);
 
     // Final Calculation: Skalowane prawdopodobieństwo dla strzałów z gry
     // Final Calculation: Skalowane prawdopodobieństwo dla strzałów z gry
@@ -60,8 +64,9 @@ export const GoalAttributionService = {
 
   },
 
-  pickScorer: (players: Player[], lineupIds: string[], isCorner: boolean, rng: () => number): Player => {
+  pickScorer: (players: Player[], lineupIds: string[], isCorner: boolean, rng: () => number): Player | null => {
     const candidates = players.filter(p => lineupIds.includes(p.id));
+    if (candidates.length === 0) return null;
     
     const weights = candidates.map(p => {
       let w = 0.1; 
@@ -77,8 +82,27 @@ export const GoalAttributionService = {
         w *= (p.attributes.heading / 50) * 1.8;
         if (p.position === PlayerPosition.DEF) w *= 2.2;
       } else {
-        w *= Math.pow(p.attributes.finishing / 50, 1.1) * (p.attributes.attacking / 50);
+        w *= Math.pow(p.attributes.finishing / 50, 1.1)   // dominujący - kto wykończy
+           * Math.pow(p.attributes.attacking  / 50, 0.8)  // ogólna ofensywność
+           * Math.pow(p.attributes.pace       / 50, 0.5)  // dotarcie na pozycję strzelecką
+           * Math.pow(p.attributes.technique  / 50, 0.4); // jakość techniczna strzału
       }
+
+      // FORMA MECZOWA: średnia ocen z ostatnich 5 meczów
+      // Bonus/kara progresywna, mała — nie przebija wagi pozycji ani atrybutów
+      const recentRatings = p.stats?.ratingHistory?.slice(-5) ?? [];
+      const avgRating = recentRatings.length > 0
+        ? recentRatings.reduce((a: number, b: number) => a + b, 0) / recentRatings.length
+        : 6.5; // brak historii → neutralna wartość
+      let formMod = 1.0;
+      if (avgRating >= 7.0) {
+        // 7.0→×1.00 | 7.5→×1.04 | 8.0→×1.08 | 8.5→×1.12 | max ×1.15
+        formMod = 1.0 + Math.min(0.15, (avgRating - 7.0) * 0.08);
+      } else if (avgRating < 6.5) {
+        // 6.5→×1.00 | 6.0→×0.95 | 5.5→×0.90 | 5.0→×0.85 (min)
+        formMod = 1.0 - Math.min(0.15, (6.5 - avgRating) * 0.10);
+      }
+      w *= formMod;
 
       return Math.max(0.05, w);
     });

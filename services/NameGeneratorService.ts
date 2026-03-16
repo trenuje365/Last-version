@@ -6,7 +6,11 @@ import { SSA_MALE_FIRSTNAMES, SSA_MALE_LASTNAMES } from '../resources/static_db/
 import { IBERIA_MALE_FIRSTNAMES, IBERIA_MALE_LASTNAMES } from '../resources/static_db/names/iberia_data';
 import { SCANDINAVIA_MALE_FIRSTNAMES, SCANDINAVIA_MALE_LASTNAMES } from '../resources/static_db/names/scandinavia_data';
 import { EXUSSR_MALE_FIRSTNAMES, EXUSSR_MALE_LASTNAMES } from '../resources/static_db/names/exussr_data';
-
+import { ES_MALE_FIRSTNAMES, ES_MALE_LASTNAMES } from '../resources/static_db/names/es_data';
+import { EN_MALE_FIRSTNAMES, EN_MALE_LASTNAMES } from '../resources/static_db/names/en_data';
+import { DE_MALE_FIRSTNAMES, DE_MALE_LASTNAMES } from '../resources/static_db/names/de_data';
+import { IT_MALE_FIRSTNAMES, IT_MALE_LASTNAMES } from '../resources/static_db/names/it_data';
+import { FR_MALE_FIRSTNAMES, FR_MALE_LASTNAMES } from '../resources/static_db/names/fr_data';
 interface NamePair {
   firstName: string;
   lastName: string;
@@ -54,8 +58,20 @@ export const NameGeneratorService = {
           firstName: getRandomElement(EXUSSR_MALE_FIRSTNAMES),
           lastName: getRandomElement(EXUSSR_MALE_LASTNAMES)
         };
+              case Region.SPAIN:
+        return { firstName: getRandomElement(ES_MALE_FIRSTNAMES), lastName: getRandomElement(ES_MALE_LASTNAMES) };
+      case Region.ENGLAND:
+        return { firstName: getRandomElement(EN_MALE_FIRSTNAMES), lastName: getRandomElement(EN_MALE_LASTNAMES) };
+      case Region.GERMANY:
+        return { firstName: getRandomElement(DE_MALE_FIRSTNAMES), lastName: getRandomElement(DE_MALE_LASTNAMES) };
+      case Region.ITALY:
+        return { firstName: getRandomElement(IT_MALE_FIRSTNAMES), lastName: getRandomElement(IT_MALE_LASTNAMES) };
+      case Region.FRANCE:
+        return { firstName: getRandomElement(FR_MALE_FIRSTNAMES), lastName: getRandomElement(FR_MALE_LASTNAMES) };
       default:
-        // Fallback to Polish
+      
+      
+
         return {
           firstName: getRandomElement(PL_MALE_FIRSTNAMES),
           lastName: getRandomElement(PL_MALE_LASTNAMES)
@@ -70,7 +86,12 @@ export const NameGeneratorService = {
       Region.SSA,
       Region.IBERIA,
       Region.SCANDINAVIA,
-      Region.EX_USSR
+      Region.EX_USSR,
+      Region.SPAIN,
+      Region.ENGLAND,
+      Region.GERMANY,
+      Region.ITALY,
+      Region.FRANCE,
     ];
     return foreignRegions[Math.floor(Math.random() * foreignRegions.length)];
   }

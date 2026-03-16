@@ -11,6 +11,7 @@ export interface RawClubData {
 // Helper for ID generation (simple slug)
 export const generateClubId = (name: string): string => {
   const slug = name
+    .replace(/ł/g, 'l').replace(/Ł/g, 'L') // Ł/ł nie dekomponuje się w NFD — musi być zastąpione jawnie
     .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Remove accents
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '_') // Replace non-alphanum with _
@@ -21,13 +22,13 @@ export const generateClubId = (name: string): string => {
 
 export const RAW_PL_CLUBS: RawClubData[] = [
   // --- TIER 1 (Ekstraklasa) - 18 Teams ---004d00
-  { name: "Legia Warszawa", tier: 1, colors: ['#FFFFFF', '#228B22', '#8B0000'], stadium: "Stadion Wojska Polskiego", capacity: 31103, reputation: 10 },
+  { name: "Legia Warszawa", tier: 1, colors: ['#007a25', '#ffffff', '#a80e0e'], stadium: "Stadion Wojska Polskiego", capacity: 31103, reputation: 10 },
   { name: "Lech Poznań", tier: 1, colors: ['#0000FF', '#FFFFFF', '#FFFF00'], stadium: "Enea Stadion", capacity: 41609, reputation: 10 },
   { name: "Jagiellonia Białystok", tier: 1, colors: ['#FFFF00', '#FF0000', '#FFFFFF'], stadium: "Stadion Miejski w Białymstoku", capacity: 22372, reputation: 8 },
   { name: "Raków Częstochowa", tier: 1, colors: ['#0000FF', '#FF0000', '#FFFFFF'], stadium: "Stadion Miejski w Częstochowie", capacity: 5500, reputation: 8 },
   { name: "Pogoń Szczecin", tier: 1, colors: ['#000080', '#800000', '#FFFFFF'], stadium: "Stadion Miejski im. Floriana Krygiera", capacity: 21163, reputation: 7 },
-  { name: "Górnik Zabrze", tier: 1, colors: ['#FFFFFF', '#0000FF', '#FF0000'], stadium: "Stadion im. Ernesta Pohla", capacity: 24563, reputation: 8 },
-  { name: "Cracovia", tier: 1, colors: ['#FFFFFF', '#FF0000', '#000000'], stadium: "Stadion im. Józefa Piłsudskiego", capacity: 15016, reputation: 8 },
+  { name: "Górnik Zabrze", tier: 1, colors: ['#0519ca', '#ffffff', '#FF0000'], stadium: "Stadion im. Ernesta Pohla", capacity: 24563, reputation: 8 },
+  { name: "Cracovia", tier: 1, colors: ['#ff0000', '#ffffff', '#000000'], stadium: "Stadion im. Józefa Piłsudskiego", capacity: 15016, reputation: 8 },
   { name: "Zagłębie Lubin", tier: 1, colors: ['#FF5F1F', '#FFFFFF', '#008000'], stadium: "Dialog Arena", capacity: 16068, reputation: 7 },
   { name: "Widzew Łódź", tier: 1, colors: ['#FF0000', '#FFFFFF', '#FF0000'], stadium: "Stadion Widzewa", capacity: 18018, reputation: 10 },
   { name: "Lechia Gdańsk", tier: 1, colors: ['#008000', '#FFFFFF', '#008000'], stadium: "Polsat Plus Arena Gdańsk", capacity: 41620, reputation: 7 },
@@ -36,18 +37,18 @@ export const RAW_PL_CLUBS: RawClubData[] = [
   { name: "Korona Kielce", tier: 1, colors: ['#FFFF00', '#FF0000', '#FFFFFF'], stadium: "Suzuki Arena", capacity: 15500, reputation: 7 },
   { name: "Radomiak Radom", tier: 1, colors: ['#008000', '#FFFFFF', '#FF0000'], stadium: "Stadion Miejski w Radomiu", capacity: 15000, reputation: 6 },
   { name: "Motor Lublin", tier: 1, colors: ['#FFFF00', '#FFFFFF', '#0000FF'], stadium: "Arena Lublin", capacity: 15500, reputation: 6 },
-  { name: "GKS Katowice", tier: 1, colors: ['#FFFF00', '#008000', '#000000'], stadium: "Stadion GKS Katowice", capacity: 6710, reputation: 6 },
+  { name: "GKS Katowice", tier: 1, colors: ['#FFFF00', '#0a6102', '#000000'], stadium: "Stadion GKS Katowice", capacity: 6710, reputation: 6 },
   { name: "Termalica Nieciecza", tier: 1, colors: ['#FF5F1F', '#FFFF00', '#0000FF'], stadium: "Stadion Bruk-Bet", capacity: 4595, reputation: 5 },
   { name: "Wisła Płock", tier: 1, colors: ['#0000FF', '#FFFFFF', '#FF0000'], stadium: "Stadion im. Kazimierza Górskiego", capacity: 12800, reputation: 6 },
 
   // --- TIER 2 (1. Liga) - 18 Teams ---
-  { name: "Wisła Kraków", tier: 2, colors: ['#FFFFFF', '#FF0000', '#0000FF'], stadium: "Stadion im. Henryka Reymana", capacity: 33326, reputation: 10 },
+  { name: "Wisła Kraków", tier: 2, colors: ['#fa0101', '#0026ff', '#ffffff'], stadium: "Stadion im. Henryka Reymana", capacity: 33326, reputation: 10 },
   { name: "Pogoń Grodzisk Mazowiecki", tier: 2, colors: ['#FF0000', '#FFFFFF', '#0000FF'], stadium: "Stadion Miejski w Grodzisku Mazowieckim", capacity: 1500, reputation: 4 },
   { name: "Polonia Bytom", tier: 2, colors: ['#0000FF', '#FF0000', '#FFFFFF'], stadium: "Stadion im. Edwardw Szymkowiaka", capacity: 5500, reputation: 7 },
   { name: "Chrobry Głogów", tier: 2, colors: ['#FF5F1F', '#000000', '#FFFFFF'], stadium: "Stadion Miejski w Głogowie", capacity: 3000, reputation: 5 },
   { name: "Stal Rzeszów", tier: 2, colors: ['#FFFFFF', '#0000FF', '#FF0000'], stadium: "Stadion Miejski w Rzeszowie", capacity: 11500, reputation: 6 },
   { name: "Śląsk Wrocław", tier: 2, colors: ['#008000', '#FFFFFF', '#FF0000'], stadium: "Tarczyński Arena", capacity: 42771, reputation: 10 },
-  { name: "Polonia Warszawa", tier: 2, colors: ['#000000', '#FFFFFF', '#FF0000'], stadium: "Stadion Im. Gen. Kazimierza Sosnowskiego", capacity: 7150, reputation: 8 },
+  { name: "Polonia Warszawa", tier: 2, colors: ['#000000', '#FFFFFF', '#dac511d0'], stadium: "Stadion Im. Gen. Kazimierza Sosnowskiego", capacity: 7150, reputation: 8 },
   { name: "Wieczysta Kraków", tier: 2, colors: ['#FFFF00', '#FF0000', '#000000'], stadium: "Stadion Prądniczanki", capacity: 2000, reputation: 5 },
   { name: "Ruch Chorzów", tier: 2, colors: ['#0000FF', '#FFFFFF', '#FF0000'], stadium: "Stadion Miejski w Chorzowie", capacity: 9300, reputation: 9 },
   { name: "Miedź Legnica", tier: 2, colors: ['#008000', '#FF0000', '#0000FF'], stadium: "Stadion Orła Białego", capacity: 6194, reputation: 8 },
@@ -56,7 +57,7 @@ export const RAW_PL_CLUBS: RawClubData[] = [
   { name: "Odra Opole", tier: 2, colors: ['#0000FF', '#FF0000', '#FFFFFF'], stadium: "Stadion Odry", capacity: 4800, reputation: 6 },
   { name: "Puszcza Niepołomice", tier: 2, colors: ['#FFFFFF', '#0000FF', '#008000'], stadium: "Stadion w Niepołomicach", capacity: 2118, reputation: 6 },
   { name: "Znicz Pruszków", tier: 2, colors: ['#FFFF00', '#FF0000', '#FFFFFF'], stadium: "Stadion MZOS", capacity: 2100, reputation: 4 },
-  { name: "Stal Mielec", tier: 2, colors: ['#FFFFFF', '#0000FF', '#FFFF00'], stadium: "Stadion MOSiR w Mielcu", capacity: 6864, reputation: 7 },
+  { name: "Stal Mielec", tier: 2, colors: ['#0817ee', '#e2e611', '#ffffff'], stadium: "Stadion MOSiR w Mielcu", capacity: 6864, reputation: 7 },
   { name: "GKS Tychy", tier: 2, colors: ['#008000', '#000000', '#FF0000'], stadium: "Stadion Miejski w Tychach", capacity: 15300, reputation: 6 },
   { name: "Górnik Łęczna", tier: 2, colors: ['#008000', '#000000', '#FFFFFF'], stadium: "Stadion Górnika", capacity: 7200, reputation: 6 },
 
@@ -81,7 +82,7 @@ export const RAW_PL_CLUBS: RawClubData[] = [
   { name: "Rekord Bielsko-Biała", tier: 3, colors: ['#FFFFFF', '#008000', '#FFFF00'], stadium: "Stadion Miejski", capacity: 800, reputation: 2 },
 
   // --- TIER 4 (3. Liga i niższe) ---
-  { name: "GKS Bełchatów", tier: 4, colors: ['#FFFFFF', '#008000', '#000000'], stadium: "GIEKSA Arena", capacity: 5264, reputation: 5 },
+  { name: "GKS Bełchatów", tier: 4, colors: ['#06830c', '#ffffff', '#000000'], stadium: "GIEKSA Arena", capacity: 5264, reputation: 5 },
   { name: "Wigry Suwałki", tier: 4, colors: ['#FFFFFF', '#0000FF', '#FF0000'], stadium: "Stadion Miejski w Suwałkach", capacity: 3060, reputation: 3 },
   { name: "Olimpia Elbląg", tier: 4, colors: ['#FFFF00', '#FFFFFF', '#0000FF'], stadium: "Stadion Miejski w Elblągu", capacity: 3000, reputation: 3 },
   { name: "Avia Świdnik", tier: 4, colors: ['#FFFF00', '#0000FF', '#FFFFFF'], stadium: "Stadion Miejski w Świdniku", capacity: 2800, reputation: 2 },

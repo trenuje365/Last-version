@@ -1,4 +1,5 @@
 import { MatchLiveState, MatchContext, Player, PlayerPosition, MatchEventType, MatchLogEntry, WeatherSnapshot } from '../types';
+import { TacticRepository } from '../resources/tactics_db';
 
 export const MatchEngineService = {
   calculateFatigueStep: (state: MatchLiveState, ctx: MatchContext, weather?: WeatherSnapshot): { home: Record<string, number>, away: Record<string, number> } => {
@@ -9,7 +10,27 @@ export const MatchEngineService = {
     const homePressureFactor = state.momentum < -75 ? 1.35 : 1.0;
     const awayPressureFactor = state.momentum > 75 ? 1.35 : 1.0;
 
-    const update = (players: Player[], fatigueMap: Record<string, number>, sideLineup: (string | null)[], pressureFactor: number) => {
+    // pressingIntensity modyfikuje drain zmęczenia
+    // pressing 20 (niski) → drain * 0.964 | pressing 50 (neutral) → drain * 1.000 | pressing 90 (wysoki) → drain * 1.048
+    const homeTacticPressing = TacticRepository.getById(state.homeLineup.tacticId);
+    const awayTacticPressing = TacticRepository.getById(state.awayLineup.tacticId);
+    const homePressingMod = 0.94 + (homeTacticPressing.pressingIntensity / 100) * 0.12;
+    const awayPressingMod  = 0.94 + (awayTacticPressing.pressingIntensity  / 100) * 0.12;
+
+    // Progresywna kara zmęczenia za czerwone kartki — pozostali muszą biegać więcej
+    // 1 kartka → ×1.12 | 2 kartki → ×1.27 | 3+ → ×1.45
+    const _redFatMod = (redCount: number): number => {
+      if (redCount === 0) return 1.0;
+      if (redCount === 1) return 1.12;
+      if (redCount === 2) return 1.27;
+      return 1.45;
+    };
+    const homeRedCount = state.sentOffIds.filter(id => ctx.homePlayers.some(p => p.id === id)).length;
+    const awayRedCount = state.sentOffIds.filter(id => ctx.awayPlayers.some(p => p.id === id)).length;
+    const homeRedFatMod = _redFatMod(homeRedCount);
+    const awayRedFatMod = _redFatMod(awayRedCount);
+
+    const update = (players: Player[], fatigueMap: Record<string, number>, sideLineup: (string | null)[], pressureFactor: number, pressingMod: number, redFatigueMod: number) => {
       players.forEach(p => {
         if (!sideLineup.includes(p.id)) return;
 
@@ -31,6 +52,8 @@ export const MatchEngineService = {
         const efficiency = 1.3 - (staminaBonus * 0.6); 
         
         drain *= efficiency;
+        drain *= pressingMod;
+        drain *= redFatigueMod;
 
         if (weather && weather.precipitationChance > 0) drain *= 1.08;
         if (weather && weather.tempC > 30) drain *= 1.10;
@@ -39,30 +62,30 @@ export const MatchEngineService = {
       });
     };
 
-    update(ctx.homePlayers, homeFatigue, state.homeLineup.startingXI, homePressureFactor);
-    update(ctx.awayPlayers, awayFatigue, state.awayLineup.startingXI, awayPressureFactor);
+    update(ctx.homePlayers, homeFatigue, state.homeLineup.startingXI, homePressureFactor, homePressingMod, homeRedFatMod);
+    update(ctx.awayPlayers, awayFatigue, state.awayLineup.startingXI, awayPressureFactor, awayPressingMod, awayRedFatMod);
 
     return { home: homeFatigue, away: awayFatigue };
   },
 
-  generateCommentary: (minute: number, seed: number, homeShort: string, awayShort: string): MatchLogEntry | null => {
-    if (minute % 9 !== 0 || minute === 0) return null;
+  generateCommentary: (minute: number, seed: number, homeFull: string, awayFull: string): MatchLogEntry | null => {
+    if (minute % 5 !== 0 || minute === 0) return null;
 
     const phrases = [
-      "[{TEAM}] kontroluje tempo gry dzięki świetnej technice w środku pola.",
-      "Defensywa [{TEAM}] czyta grę bezbłędnie, blokując każdą próbę ataku.",
-      "Siła fizyczna zawodników [{TEAM}] pozwala im wygrywać większość pojedynków.",
-      "[{TEAM}] szuka szybkich skrzydeł, wykorzystując szybkość swoich napastników.",
-      "Bramkarz [{TEAM}] dyryguje obroną, świetnie się ustawiając.",
-      "Wizja gry pomocników [{TEAM}] imponuje, szukają prostopadłych podań.",
-      "Mocny pressing [{TEAM}] zmusza rywala do błędów technicznych.",
-      "[{TEAM}] dominuje fizycznie, spychając przeciwnika pod własne pole karne.",
-      "Elegancka gra [{TEAM}], piłka chodzi od nogi do nogi jak po sznurku.",
-      "Znakomite ustawienie defensywne [{TEAM}] uniemożliwia oddanie strzału."
+      "{TEAM} kontroluje tempo gry dzięki świetnej technice w środku pola.",
+      "Defensywa {TEAM} czyta grę bezbłędnie, blokując każdą próbę ataku.",
+      "Siła fizyczna zawodników {TEAM} pozwala im wygrywać większość pojedynków.",
+      "{TEAM} szuka szybkich skrzydeł, wykorzystując szybkość swoich napastników.",
+      "Bramkarz {TEAM} dyryguje obroną, świetnie się ustawiając.",
+      "Wizja gry pomocników {TEAM} imponuje, szukają prostopadłych podań.",
+      "Mocny pressing {TEAM} zmusza rywala do błędów technicznych.",
+      "{TEAM} dominuje fizycznie, spychając przeciwnika pod własne pole karne.",
+      "Elegancka gra {TEAM}, piłka chodzi od nogi do nogi jak po sznurku.",
+      "Znakomite ustawienie defensywne {TEAM} uniemożliwia oddanie strzału."
     ];
 
     const teamSide: 'HOME' | 'AWAY' = (minute + seed) % 2 === 0 ? 'HOME' : 'AWAY';
-    const teamName = teamSide === 'HOME' ? homeShort : awayShort;
+    const teamName = teamSide === 'HOME' ? homeFull : awayFull;
     
     const idx = (minute + seed) % phrases.length;
     const text = phrases[idx].replace("{TEAM}", teamName);

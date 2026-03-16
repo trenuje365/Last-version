@@ -10,6 +10,32 @@ import { KitSelectionService } from '../../services/KitSelectionService';
 import { LineupService } from '../../services/LineupService';
 import { AttendanceService } from '../../services/AttendanceService';
 
+// Import lokalnych zdjęć piłkarzy
+import { getPlayerCardImage } from '../../resources/PlayerCardAssets';
+import { getClubLogo } from '../../resources/ClubLogoAssets';
+import bojo2Pitch from '../../Graphic/themes/bojo2.png';
+
+// Import lokalnego tła
+import startMecz from '../../Graphic/themes/start-mecz.png';
+
+// Zwraca kolor tekstu (secondary lub biały/czarny) zapewniający kontrast z tłem
+const getContrastTextColor = (bgHex: string, secondaryHex: string): string => {
+  const parse = (hex: string) => {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return { r, g, b };
+  };
+  const luminance = ({ r, g, b }: { r: number; g: number; b: number }) =>
+    0.299 * r + 0.587 * g + 0.114 * b;
+  const bgLum = luminance(parse(bgHex));
+  const secLum = luminance(parse(secondaryHex));
+  const diff = Math.abs(bgLum - secLum);
+  if (diff > 60) return secondaryHex;
+  return bgLum > 128 ? '#000000' : '#ffffff';
+};
+
 export const PreMatchStudioView: React.FC = () => {
   const { navigateTo, userTeamId, clubs, fixtures, players, lineups, currentDate, viewRefereeDetails } = useGame();
   const [data, setData] = useState<PreMatchStudioData | null>(null);
@@ -42,7 +68,7 @@ export const PreMatchStudioView: React.FC = () => {
       if (!aLineup) aLineup = LineupService.autoPickLineup(away.id, aPlayers);
       
       const studioData = await PreMatchStudioService.prepareStudioData(
-        fixture, home, away, hLineup, aLineup, hPlayers, aPlayers
+        fixture, home, away, hLineup, aLineup, hPlayers, aPlayers, clubs
       );
       setData(studioData);
       setLoading(false);
@@ -79,27 +105,7 @@ export const PreMatchStudioView: React.FC = () => {
     );
   }
 
-  const getJerseyUrl = (hex: string) => {
-    const jerseyGallery = [
-      { hex: '#ffffff', url: 'https://i.ibb.co/PvSRwngm/player1-white.jpg' },
-      { hex: '#000000', url: 'https://i.ibb.co/qFLXNMXm/player1-black.jpg' },
-      { hex: '#ff0000', url: 'https://i.ibb.co/1fqNVfyG/player1-red.jpg' },
-      { hex: '#0000ff', url: 'https://i.ibb.co/5Xbzn6CT/player1-blue.jpg' },
-      { hex: '#ffff00', url: 'https://i.ibb.co/SwxQFgnd/player1-yellow.jpg' },
-      { hex: '#008000', url: 'https://i.ibb.co/nNwZ3HtH/player1-green.jpg' },
-      { hex: '#ff5f1f', url: 'https://i.ibb.co/wr4sNvtp/player1-orange.jpg' },
-    ];
-    let bestMatch = jerseyGallery[0];
-    let minDistance = Infinity;
-    jerseyGallery.forEach(item => {
-      const distance = KitSelectionService.getColorDistance(hex, item.hex);
-      if (distance < minDistance) {
-        minDistance = distance;
-        bestMatch = item;
-      }
-    });
-    return bestMatch.url;
-  };
+  const getJerseyUrl = (clubId: string, hex: string) => getPlayerCardImage(clubId, hex);
 
   const homeXI = data.homeLineup.startingXI.map(id => data.homePlayers.find(p => p.id === id)).filter(Boolean) as Player[];
   const awayXI = data.awayLineup.startingXI.map(id => data.awayPlayers.find(p => p.id === id)).filter(Boolean) as Player[];
@@ -154,21 +160,28 @@ export const PreMatchStudioView: React.FC = () => {
       {/* CINEMATIC BACKGROUND */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-black">
         <div 
-          className="absolute inset-0 bg-[url('https://i.ibb.co/gbVfTSxR/start-mecz.png')] bg-cover bg-center scale-100 opacity-20"
+          className="absolute inset-0 bg-cover bg-center scale-100 opacity-20"
+          style={{ backgroundImage: `url(${startMecz})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-transparent to-slate-950/80" />
       </div>
 
       {/* HEADER SECTION */}
       <header className="relative z-20 shrink-0 w-full max-w-[1850px] mx-auto pt-6 px-6">
-        <div className="bg-slate-900/30 border border-white/10 rounded-[35px] overflow-hidden shadow-2xl backdrop-blur-[1px]">
+        <div className="bg-slate-900/30 border border-white/10 rounded-[35px] shadow-2xl backdrop-blur-[1px]">
            <div className="flex items-center justify-between h-20 px-10">
-              <div className="flex items-center gap-6 flex-1">
-                 <div className="w-12 h-12 rounded-[15px] border-2 border-white/20 overflow-hidden flex flex-col transform -rotate-3">
-                    <div style={{ backgroundColor: matchKits.home.primary }} className="flex-1" />
-                    <div style={{ backgroundColor: matchKits.home.secondary }} className="flex-1" />
+              <div className="flex items-center flex-1">
+                 <div className="relative z-10 shrink-0 -mr-6">
+                   {getClubLogo(data.homeClub.id) ? (
+                     <img src={getClubLogo(data.homeClub.id)} alt={data.homeClub.name} className="w-[115px] h-[115px] object-contain transform -rotate-6 drop-shadow-2xl opacity-80" />
+                   ) : (
+                     <div className="w-12 h-12 rounded-[15px] border-2 border-white/20 overflow-hidden flex flex-col transform -rotate-3">
+                       <div style={{ backgroundColor: matchKits.home.primary }} className="flex-1" />
+                       <div style={{ backgroundColor: matchKits.home.secondary }} className="flex-1" />
+                     </div>
+                   )}
                  </div>
-                 <div>
+                 <div className="relative z-0 pl-8">
                     <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none">{data.homeClub.name}</h2>
                     <span className="text-[11px] font-black text-blue-400 uppercase tracking-widest mt-1 block">GOSPODARZE</span>
                  </div>
@@ -182,14 +195,20 @@ export const PreMatchStudioView: React.FC = () => {
                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{currentDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
               </div>
 
-              <div className="flex items-center gap-6 flex-1 justify-end text-right">
-                 <div>
+              <div className="flex items-center flex-1 justify-end text-right">
+                 <div className="relative z-0 pr-8">
                     <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none">{data.awayClub.name}</h2>
                     <span className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mt-1 block">GOŚCIE</span>
                  </div>
-                 <div className="w-12 h-12 rounded-[15px] border-2 border-white/20 overflow-hidden flex flex-col transform rotate-3">
-                    <div style={{ backgroundColor: matchKits.away.primary }} className="flex-1" />
-                    <div style={{ backgroundColor: matchKits.away.secondary }} className="flex-1" />
+                 <div className="relative z-10 shrink-0 -ml-6">
+                   {getClubLogo(data.awayClub.id) ? (
+                     <img src={getClubLogo(data.awayClub.id)} alt={data.awayClub.name} className="w-[115px] h-[115px] object-contain transform rotate-6 drop-shadow-2xl opacity-80" />
+                   ) : (
+                     <div className="w-12 h-12 rounded-[15px] border-2 border-white/20 overflow-hidden flex flex-col transform rotate-3">
+                       <div style={{ backgroundColor: matchKits.away.primary }} className="flex-1" />
+                       <div style={{ backgroundColor: matchKits.away.secondary }} className="flex-1" />
+                     </div>
+                   )}
                  </div>
               </div>
            </div>
@@ -219,10 +238,10 @@ export const PreMatchStudioView: React.FC = () => {
         {/* CENTER COLUMN */}
         <div className="flex-1 flex flex-col gap-6 items-center min-w-0">
            <div className="w-full flex items-center justify-between gap-2 animate-fade-in flex-1 min-h-0">
-              <div className="relative group shrink-0 self-center -mr-20 z-20">
+                      <div className="relative group shrink-0 self-center -mr-20 z-20">
                  <div className="absolute -inset-4 bg-blue-500/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                  <img 
-                    src={getJerseyUrl(matchKits.home.primary)} 
+                    src={getJerseyUrl(data.homeClub.id, matchKits.home.primary)} 
                     className="
       w-48 h-72 lg:w-64 lg:h-[450px] 
       object-cover rounded-[50px] 
@@ -247,38 +266,11 @@ export const PreMatchStudioView: React.FC = () => {
               {/* BOISKO 3D Z KOMPLETNYMI LINIAMI I OŚWIETLENIEM */}
               <div className="flex-1 max-w-[350px] flex items-center justify-center py-10" style={{ perspective: '1200px' }}>
                 <div 
-                  className="w-full aspect-[2/3] bg-emerald-950/50 rounded-[40px] border-[8px] border-white/10 relative shadow-[0_80px_100px_rgba(0,0,0,0.7)] overflow-hidden backdrop-blur-sm group/pitch"
+                  className="w-full aspect-[2/3] rounded-none relative shadow-[0_80px_100px_rgba(0,0,0,0.7)] overflow-visible group/pitch opacity-80"
                   style={{ transform: 'rotateX(25deg)', transformOrigin: 'center center' }}
                 >
-                  {/* Tło murawy i efekt Glass Gloss */}
-                  <div className="absolute inset-0 bg-emerald-900/40" style={{ backgroundImage: 'repeating-linear-gradient(0deg, rgba(5,150,105,0.1) 0%, rgba(5,150,105,0.1) 10%, rgba(4,120,87,0.1) 10%, rgba(4,120,87,0.1) 20%)' }} />
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-10" />
-                  
-                  {/* DYNAMICZNE OŚWIETLENIE STADIONOWE */}
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.15),transparent_60%)] pointer-events-none z-10" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(255,255,255,0.15),transparent_60%)] pointer-events-none z-10" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_80%)] pointer-events-none z-10" />
-
-                  {/* KOMPLETNE LINIE BOISKA */}
-                  <div className="absolute inset-0 pointer-events-none p-4 opacity-40">
-                    {/* Obwód i linia środkowa */}
-                    <div className="absolute inset-4 border-2 border-white rounded-sm" />
-                    <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-white -translate-y-1/2" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 border-2 border-white rounded-full" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full" />
-
-                    {/* GÓRA (Gospodarze) */}
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[55%] h-[18%] border-2 border-white border-t-0" /> {/* Pole karne */}
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[25%] h-[7%] border-2 border-white border-t-0" /> {/* Pole bramkowe */}
-                    <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-24 h-8 border-2 border-white border-t-0 rounded-b-full clip-path-arc-top" style={{ clipPath: 'inset(50% 0 0 0)' }} /> {/* Łuk */}
-                    <div className="absolute top-[14%] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full" /> {/* Punkt karny */}
-
-                    {/* DÓŁ (Goście) */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[55%] h-[18%] border-2 border-white border-b-0" /> {/* Pole karne */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[25%] h-[7%] border-2 border-white border-b-0" /> {/* Pole bramkowe */}
-                    <div className="absolute bottom-[22%] left-1/2 -translate-x-1/2 w-24 h-8 border-2 border-white border-b-0 rounded-t-full" style={{ clipPath: 'inset(0 0 50% 0)' }} /> {/* Łuk */}
-                    <div className="absolute bottom-[14%] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full" /> {/* Punkt karny */}
-                  </div>
+                  {/* Grafika boiska */}
+                  <img src={bojo2Pitch} alt="boisko" className="absolute inset-0 w-full h-full object-fill" style={{ transform: 'scale(1.15, 1.035)' }} />
 
                   {/* Ikonki Gospodarzy */}
                   {homeTactic.slots.map((slot, i) => {
@@ -286,15 +278,16 @@ export const PreMatchStudioView: React.FC = () => {
                     return (
                       <div 
                         key={`h-${i}`} 
-                        className="absolute w-6 h-6 rounded-full border border-white/60 shadow-2xl flex flex-col overflow-hidden transform hover:scale-125 transition-transform z-20" 
+                        className="absolute w-[29px] h-[29px] rounded-full border border-white/60 shadow-2xl flex flex-col overflow-hidden transform hover:scale-125 transition-transform z-20" 
                         style={{ 
                           left: `${slot.x * 100}%`, 
-                          top: `${(slot.y * 0.44 + 0.53) * 100}%`, 
-                          transform: 'translate(-50%, -50%) rotateX(-25deg)',
+                          top: `calc(${(slot.y * 0.44 + 0.53) * 100}% - ${slot.role === PlayerPosition.FWD ? 50 : slot.role === PlayerPosition.MID ? 25 : slot.role === PlayerPosition.GK ? -5 : 15}px)`, 
+                          transform: 'translate(-50%, -50%)',
+                          WebkitFontSmoothing: 'antialiased',
                         }}
                       >
                         <div className="h-[80%] w-full flex items-center justify-center" style={{ backgroundColor: matchKits.home.primary }}>
-                          <span className="text-[7px] font-black text-white drop-shadow-md">{player?.overallRating || '??'}</span>
+                          <span className="text-[7px] font-black" style={{ color: getContrastTextColor(matchKits.home.primary, matchKits.home.secondary) }}>{player?.overallRating || '??'}</span>
                         </div>
                         <div className="h-[20%] w-full" style={{ backgroundColor: matchKits.home.secondary }} />
                       </div>
@@ -310,12 +303,13 @@ export const PreMatchStudioView: React.FC = () => {
                         className="absolute w-6 h-6 rounded-full border border-white/60 shadow-2xl flex flex-col overflow-hidden transform hover:scale-125 transition-transform z-20" 
                         style={{ 
                           left: `${slot.x * 100}%`, 
-                          top: `${(0.47 - slot.y * 0.44) * 100}%`, 
-                          transform: 'translate(-50%, -50%) rotateX(-25deg)',
+                          top: `calc(${(0.47 - slot.y * 0.44) * 100}% - 10px)`, 
+                          transform: 'translate(-50%, -50%)',
+                          WebkitFontSmoothing: 'antialiased',
                         }}
                       >
                         <div className="h-[80%] w-full flex items-center justify-center" style={{ backgroundColor: matchKits.away.primary }}>
-                          <span className="text-[7px] font-black text-white drop-shadow-md">{player?.overallRating || '??'}</span>
+                          <span className="text-[7px] font-black" style={{ color: getContrastTextColor(matchKits.away.primary, matchKits.away.secondary) }}>{player?.overallRating || '??'}</span>
                         </div>
                         <div className="h-[20%] w-full" style={{ backgroundColor: matchKits.away.secondary }} />
                       </div>
@@ -324,10 +318,10 @@ export const PreMatchStudioView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="relative group shrink-0 self-center -ml-20 z-20">
+                           <div className="relative group shrink-0 self-center -ml-20 z-20">
                  <div className="absolute -inset-4 bg-emerald-500/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                  <img 
-                    src={getJerseyUrl(matchKits.away.primary)} 
+                    src={getJerseyUrl(data.awayClub.id, matchKits.away.primary)} 
                     className="
       w-48 h-72 lg:w-64 lg:h-[450px] 
       object-cover rounded-[50px] 

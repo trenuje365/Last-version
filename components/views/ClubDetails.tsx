@@ -5,9 +5,11 @@ import { TacticRepository } from '../../resources/tactics_db';
 import { LineupService } from '../../services/LineupService';
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
 import { TeamResultsModal } from '../modals/TeamResultsModal';
+import { getClubLogo } from '../../resources/ClubLogoAssets';
+import bojoPitch from '../../Graphic/themes/bojo.png';
 
 export const ClubDetails: React.FC = () => {
-   const { viewedClubId, clubs, getOrGenerateSquad, lineups, updateLineup, navigateTo, viewPlayerDetails, coaches, viewCoachDetails, currentDate } = useGame();
+   const { viewedClubId, clubs, getOrGenerateSquad, lineups, updateLineup, navigateTo, viewPlayerDetails, coaches, viewCoachDetails, currentDate, previousViewState } = useGame();
   
   const [startingXI, setStartingXI] = useState<Player[]>([]);
   const [bench, setBench] = useState<Player[]>([]);
@@ -49,6 +51,8 @@ export const ClubDetails: React.FC = () => {
   const handleBack = () => {
     if (club.leagueId === 'L_PL_4') {
       navigateTo(ViewState.HIDDEN_LEAGUE);
+    } else if (previousViewState === ViewState.EUROPEAN_CLUBS) {
+      navigateTo(ViewState.EUROPEAN_CLUBS);
     } else {
       navigateTo(ViewState.LEAGUE_TABLES);
     }
@@ -83,6 +87,15 @@ export const ClubDetails: React.FC = () => {
 {player.isOnTransferList && (
         <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[7px] font-black rounded-sm border border-amber-500/30 shadow-sm animate-pulse">
           LISTA
+        </span>
+      )}
+      {/* Badge zainteresowania — widoczny również w kadrach innych klubów */}
+      {player.interestedClubs && player.interestedClubs.length > 0 && (
+        <span
+          title={`Zainteresowane kluby:\n${player.interestedClubs.map(id => clubs.find(c => c.id === id)?.name ?? id).join('\n')}`}
+          className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[7px] font-black rounded-sm border border-blue-500/30 shadow-sm cursor-help"
+        >
+          INT
         </span>
       )}
 
@@ -125,7 +138,7 @@ export const ClubDetails: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-3rem)] max-w-[1600px] mx-auto flex flex-col gap-4 animate-fade-in overflow-hidden relative">
+    <div className="h-[calc(100vh-3rem)] max-w-[1600px] mx-auto flex flex-col gap-4 animate-fade-in relative">
       
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
         <div 
@@ -138,13 +151,23 @@ export const ClubDetails: React.FC = () => {
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
       </div>
 
-      <div className="flex items-center justify-between px-8 py-5 bg-white/5 rounded-[32px] border border-white/10 backdrop-blur-3xl shrink-0 shadow-2xl">
-         <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl transform -rotate-3">
-               <div className="flex-1" style={{ backgroundColor: club.colorsHex[0] }} />
-               <div className="flex-1" style={{ backgroundColor: club.colorsHex[1] || club.colorsHex[0] }} />
+      <div className="relative shrink-0">
+         {getClubLogo(club.id) && (
+            <div className="absolute left-4 top-1/2 z-50 pointer-events-none" style={{ transform: 'translateY(calc(-55% + 10px))' }}>
+               <img src={getClubLogo(club.id)} alt={club.name} className="w-[150px] h-[150px] object-contain transform -rotate-6 drop-shadow-2xl opacity-80" />
             </div>
-            <div>
+         )}
+         <div className="flex items-center justify-between px-8 py-5 bg-white/5 rounded-[32px] border border-white/10 backdrop-blur-3xl shadow-2xl">
+         <div className="flex items-center">
+            {!getClubLogo(club.id) && (
+               <div className="relative z-10 shrink-0 mr-6">
+                  <div className="w-16 h-16 rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl transform -rotate-3">
+                     <div className="flex-1" style={{ backgroundColor: club.colorsHex[0] }} />
+                     <div className="flex-1" style={{ backgroundColor: club.colorsHex[1] || club.colorsHex[0] }} />
+                  </div>
+               </div>
+            )}
+            <div className={getClubLogo(club.id) ? "pl-[132px]" : ""}>
                <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-none">
                  {club.name}
                </h1>
@@ -179,6 +202,7 @@ export const ClubDetails: React.FC = () => {
               &larr; Powrót
             </button>
          </div>
+      </div>
       </div>
 
       <div className="flex-1 flex gap-6 min-h-0">
@@ -229,10 +253,14 @@ export const ClubDetails: React.FC = () => {
              <div className="flex-1 bg-slate-900/40 rounded-[35px] border border-white/5 backdrop-blur-2xl flex flex-col p-6 overflow-hidden shadow-2xl relative">
                 <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-4">Taktyka</h3>
                 <div className="flex-1 relative rounded-2xl border border-white/10 overflow-hidden shadow-inner bg-[#064e3b]">
+                   {/* Paski murawy */}
                    <div className="absolute inset-0 opacity-20" style={{ 
                       backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10%, #059669 10%, #059669 20%)',
                       backgroundSize: '100% 100%'
                    }} />
+
+                   {/* Gotowa grafika boiska */}
+                   <img src={bojoPitch} alt="boisko" className="absolute inset-0 w-full h-full object-fill opacity-60" />
                    
                    {currentTactic.slots.map((slot, idx) => {
                       const pId = currentLineup.startingXI[idx];
@@ -243,7 +271,7 @@ export const ClubDetails: React.FC = () => {
                            className="absolute w-4 h-4 rounded-full border border-white/50 shadow-lg"
                            style={{ 
                              left: `${slot.x * 100}%`, 
-                             top: `${slot.y * 100}%`,
+                             top: `calc(${slot.y * 100}% - 22px)`,
                              transform: 'translate(-50%, -50%)',
                              backgroundColor: club.colorsHex[0]
                            }}

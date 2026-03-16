@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, HealthStatus, PlayerAttributes } from '../../types';     
+import { ViewState, HealthStatus, PlayerAttributes } from '../../types';
+import { REGION_NATIONALITY_LABEL } from '../../constants';     
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
 import { FreeAgentNegotiationService } from '../../services/FreeAgentNegotiationService';
 import { NegotiationStatus } from '../../types';
@@ -55,7 +56,7 @@ const [showHistory, setShowHistory] = React.useState(false);
     else if (value > 0) { colorClass = "bg-red-500"; }
     
     return (
-      <div className="group flex flex-col gap-1.5 mb-3">
+      <div className="group flex flex-col gap-1 mb-1.5">
         <div className="flex justify-between items-center px-1">
            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">{label}</span>
            <span className={`text-xs font-black font-mono ${value >= 80 ? 'text-emerald-400' : 'text-white'}`}>{value}</span>
@@ -72,22 +73,22 @@ const [showHistory, setShowHistory] = React.useState(false);
 
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6 animate-fade-in overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-2 animate-fade-in overflow-y-auto custom-scrollbar">
       
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-10" style={{ background: club.colorsHex[0] }} />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] opacity-5" style={{ background: club.colorsHex[1] }} />
       </div>
 
-      <div className="max-w-5xl w-full bg-slate-900 rounded-[45px] border border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row min-h-[750px]">
+      <div className="max-w-5xl w-full bg-slate-900 rounded-[32px] border border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row" style={{maxHeight:'calc(100vh - 1rem)'}}>
         
-           <div className="w-full md:w-[40%] relative flex flex-col items-center justify-between p-12 border-r border-white/5 overflow-hidden">
+           <div className="w-full md:w-[40%] relative flex flex-col items-center justify-between p-6 border-r border-white/5 overflow-hidden overflow-y-auto custom-scrollbar">
            <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
               <span className="text-[30rem] font-black italic select-none">{player.position}</span>
            </div>
 
            <div className="relative z-10 text-center w-full">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-3">
                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60">Profil Zawodnika PZPN</span>
               </div>
@@ -99,33 +100,33 @@ const [showHistory, setShowHistory] = React.useState(false);
                 </div>
               )}
 
-              <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-[0.8] mb-2 drop-shadow-2xl">
+              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-[0.85] mb-1 drop-shadow-2xl">
                  {player.firstName}<br/>
                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-400 to-slate-600">{player.lastName}</span>
               </h2>
               
-              <div className="flex items-center justify-center gap-4 mt-6">
+              <div className="flex items-center justify-center gap-4 mt-2">
                  <div className={`px-4 py-1 rounded-xl border-2 font-black italic tracking-tighter text-lg ${PlayerPresentationService.getPositionBadgeClass(player.position)}`}>
                     {player.position}
                  </div>
                  <div className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">
-                    {player.age} lat • {player.nationality}
+                    {player.age} lat • {REGION_NATIONALITY_LABEL[player.nationality] ?? player.nationality}
                  </div>
               </div>
            </div>
 
-           <div className="relative z-10 group mt-12 mb-12">
+           <div className="relative z-10 group mt-4 mb-4">
               <div className="absolute inset-[-15px] bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="w-48 h-48 rounded-full border-8 border-white/5 flex flex-col items-center justify-center shadow-2xl relative bg-slate-950 overflow-hidden">
+              <div className="w-36 h-36 rounded-full border-4 border-white/5 flex flex-col items-center justify-center shadow-2xl relative bg-slate-950 overflow-hidden">
                  <div className="absolute inset-0 opacity-10" style={{ background: `linear-gradient(135deg, ${club.colorsHex[0]}, transparent)` }} />
                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Rating</span>
-                 <span className="text-8xl font-black text-white italic tracking-tighter leading-none relative z-10 drop-shadow-lg">{player.overallRating}</span>
+                 <span className="text-6xl font-black text-white italic tracking-tighter leading-none relative z-10 drop-shadow-lg">{player.overallRating}</span>
                  <div className="absolute bottom-4 h-1 w-12 bg-blue-500 rounded-full shadow-[0_0_15px_rgba(59,130,246,1)]" />
               </div>
            </div>
 
-           <div className="relative z-10 w-full flex flex-col gap-3">
-            <div className="flex items-center justify-between p-5 bg-black/40 rounded-[28px] border border-white/5">
+           <div className="relative z-10 w-full flex flex-col gap-2">
+            <div className="flex items-center justify-between p-3 bg-black/40 rounded-[20px] border border-white/5">
                  <div className="flex flex-col gap-1">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Status Kontraktu</span>
                     <span className="text-xs font-black text-white italic uppercase tracking-tight">
@@ -146,14 +147,14 @@ const [showHistory, setShowHistory] = React.useState(false);
 
 <button 
                 onClick={() => setShowHistory(!showHistory)}
-                className="w-full py-4 rounded-[28px] bg-blue-600/20 border border-blue-500/30 text-blue-400 font-black italic uppercase tracking-widest text-[10px] transition-all hover:bg-blue-600/30 active:scale-95 shadow-xl mb-1"
+                className="w-full py-2.5 rounded-[20px] bg-blue-600/20 border border-blue-500/30 text-blue-400 font-black italic uppercase tracking-widest text-[10px] transition-all hover:bg-blue-600/30 active:scale-95 shadow-xl mb-1"
               >
                 {showHistory ? 'Ukryj Historię ↑' : 'Historia Zawodnika 📜'}
               </button>
 
               <button 
                 onClick={() => navigateTo(previousViewState || ViewState.DASHBOARD)}
-                className="w-full py-5 rounded-[28px] bg-white text-slate-900 font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl"
+                className="w-full py-2.5 rounded-[20px] bg-white text-slate-900 font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl"
               >
                 Zamknij Kartę &times;
               </button>
@@ -164,16 +165,16 @@ const [showHistory, setShowHistory] = React.useState(false);
 
        
 
-        <div className="flex-1 bg-black/20 p-10 overflow-y-auto custom-scrollbar flex flex-col gap-10">
+        <div className="flex-1 bg-black/20 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
            
            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-              <div className="col-span-2 mb-4">
-                 <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
+              <div className="col-span-2 mb-2">
+                 <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-3 flex items-center gap-3">
                     <span className="w-8 h-px bg-blue-500/30" /> Atrybuty Techniczne
                  </h3>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-1.5">
                  <AttrBar label="Szybkość" value={attrs.pace} />
                  <AttrBar label="Siła" value={attrs.strength} />
                  <AttrBar label="Kondycja" value={attrs.stamina} />
@@ -181,7 +182,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                  <AttrBar label="Podania" value={attrs.passing} />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-1.5">
                  <AttrBar label="Atak" value={attrs.attacking} />
                  <AttrBar label="Wykończenie" value={attrs.finishing} />
                  <AttrBar label="Technika" value={attrs.technique} />
@@ -189,17 +190,20 @@ const [showHistory, setShowHistory] = React.useState(false);
                  <AttrBar label="Wizja" value={attrs.vision} />
               </div>
 
-              <div className="col-span-2 grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-white/5">
+              <div className="col-span-2 grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-white/5">
                  <AttrBar label="Ustawianie się" value={attrs.positioning} />
-                 <AttrBar label="Bramkarstwo" value={attrs.goalkeeping} />
+                 {player.position === 'GK'
+                   ? <AttrBar label="Bramkarstwo" value={attrs.goalkeeping} />
+                   : <AttrBar label="Główki" value={attrs.heading} />
+                 }
               </div>
            </div>
 
-           <div className="flex flex-col gap-6">
-              <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] mb-2 flex items-center gap-3">
+           <div className="flex flex-col gap-3">
+              <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
                  <span className="w-8 h-px bg-emerald-500/30" /> Statystyki Sezonowe
               </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
                  {[
                    { label: 'Mecze', val: player.stats.matchesPlayed, icon: '📅' },
                    { label: 'Gole', val: player.stats.goals, icon: '⚽', color: 'text-emerald-400' },
@@ -207,21 +211,21 @@ const [showHistory, setShowHistory] = React.useState(false);
                    { label: 'Żółte', val: player.stats.yellowCards, icon: '🟨', color: 'text-amber-400' },
                    { label: 'Czerwone', val: player.stats.redCards, icon: '🟥', color: 'text-red-500' },
                  ].map((s, i) => (
-                    <div key={i} className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 text-center group hover:border-white/10 transition-all">
-                       <span className="text-xl mb-2 block transform group-hover:scale-125 transition-transform">{s.icon}</span>
-                       <span className={`text-2xl font-black font-mono block ${s.color || 'text-white'}`}>{s.val}</span>
+                    <div key={i} className="bg-slate-900/40 p-3 rounded-2xl border border-white/5 text-center group hover:border-white/10 transition-all">
+                       <span className="text-base mb-1 block transform group-hover:scale-125 transition-transform">{s.icon}</span>
+                       <span className={`text-xl font-black font-mono block ${s.color || 'text-white'}`}>{s.val}</span>
                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">{s.label}</span>
                     </div>
                  ))}
               </div>
            </div>
 
-           <div className="flex flex-col gap-6">
-              <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] mb-2 flex items-center gap-3">
+           <div className="flex flex-col gap-3">
+              <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
                  <span className="w-8 h-px bg-rose-500/30" /> Stan Zdrowia
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex items-center justify-between">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex items-center justify-between">
                     <div>
                        <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Dostępność</span>
                        <span className={`text-xs font-black uppercase italic ${healthInfo.colorClass}`}>{healthInfo.text}</span>
@@ -241,7 +245,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                     )}
                  </div>
 
-                 <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex flex-col justify-center">
+                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex flex-col justify-center">
                     <div className="flex justify-between items-center mb-2 px-1">
                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Kondycja / Limit Energii</span>
                        <div className="flex items-center gap-2">
@@ -261,12 +265,54 @@ const [showHistory, setShowHistory] = React.useState(false);
               </div>
            </div>
 
-           <div className="flex flex-col gap-6">
-              <h3 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.4em] mb-2 flex items-center gap-3">
+           {/* ── ZAINTERESOWANIE TRANSFEROWE ────────────────────────────────────
+               Wyświetla kluby AI, które aktualnie obserwują tego zawodnika.
+               Lista jest aktualizowana raz na miesiąc przez AiScoutingService.
+               W przyszłości: kliknięcie klubu → złożenie/odrzucenie oferty transferowej.
+           ────────────────────────────────────────────────────────────────────── */}
+           {player.interestedClubs && player.interestedClubs.length > 0 && (
+             <div className="flex flex-col gap-3">
+               <h3 className="text-[10px] font-black text-violet-400 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
+                 <span className="w-8 h-px bg-violet-400/30" /> Zainteresowanie Transferowe
+               </h3>
+               <div className="bg-slate-900/40 p-4 rounded-[24px] border border-violet-500/20">
+                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3">
+                   Kluby obserwujące zawodnika ({player.interestedClubs.length})
+                 </p>
+                 <div className="flex flex-wrap gap-2">
+                   {player.interestedClubs.map(clubId => {
+                     const interestedClub = clubs.find(c => c.id === clubId);
+                     if (!interestedClub) return null;
+                     return (
+                       <div
+                         key={clubId}
+                         className="flex items-center gap-2 px-3 py-1.5 rounded-[12px] bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all"
+                         // TODO: Po implementacji ofert transferowych — wnawigateTo(ViewState.TRANSFER_OFFER) lub podobne
+                       >
+                         {/* Mini podgląd barw klubu */}
+                         <div className="w-5 h-5 rounded-md overflow-hidden border border-white/10 flex-shrink-0 flex flex-col">
+                           <div className="flex-1" style={{ backgroundColor: interestedClub.colorsHex[0] }} />
+                           <div className="flex-1" style={{ backgroundColor: interestedClub.colorsHex[1] || interestedClub.colorsHex[0] }} />
+                         </div>
+                         <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight">
+                           {interestedClub.shortName}
+                         </span>
+                         {/* Placeholder na przyszły przycisk akcji (oferta transferowa) */}
+                         <span className="text-[8px] text-violet-400 opacity-60">👁️</span>
+                       </div>
+                     );
+                   })}
+                 </div>
+               </div>
+             </div>
+           )}
+
+           <div className="flex flex-col gap-3">
+              <h3 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
                  <span className="w-8 h-px bg-amber-400/30" /> Kontrakt i Wynagrodzenie
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex items-center justify-between group hover:border-emerald-500/30 transition-colors">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex items-center justify-between group hover:border-emerald-500/30 transition-colors">
                     <div>
                        <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Roczne Wynagrodzenie</span>
                        <span className="text-sm font-black text-emerald-400 font-mono italic">
@@ -281,20 +327,28 @@ const [showHistory, setShowHistory] = React.useState(false);
                     <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shadow-inner">💰</div>
                  </div>
 
-                 <div className="bg-slate-900/40 p-6 rounded-[32px] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-colors">
+                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-colors">
                     <div>
-                       <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Kontrakt DO</span>
+                       <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">
+                          {club.id === 'FREE_AGENTS' ? 'Status' : 'Kontrakt DO'}
+                       </span>
                        <span className="text-sm font-black text-white italic uppercase">
-                          {player.contractEndDate ? new Date(player.contractEndDate).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' }) : 'Brak danych'}
+                          {club.id === 'FREE_AGENTS'
+                            ? 'Brak Kontraktu'
+                            : player.contractEndDate
+                              ? new Date(player.contractEndDate).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })
+                              : 'Brak danych'}
                        </span>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-inner">📅</div>
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-inner">
+                       {club.id === 'FREE_AGENTS' ? '🚫' : '📅'}
+                    </div>
                  </div>
 
-<div className="bg-slate-900/40 p-6 rounded-[32px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-all col-span-1 md:col-span-2 shadow-lg">
+<div className="bg-slate-900/40 p-4 rounded-[24px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-all col-span-1 md:col-span-2 shadow-lg">
                     <div>
                        <span className="block text-[8px] font-black text-emerald-500/60 uppercase tracking-widest mb-1">Cena Rynkowa</span>
-                       <span className="text-2xl font-black text-emerald-400 font-mono italic tabular-nums leading-none">
+                       <span className="text-xl font-black text-emerald-400 font-mono italic tabular-nums leading-none">
                           {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} <span className="text-xs opacity-60 ml-1">PLN</span>
                        </span>
                        <p className="text-[7px] text-slate-600 uppercase mt-2 font-bold tracking-tighter">* Wycena na podstawie formy, wieku oraz reputacji ligi</p>
@@ -309,10 +363,10 @@ const [showHistory, setShowHistory] = React.useState(false);
               </div>
 
               {player.clubId === userTeamId && !isMatchContext && (
-                <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-2 gap-3 mt-3">
                   <button 
                     onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
-                    className="group relative h-16 bg-red-600/10 border border-red-500/20 rounded-[24px] flex items-center justify-center gap-3 transition-all hover:bg-red-600/20 hover:border-red-500/40 active:scale-95 shadow-xl"
+                    className="group relative h-12 bg-red-600/10 border border-red-500/20 rounded-[18px] flex items-center justify-center gap-3 transition-all hover:bg-red-600/20 hover:border-red-500/40 active:scale-95 shadow-xl"
                   >
                     <span className="text-xl group-hover:rotate-12 transition-transform">📄</span>
                     <div className="text-left">
@@ -324,7 +378,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                   <button 
                     disabled={isContractLocked}
                     onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
-                    className={`group relative h-16 rounded-[24px] flex items-center justify-center gap-3 transition-all 
+                    className={`group relative h-12 rounded-[18px] flex items-center justify-center gap-3 transition-all 
                       ${isContractLocked 
                         ? 'bg-slate-800 border-slate-700 opacity-50 cursor-not-allowed' 
                         : 'bg-blue-600/10 border-blue-500/20 hover:bg-blue-600/20 hover:border-blue-500/40 active:scale-95 shadow-xl'
@@ -348,7 +402,7 @@ const [showHistory, setShowHistory] = React.useState(false);
         {player.clubId === userTeamId && !isMatchContext && (
                 <button 
                   onClick={() => toggleTransferList(player.id)}
-                  className={`w-full mt-4 py-4 rounded-[24px] font-black italic uppercase tracking-widest text-[10px] transition-all border-2 active:scale-95
+                  className={`w-full mt-2 py-2.5 rounded-[18px] font-black italic uppercase tracking-widest text-[10px] transition-all border-2 active:scale-95
                     ${player.isOnTransferList 
                       ? 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700' 
                       : 'bg-amber-600/20 border-amber-500/40 text-amber-500 hover:bg-amber-600/30'}`}
@@ -358,14 +412,14 @@ const [showHistory, setShowHistory] = React.useState(false);
               )}
 
            {player.clubId !== userTeamId && !isMatchContext && (
-                <div className="mt-4">
+                <div className="mt-2">
                   {player.clubId === 'FREE_AGENTS' ? (
                     <button 
                       disabled={!!(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))}
                       onClick={() => {
                         navigateTo(ViewState.FREE_AGENT_NEGOTIATION);
                       }}
-                      className={`w-full py-5 rounded-[28px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-8 
+                      className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4 
                         ${(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))
                           ? 'bg-slate-800 border-slate-900 text-slate-500 opacity-70 cursor-not-allowed' 
                           : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-800 hover:scale-[1.02] active:scale-95'}`}
@@ -379,7 +433,7 @@ const [showHistory, setShowHistory] = React.useState(false);
 
                   ) : (
                     <button 
-                      className="w-full py-5 rounded-[28px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl border-b-8 border-blue-800"
+                      className="w-full py-3 rounded-[20px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl border-b-4 border-blue-800"
                     >
                       ZŁÓŻ OFERTĘ TRANSFEROWĄ 💰
                     </button>

@@ -197,7 +197,9 @@ export const FinanceService = {
     const newEnd = new Date(newEndDate).getTime();
     
     // 1. Oczekiwania zawodnika (punkt odniesienia to obecna pensja)
-    const expectedSalary = player.annualSalary;
+    const expectedSalary = player.annualSalary > 0 
+  ? player.annualSalary 
+  : FinanceService.getFairMarketSalary(player.overallRating);
     const expectedBonus = FinanceService.calculatePlayerBonusDemand(player, expectedSalary, clubReputation);
 
     // --- TUTAJ WSTAW LOGIKĘ: WARUNEK LOSOWY (1 SZANSA NA 10 PRZY MAX -15%) ---
@@ -357,6 +359,51 @@ export const FinanceService = {
 
     if (proposedBonus > club.budget * 0.5) {
       return { approved: false, reason: "ZARZĄD: Bonus za podpis jest zbyt wysoki w stosunku do wolnej gotówki w klubie." };
+    }
+
+    return { approved: true, reason: "" };
+  },
+
+  evaluateRenewalBoardDecision: (player: Player, proposedSalary: number, proposedBonus: number, squad: Player[], club: Club): { approved: boolean, reason: string } => {
+    // 1/365 szansa że "zwariowany prezes" zatwierdza cokolwiek
+    if (Math.random() < (1 / 365)) {
+      return { approved: true, reason: "PREZES: Wiecie co, idę na całość. Podpisujemy!" };
+    }
+
+    const currentWageBill = FinanceService.calculateCurrentWageBill(squad);
+    const wageBillAfter = currentWageBill - player.annualSalary + proposedSalary;
+
+    // 1. FUNDUSZ PŁAC: łączne pensje po przedłużeniu > 65% budżetu
+    if (wageBillAfter > club.budget * 0.65) {
+      return {
+        approved: false,
+        reason: "DYREKTOR FINANSOWY: Łączny fundusz płac po tej podwyżce przekroczyłby nasze możliwości budżetowe."
+      };
+    }
+
+    // 2. SKOK PENSJI: nowa pensja > 2× obecna pensja zawodnika
+    if (proposedSalary > player.annualSalary * 2 && player.annualSalary > 0) {
+      return {
+        approved: false,
+        reason: `PREZES: Podwojenie pensji to za duży skok naraz. Zawodnik zarabia teraz ${player.annualSalary.toLocaleString()} PLN — wróćcie z rozsądniejszą propozycją.`
+      };
+    }
+
+    // 3. HIERARCHIA PŁAC: nowa pensja > 1.5× max w składzie (tylko dla OVR < 80)
+    const highestSalary = squad.length > 0 ? Math.max(...squad.map(p => p.annualSalary)) : 0;
+    if (proposedSalary > highestSalary * 1.5 && highestSalary > 0 && player.overallRating < 80) {
+      return {
+        approved: false,
+        reason: `PREZES: Ten zawodnik zarabiałby więcej niż 1.5x tyle co najlepiej opłacany gracz w zespole (${highestSalary.toLocaleString()} PLN). Szatnia tego nie zaakceptuje.`
+      };
+    }
+
+    // 4. BONUS: > 30% wolnego budżetu
+    if (proposedBonus > club.budget * 0.30) {
+      return {
+        approved: false,
+        reason: "DYREKTOR FINANSOWY: Bonus za podpis jest zbyt wysoki wobec aktualnych rezerw gotówkowych klubu."
+      };
     }
 
     return { approved: true, reason: "" };
