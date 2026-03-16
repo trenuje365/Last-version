@@ -576,10 +576,10 @@ useEffect(() => {
         let nextAwayInjuries = { ...prev.awayInjuries };
         let nextMomentum = prev.momentum;
         // === BALANS 2025 – stałe do łatwego tuningu ===
-        const RED_CARD_CHANCE        = 0.00036;  // ~0.065 czerwonych/mecz
-        const SEVERE_INJURY_CHANCE   = 0.00012;   // (-20%)
+        const RED_CARD_CHANCE        = 0.00026;  // ~0.065 czerwonych/mecz
+        const SEVERE_INJURY_CHANCE   = 0.00009;   // (-20%)
         const LIGHT_INJURY_CHANCE    = 0.0040;
-        const YELLOW_CARD_CHANCE     = 0.055;    // ~3.15 żółtych/mecz (normal)
+        const YELLOW_CARD_CHANCE     = 0.070;    // ~3.15 żółtych/mecz (normal)
         const BASE_EVENT_THRESHOLD   = 0.42;
         const BASE_GOAL_THRESHOLD    = 0.065;
         const MOMENTUM_INERTIA       = 0.88;
@@ -779,8 +779,8 @@ useEffect(() => {
 
         // Eksponencjalna kara: 1 brak=+0.20 (gra w 10), 2 braki → próg 0.95 (gra w 9 = cud)
         const numericalPenaltyThreshold = (missing: number) => missing === 0 ? 0 : Math.pow(missing, 1.8) * 0.20;
-        homeProgressionThreshold = Math.min(0.75, homeProgressionThreshold + numericalPenaltyThreshold(homeMissing));
-        awayProgressionThreshold = Math.min(0.75, awayProgressionThreshold + numericalPenaltyThreshold(awayMissing));
+        homeProgressionThreshold = Math.min(0.85, homeProgressionThreshold + numericalPenaltyThreshold(homeMissing));
+        awayProgressionThreshold = Math.min(0.85, awayProgressionThreshold + numericalPenaltyThreshold(awayMissing));
 
         // === PREMIA DLA RYWALA GRAJĄCEGO PRZECIW OSŁABIONEMU SKŁADOWI ===
         // Im silniejszy atakujący vs osłabiony rywal, tym łatwiej mu atakować (progresywnie)
