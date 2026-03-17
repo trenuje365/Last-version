@@ -1,6 +1,5 @@
 
-import { Club, Player, PlayerPosition, Lineup, HealthStatus, Tactic } from '../types';
-import { TacticRepository } from '../resources/tactics_db';
+import { Club, Player, PlayerPosition, Lineup, HealthStatus } from '../types';
 import { LineupService } from './LineupService';
 
 export const AiMatchPreparationService = {
@@ -45,39 +44,42 @@ export const AiMatchPreparationService = {
   },
 
 /**
-   * Analizuje kadrę i wybiera formację, w której ma najwięcej zdrowych/świeżych opcji.
+   * Analizuje kadrę i wybiera optymalną formację startową na podstawie reputacji klubu i siły linii.
    */
 determineBestStartingTactic: (club: Club, players: Player[]): string => {
-    const freshPlayers = players.filter(p => p.condition >= 87);
-    const tactics = TacticRepository.getAll();
-    let bestTacticId = '4-4-2';
-    let maxScore = -9999;
+    const defStr = AiMatchPreparationService.calculateTopLineStrength(players, PlayerPosition.DEF, 5);
+    const midStr = AiMatchPreparationService.calculateTopLineStrength(players, PlayerPosition.MID, 5);
+    const fwdStr = AiMatchPreparationService.calculateTopLineStrength(players, PlayerPosition.FWD, 3);
 
-    tactics.forEach(tactic => {
-      let score = 0;
-      const tempUsedIds = new Set<string>();
-      
-      tactic.slots.forEach(slot => {
-        // Szukaj najlepszego dopasowania OVR na tę pozycję wśród świeżych
-        const match = freshPlayers
-          .filter(p => p.position === slot.role && !tempUsedIds.has(p.id))
-          .sort((a, b) => b.overallRating - a.overallRating)[0];
-        
-        if (match) {
-          score += match.overallRating;
-          tempUsedIds.add(match.id);
-        } else {
-          score -= 50; // Kara za brak naturalnego gracza na pozycję
-        }
-      });
-      
-      if (score > maxScore) {
-        maxScore = score;
-        bestTacticId = tactic.id;
-      }
-    });
+    // Outsiderzy (Reputacja <= 4) - Preferują defensywę
+    if (club.reputation <= 4) {
+      if (defStr > fwdStr) return '5-4-1';
+      return '4-5-1';
+    }
 
-    return bestTacticId;
+    // Giganci (Reputacja >= 8) - Preferują dominację
+    if (club.reputation >= 8) {
+      if (fwdStr > defStr) return '4-3-3';
+      return '4-2-3-1';
+    }
+
+    // Bardzo mocny środek pola
+    if (midStr > defStr + 3 && midStr > fwdStr + 3) {
+      return '3-5-2';
+    }
+
+    // Mocny atak, słabsza obrona
+    if (fwdStr > defStr + 5) {
+      return '4-3-3';
+    }
+
+    // Solidna obrona, szukanie kontroli
+    if (defStr > fwdStr + 3) {
+      return '4-1-4-1';
+    }
+
+    // Default dla zrównoważonych zespołów
+    return '4-4-2';
   },
 
   calculateTopLineStrength: (players: Player[], pos: PlayerPosition, topN: number): number => {

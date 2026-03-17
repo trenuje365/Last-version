@@ -334,7 +334,7 @@ export const AiMatchDecisionCupService = {
 
         // Kontra-taktyka na aktualny styl gry gracza
         if (playerTacticId) {
-            const aggressivePlayerTactics = ["4-2-4", "3-4-3", "4-3-3", "4-2-3-1", "4-4-2-OFF"];
+            const aggressivePlayerTactics = ["3-4-3", "4-3-3", "4-2-3-1", "4-4-2-OFF"];
             const defensivePlayerTactics  = ["5-4-1", "6-3-1", "5-3-2", "4-5-1", "4-4-2-DEF"];
             if (aggressivePlayerTactics.includes(playerTacticId)) defendNeed += 20; // Gracz atakuje → AI zagęszcza obronę
             else if (defensivePlayerTactics.includes(playerTacticId)) attackNeed += 15; // Gracz się broni → AI szuka przestrzeni
@@ -412,7 +412,8 @@ export const AiMatchDecisionCupService = {
         if (defendNeed > attackNeed + 25) targetStyle = "DEFENSIVE";
 
         // Mapowanie na taktyki (możesz później zmieniać kolejność)
-        const aggressiveTactics = ["4-2-4", "3-4-3", "4-3-3", "4-2-3-1", "4-4-2-OFF", "4-3-3-F9"];
+        // UWAGA: 4-2-4 celowo wykluczone z normalnej puli — to taktyka desperacji, patrz niżej
+        const aggressiveTactics = ["3-4-3", "4-3-3", "4-2-3-1", "4-4-2-OFF", "4-3-3-F9"];
         const defensiveTactics  = ["6-3-1", "5-4-1", "5-3-2", "4-5-1", "4-4-2-DEF", "5-2-1-2"];
        const neutralTactics    = ["4-4-2", "3-5-2", "4-1-4-1", "4-4-2-DIAMOND", "4-3-2-1", "3-4-2-1"];
 
@@ -422,7 +423,9 @@ export const AiMatchDecisionCupService = {
 
         if (aiSensors) {
           if (aiSensors.losingByTwo || aiSensors.lateChase) {
-            possibleTactics = ["3-4-3", "4-2-4"]; // Reakcja na warunki 1 i 6
+            // 4-2-4 TYLKO w desperacji: przegrana o dokładnie 1 bramkę i min 75+ LUB przegrana o 2+ w końcówce
+            const isLateDesperationFor424 = (scoreDiff === -1 && state.minute >= 75) || (scoreDiff <= -2 && state.minute >= 80);
+            possibleTactics = isLateDesperationFor424 ? ["3-4-3", "4-2-4"] : ["3-4-3", "4-3-3", "4-4-2-OFF"]; // Reakcja na warunki 1 i 6
             sensorLog = `Rywal rzuca się do ataku!`;
           } else if (aiSensors.lateLeadUnderPressure || aiSensors.lateDrawUnderPressure || aiSensors.winningWeaker) {
             possibleTactics = ["5-4-1", "6-3-1", "5-3-2"]; // Reakcja na warunki 3, 5 i 7
