@@ -207,7 +207,7 @@ if (todayFixtures.length === 0) {
         status: MatchStatus.FINISHED 
       } : f);
 
-      const homeMatchExpenses = FinanceService.calculateMatchdayExpenses(home, true);
+      const homeMatchExpenses = FinanceService.calculateMatchdayExpenses(home, true, attendance);
       const awayMatchExpenses = FinanceService.calculateMatchdayExpenses(away, false);
 
       const matchResult: MatchResult = {
@@ -238,7 +238,9 @@ if (todayFixtures.length === 0) {
           const matchExpenses = isHome ? homeMatchExpenses : awayMatchExpenses;
           const tier = parseInt(c.leagueId.split('_')[2] || '1');
           const ticketRevenue = isHome ? FinanceService.calculateMatchTicketRevenue(fixture.attendance || 0, tier, c.reputation) : 0;
-          const netChange = ticketRevenue - matchExpenses;
+          const additionalRevenues = isHome ? FinanceService.calculateMatchdayAdditionalRevenues(fixture.attendance || 0, tier, c.reputation) : null;
+          const additionalTotal = additionalRevenues ? (additionalRevenues.catering + additionalRevenues.merchandising + additionalRevenues.programs + additionalRevenues.parking) : 0;
+          const netChange = ticketRevenue + additionalTotal - matchExpenses;
 
           // Tworzymy logi finansowe z poprzednim saldem
           const financeLogsToAdd: any[] = [];
@@ -253,10 +255,62 @@ if (todayFixtures.length === 0) {
                 date: currentDate.toISOString().split('T')[0],
                 amount: ticketRevenue,
                 type: 'INCOME' as const,
-                description: `Przychody z biletów: ${fixture.attendance || 0} widzów @ ${ticketPrice} PLN`,
+                description: `Bilety (vs ${away.name}): ${fixture.attendance || 0} widzów @ ${ticketPrice} PLN`,  
                 previousBalance: runningBalance
               });
               runningBalance += ticketRevenue;
+            }
+
+            // 🍔 Catering i Hospitality
+            if (additionalRevenues && additionalRevenues.catering > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: currentDate.toISOString().split('T')[0],
+                amount: additionalRevenues.catering,
+                type: 'INCOME' as const,
+                description: `Catering i Hospitality (vs ${away.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.catering;
+            }
+
+            // 👕 Merchandising
+            if (additionalRevenues && additionalRevenues.merchandising > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: currentDate.toISOString().split('T')[0],
+                amount: additionalRevenues.merchandising,
+                type: 'INCOME' as const,
+                description: `Sklep kibica — merchandising (vs ${away.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.merchandising;
+            }
+
+            // 📰 Programy meczowe i reklamy LED
+            if (additionalRevenues && additionalRevenues.programs > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: currentDate.toISOString().split('T')[0],
+                amount: additionalRevenues.programs,
+                type: 'INCOME' as const,
+                description: `Programy meczowe i reklamy LED (vs ${away.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.programs;
+            }
+
+            // 🅿️ Parkingi i fanzony
+            if (additionalRevenues && additionalRevenues.parking > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: currentDate.toISOString().split('T')[0],
+                amount: additionalRevenues.parking,
+                type: 'INCOME' as const,
+                description: `Parkingi i strefa kibica (vs ${away.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.parking;
             }
             
             // 💰 Koszty organizacji

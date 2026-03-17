@@ -2263,7 +2263,11 @@ if (activePlayerTempo === 'SLOW') {
             if (nextMinute % 2 === 0) nextMomentum += (2 * sideMult); // wizualny puls
         }
 
-       const hasEmptySlotsAi = aiSide === 'AWAY' ? nextAwayLineup.startingXI.some(id => id === null) : nextHomeLineup.startingXI.some(id => id === null);
+       const aiTeamForCheck = aiSide === 'AWAY' ? nextAwayLineup : nextHomeLineup;
+       const aiTeamPlayersForCheck = aiSide === 'AWAY' ? ctx.awayPlayers : ctx.homePlayers;
+       const aiSentOffCount = nextSentOffIds.filter(id => aiTeamPlayersForCheck.some(p => p.id === id)).length;
+       const aiOnPitchCount = aiTeamForCheck.startingXI.filter(id => id !== null).length;
+       const hasEmptySlotsAi = aiOnPitchCount < (11 - aiSentOffCount);
         
         // --- TUTAJ WSTAW TEN KOD (Inteligentny Wyzwalacz Decyzji AI) ---
         // AI reaguje częściej (isPriority), jeśli:
@@ -2586,6 +2590,8 @@ if (activePlayerTempo === 'SLOW') {
 
 
             {lineup.startingXI.map(pid => {
+               if (!pid) return null;
+               if (matchState.sentOffIds.includes(pid)) return null;
                const p = teamPlayers.find(x => x.id === pid);
                if (!p) return null;
 

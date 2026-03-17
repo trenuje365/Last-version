@@ -1566,16 +1566,70 @@ return {
   const updatedClubs = simResult.updatedClubs.map(c => {
        if (c.id === ctx.homeClub.id || c.id === ctx.awayClub.id) {
           const isHome = c.id === ctx.homeClub.id;
-          const matchCost = FinanceService.calculateMatchdayExpenses(c, isHome);
+          const tier = parseInt(c.leagueId.split('_')[2] || '1');
+          const matchCost = FinanceService.calculateMatchdayExpenses(c, isHome, isHome ? attendance : undefined);
+          const additionalRevenues = isHome ? FinanceService.calculateMatchdayAdditionalRevenues(attendance, tier, c.reputation) : null;
+          const additionalTotal = additionalRevenues ? (additionalRevenues.catering + additionalRevenues.merchandising + additionalRevenues.programs + additionalRevenues.parking) : 0;
           const s = isHome ? matchState.homeScore : matchState.awayScore;
           const o = isHome ? matchState.awayScore : matchState.homeScore;
 
           const resultChar: "W" | "R" | "P" = s > o ? 'W' : (s === o ? 'R' : 'P');
           const newForm = [...(c.stats.form || []), resultChar].slice(-5) as ("W" | "R" | "P")[];
 
+          const financeLogsToAdd: any[] = [];
+          let runningBalance = c.budget;
+
+          if (isHome && additionalRevenues) {
+            if (additionalRevenues.catering > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: new Date().toISOString().split('T')[0],
+                amount: additionalRevenues.catering,
+                type: 'INCOME' as const,
+                description: `Catering i Hospitality (vs ${ctx.awayClub.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.catering;
+            }
+            if (additionalRevenues.merchandising > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: new Date().toISOString().split('T')[0],
+                amount: additionalRevenues.merchandising,
+                type: 'INCOME' as const,
+                description: `Sklep kibica — merchandising (vs ${ctx.awayClub.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.merchandising;
+            }
+            if (additionalRevenues.programs > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: new Date().toISOString().split('T')[0],
+                amount: additionalRevenues.programs,
+                type: 'INCOME' as const,
+                description: `Programy meczowe i reklamy LED (vs ${ctx.awayClub.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.programs;
+            }
+            if (additionalRevenues.parking > 0) {
+              financeLogsToAdd.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: new Date().toISOString().split('T')[0],
+                amount: additionalRevenues.parking,
+                type: 'INCOME' as const,
+                description: `Parkingi i strefa kibica (vs ${ctx.awayClub.name})`,
+                previousBalance: runningBalance
+              });
+              runningBalance += additionalRevenues.parking;
+            }
+          }
+
           return {
             ...c, 
-            budget: c.budget - matchCost,
+            budget: c.budget + additionalTotal - matchCost,
+            financeHistory: [...financeLogsToAdd, ...(c.financeHistory || [])].slice(0, 50),
             stats: {
               ...c.stats,
               form: newForm

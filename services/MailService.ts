@@ -1,5 +1,6 @@
 import { Club, Player, MailMessage, MailType, Fixture, MatchStatus, HealthStatus, InjurySeverity, RetirementInfo } from '../types';
 import { MAIL_TEMPLATES, MailTemplate } from '../data/mail_templates_pl';
+import { FinanceService } from './FinanceService';
 
 export interface SeasonSummaryData {
   year: number;
@@ -312,7 +313,29 @@ createFromTemplate: (templateId: string, replacements: Record<string, string>): 
     };
   },
 
-generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string): MailMessage => {
+generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCapacity: number; reputation: number }, tier: number, seasonLabel: string, gameDate: Date): MailMessage => {
+    const seasonTicketRevenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
+    const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
+    const ticketPrice = FinanceService.calculateTicketPrice(tier, club.reputation);
+    const matchesPerSeason = 19;
+    const rawSeasonPrice = ticketPrice * matchesPerSeason;
+    const finalSeasonPrice = Math.max(200, Math.min(1300, rawSeasonPrice));
+    const demandLevel = club.reputation >= 8 ? 'bardzo wysokie' : club.reputation >= 6 ? 'dobre' : club.reputation >= 4 ? 'umiarkowane' : 'niskie';
+    const formatPLN = (n: number) => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 }).format(n);
+
+    return MailService.createFromTemplate('board_season_ticket_report', {
+      CLUB: club.name,
+      SEASON: seasonLabel,
+      STADIUM: club.stadiumName,
+      CAPACITY: club.stadiumCapacity.toLocaleString('pl-PL'),
+      TICKETS_SOLD: ticketsSold.toLocaleString('pl-PL'),
+      REVENUE: formatPLN(seasonTicketRevenue),
+      TICKET_PRICE: formatPLN(finalSeasonPrice),
+      DEMAND_LEVEL: demandLevel
+    });
+  },
+
+  generateRetirementReportMail: (retirements: RetirementInfo[], clubName: string): MailMessage => {
     const title = `Raport Kadry ${clubName}`;
     let body = `Szanowny Panie,\r\n Następujący zawodnicy postanowili zakończyć kariery oraz listę młodych talentów z naszej Akademii, którzy zostali włączeni do kadry w ich miejsce:\n\n`;
 

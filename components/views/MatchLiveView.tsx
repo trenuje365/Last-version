@@ -1465,11 +1465,11 @@ return {
   const updatedClubs = simResult.updatedClubs.map(c => {
        if (c.id === ctx.homeClub.id || c.id === ctx.awayClub.id) {
           const isHome = c.id === ctx.homeClub.id;
-          const matchCost = FinanceService.calculateMatchdayExpenses(c, isHome);
+          const matchCost = FinanceService.calculateMatchdayExpenses(c, isHome, isHome ? attendance : undefined);
           
           // Dodajemy przychód z biletów dla gospodarza
           const tier = parseInt(c.leagueId.split('_')[2] || '1');
-          const ticketRevenue = isHome ? FinanceService.calculateMatchTicketRevenue(ctx.fixture.attendance || 0, tier, c.reputation) : 0;
+          const ticketRevenue = isHome ? FinanceService.calculateMatchTicketRevenue(attendance, tier, c.reputation) : 0;
           const netChange = ticketRevenue - matchCost;
 
           const s = isHome ? matchState.homeScore : matchState.awayScore;
@@ -1492,7 +1492,7 @@ return {
                 date: currentDate.toISOString().split('T')[0],
                 amount: ticketRevenue,
                 type: 'INCOME' as const,
-                description: `Przychody z biletów: ${ctx.fixture.attendance || 0} widzów @ ${ticketPrice} PLN`,
+                description: `Bilety (vs ${ctx.awayClub.name}): ${attendance} widzów @ ${ticketPrice} PLN`,
                 previousBalance: currentBalance
               });
               currentBalance += ticketRevenue;
@@ -1545,7 +1545,7 @@ return {
        return c;
     });
 
-    const updatedFixtures = simResult.updatedFixtures.map(f => f.id === ctx.fixture.id ? { ...f, status: 'FINISHED' as any, homeScore: matchState.homeScore, awayScore: matchState.awayScore } : f);
+    const updatedFixtures = simResult.updatedFixtures.map(f => f.id === ctx.fixture.id ? { ...f, status: 'FINISHED' as any, homeScore: matchState.homeScore, awayScore: matchState.awayScore, attendance } : f);
 
     
 

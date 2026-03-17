@@ -284,6 +284,14 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     role: 'Prezes Zarządu',
     subject: 'OSTRZEŻENIE - Ultimatum Zarządu',
     body: 'Szanowny Panie, nasza cierpliwość dobiegła końca. Obecna lokata zespołu ({RANK}) drastycznie odbiega od Pana obietnic. Jeśli w najbliższym czasie nie zobaczymy wyraźnej poprawy punktowej, będziemy zmuszeni podjąć radykalne kroki. Proszę traktować tę wiadomość jako oficjalne ostrzeżenie.'
+  },
+  {
+    id: 'board_season_ticket_report',
+    type: MailType.BOARD,
+    sender: 'Dział Marketingu',
+    role: 'Dyrektor ds. Sprzedaży',
+    subject: 'Raport przedsprzedaży karnetów — Sezon {SEASON}',
+    body: 'Szanowny Panie Managerze,\n\nZ przyjemnością przedstawiamy raport z przedsprzedaży karnetów sezonowych dla {CLUB} przed startem nowych rozgrywek.\n\n🏟️ STADION: {STADIUM}\n📊 POJEMNOŚĆ: {CAPACITY} miejsc\n\n--- WYNIKI PRZEDSPRZEDAŻY ---\n\n🎫 Sprzedane karnety: {TICKETS_SOLD} szt.\n💰 Przychód netto: {REVENUE}\n💳 Cena karnetu: {TICKET_PRICE}\n\nZainteresowanie kibiców przed tym sezonem oceniamy jako {DEMAND_LEVEL}. Pieniądze z przedsprzedaży zostały doliczone do budżetu klubu.\n\nZ poważaniem,\nDział Marketingu {CLUB}'
   }
 ]; // <--- ZAMKNIĘCIE TABLICY
 

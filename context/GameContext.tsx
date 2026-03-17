@@ -1377,6 +1377,67 @@ setMessages([welcomeMail, fanMail]);
     // 2 lipca: automatyczny przegląd składów AI na początku sezonu
     let postReviewPlayers = recoveredPlayers;
     let postReviewClubs = simulation.updatedClubs;
+    // 20 lipca: przedsprzedaż karnetów sezonowych (przed Kolejką 1 — 24 lipca)
+    if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 20) {
+      const seasonYear = dateToProcess.getFullYear();
+      const seasonLabel = `${seasonYear}/${String(seasonYear + 1).slice(2)}`;
+      postReviewClubs = postReviewClubs.map(club => {
+        const tier = parseInt(club.leagueId.split('_')[2] || '1');
+        const seasonTicketRevenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
+        const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
+        const newFinanceLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          date: dateToProcess.toISOString().split('T')[0],
+          amount: seasonTicketRevenue,
+          type: 'INCOME' as const,
+          description: `Przedsprzedaż karnetów: ${ticketsSold.toLocaleString('pl-PL')} szt.`,
+          previousBalance: club.budget
+        };
+        return {
+          ...club,
+          budget: club.budget + seasonTicketRevenue,
+          financeHistory: [newFinanceLog, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      });
+      // E-mail do gracza z raportem
+      if (userTeamId) {
+        const userClub = postReviewClubs.find(c => c.id === userTeamId);
+        if (userClub) {
+          const tier = parseInt(userClub.leagueId.split('_')[2] || '1');
+          const ticketMail = MailService.generateSeasonTicketMail(
+            { name: userClub.name, stadiumName: userClub.stadiumName, stadiumCapacity: userClub.stadiumCapacity, reputation: userClub.reputation },
+            tier,
+            seasonLabel,
+            dateToProcess
+          );
+          setMessages(prev => [ticketMail, ...prev]);
+        }
+      }
+    }
+
+    // 20 lipca: roczny wynajem stref VIP i lóż (Skybox)
+    // Warunek: tylko Ekstraklasa (tier 1) i pojemność stadionu > 15 000
+    if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 20) {
+      postReviewClubs = postReviewClubs.map(club => {
+        const tier = parseInt(club.leagueId.split('_')[2] || '1');
+        if (tier !== 1 || club.stadiumCapacity <= 15_000) return club;
+        const vipRevenue = FinanceService.calculateVIPBoxRevenue(club.stadiumCapacity, club.reputation);
+        const newFinanceLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          date: dateToProcess.toISOString().split('T')[0],
+          amount: vipRevenue,
+          type: 'INCOME' as const,
+          description: `Wynajem stref VIP i lóż (Skybox) — sezon`,
+          previousBalance: club.budget
+        };
+        return {
+          ...club,
+          budget: club.budget + vipRevenue,
+          financeHistory: [newFinanceLog, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      });
+    }
+
     if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 2) {
       const review = AiContractService.performSeasonSquadReview(postReviewClubs, postReviewPlayers, userTeamId);
       postReviewClubs = review.updatedClubs;
@@ -1469,11 +1530,10 @@ const finalResult: SimulationOutput = {
       const superCupFixture = clResult.updatedFixtures.find(f => f.leagueId === 'SUPER_CUP' && f.status === MatchStatus.FINISHED);
       
       if (superCupFixture && (club.id === superCupFixture.homeTeamId || club.id === superCupFixture.awayTeamId)) {
-        // Sprawdzenie czy bonus za ten konkretny mecz Super Cup już został przyznany
+        // Sprawdzenie czy bonus za Superpuchar był już kiedykolwiek przyznany (ignorujemy datę)
         const bonusAlreadyApplied = club.financeHistory?.some(entry => 
-          (entry.description === 'Nagroda za zwycięstwo w Superpucharze Polski' || 
-           entry.description === 'Nagroda za udział w Superpucharze Polski') &&
-          entry.date === dateToProcess.toISOString().split('T')[0]
+          entry.description === 'Nagroda za zwycięstwo w Superpucharze Polski' || 
+          entry.description === 'Nagroda za udział w Superpucharze Polski'
         );
         
         if (bonusAlreadyApplied) {

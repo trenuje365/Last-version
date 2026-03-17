@@ -1,6 +1,85 @@
 import { Club } from '@/types';
 import { Player } from '../types';
 
+// ============================================================
+// PARAMETRY KOSZTÓW DNIA MECZOWEGO  —  pogrupowane wg. ligi
+// ============================================================
+// Tier 1 = Ekstraklasa, Tier 2 = 1. Liga, Tier 3 = 2. Liga, Tier 4 = Regionalna
+//
+// Koszty rosną progresywnie w zależności od:
+//   • ligi (tier)
+//   • reputacji klubu (representuje wielkość klubu i infrastrukturę)
+//   • frekwencji (attendance) — osób na trybunach
+//   • współczynnika obciążenia stadionu (fill-rate multiplier)
+//
+// PRZYKŁADY (home):
+//   Legia/Lech (rep=10, tier=1, att~22k)   ≈ 350–400 tys. zł  (max ~700 tys.)
+//   Średniak Ekstraklasy (rep=6, att~7k)   ≈ 200–250 tys. zł
+//   1. Liga Średni klub (rep=5, att~5k)     ≈ 55–80 tys. zł
+//   2. Liga klub (rep=4, att~2k)            ≈ 14–20 tys. zł
+// ============================================================
+// ============================================================
+// PARAMETRY PRZYCHODÓW DODATKOWYCH DNIA MECZOWEGO
+// ============================================================
+// Przychody per kibic (PLN/fan) przy meczu domowym.
+// Tier 1 = Ekstraklasa, Tier 2 = 1. Liga, Tier 3 = 2. Liga, Tier 4 = Regionalna
+//
+// Mnożnik reputacji:  repMultiplier = 0.8 + (rep / 10) * 0.4
+// Losowość:           random factor  0.80–1.20 (osobny dla każdej kategorii)
+//
+// PRZYKŁADY (przy attendance ~22k, rep=9, tier=1 — Legia/Lech):
+//   Catering+Hospitality: ~85–130 tys. zł
+//   Merchandising:        ~35–55  tys. zł
+//   Programy + LED:       ~10–18  tys. zł
+//   Parkingi + fanzony:   ~12–20  tys. zł
+//
+// PRZYKŁADY (attendance ~7k, rep=5, tier=1 — średniak Ekstraklasy):
+//   Catering+Hospitality: ~22–40  tys. zł
+//   Merchandising:        ~10–17  tys. zł
+//   Programy + LED:       ~3–5    tys. zł
+//   Parkingi + fanzony:   ~3–5    tys. zł
+// ============================================================
+export const MATCHDAY_ADDITIONAL_REVENUE_PARAMS = {
+  //                             tier: [  0,    1,    2,    3,    4 ]
+  cateringPerFan:                      [  0,  4.5,  2.0,  1.2,  0.5],
+  merchandisingPerFan:                 [  0,  2.0,  0.8,  0.4, 0.15],
+  programsPerFan:                      [  0,  0.6,  0.3,  0.4, 0.07],
+  parkingPerFan:                       [  0,  0.7,  0.4, 0.25,  0.1],
+} as const;
+
+// ============================================================
+// PARAMETRY ROCZNYCH PRZYCHODÓW VIP / LOŻE
+// ============================================================
+// Wynajem lóż (Skybox) – płatne raz na sezon (start sezonu).
+// Dostęp: tylko kluby grające w Ekstraklasie (tier 1)
+//         ORAZ stadiumCapacity > 15 000 miejsc.
+//
+// Zakres: 240 000 – 450 000 PLN/rok (zależnie od rep i rozmiaru stadionu)
+// ============================================================
+export const VIP_BOX_REVENUE_PARAMS = {
+  base:            150_000,
+  repScale:        200_000,   // * (rep / 10)
+  capacityScale:    60_000,   // * (capacity / 40 000)
+  minRevenue:      240_000,
+  maxRevenue:      500_000,
+} as const;
+
+export const MATCHDAY_COST_PARAMS = {
+  home: {
+    //                       tier: [  0,       1,       2,      3,     4  ]
+    baseCost:                     [  0,  50_000,  15_000,  5_000, 1_500],
+    perFanCost:                   [  0,       9,     4.5,    2.0,   0.8],  // PLN za kibica
+    repScale:                     [  0,  12_000,   4_000,  1_200,   400],  // PLN * reputacja
+    minFloor:                     [  0, 200_000,  40_000, 10_000, 3_500],  // minim. koszt meczu u siebie
+    maxCap:                       [  0, 700_000, 220_000, 70_000,20_000],  // maks. koszt meczu u siebie
+  },
+  away: {
+    baseCost:                     [  0,  35_000,  12_000,  5_000, 1_500],  // koszty bazy wyjazdu
+    repScale:                     [  0,   3_500,   1_500,    600,   150],  // wkład reputacji w koszty
+    maxCap:                       [  0, 140_000,  55_000, 20_000, 7_000],  // maks. koszt wyjazdu
+  },
+} as const;
+
 export const FinanceService = {
   /**
    * Oblicza budżet początkowy na podstawie poziomu ligi i reputacji (1-10)
@@ -57,14 +136,40 @@ export const FinanceService = {
     return baseWeight * ageMod;
   },
 
-  calculateMatchdayExpenses: (club: any, isHome: boolean): number => {
-    const reputationBase = club.reputation * 15000;
+  // Koszty organizacji meczu — progresywna formuła wg. ligi, reputacji i frekwencji
+  // attendance (opcjonalne) — liczba kibiców na trybunach (dla meczów u siebie)
+  calculateMatchdayExpenses: (club: any, isHome: boolean, attendance?: number): number => {
+    const tier = Math.min(4, Math.max(1, parseInt((club.leagueId as string).split('_')[2] || '4')));
+    const p = MATCHDAY_COST_PARAMS;
+
     if (isHome) {
-      const stadiumOps = club.stadiumCapacity * 12;
-      return Math.floor(reputationBase + stadiumOps);
+      const att = attendance ?? 0;
+      const fillRate = club.stadiumCapacity > 0 ? att / club.stadiumCapacity : 0;
+
+      // Współczynnik obciążenia — im wyższe obciążenie stadionu, tym nieproporcjonalnie
+      // większe koszty ochrony, stewardów, logistyki i hospitality
+      const fillMultiplier =
+        fillRate >= 0.95 ? 1.50 :
+        fillRate >= 0.85 ? 1.30 :
+        fillRate >= 0.70 ? 1.10 : 1.00;
+
+      const rawCost =
+        (p.home.baseCost[tier] +
+         att * p.home.perFanCost[tier] +
+         club.reputation * p.home.repScale[tier]) * fillMultiplier;
+
+      return Math.min(
+        p.home.maxCap[tier],
+        Math.max(p.home.minFloor[tier], Math.floor(rawCost))
+      );
     }
-    const travelCosts = 10000 + (club.reputation * 7000);
-    return Math.floor(travelCosts);
+
+    // Wyjazd — koszty transportu, zakwaterowania, diet zawodników i sztabu
+    const rawCost =
+      p.away.baseCost[tier] +
+      club.reputation * p.away.repScale[tier];
+
+    return Math.min(p.away.maxCap[tier], Math.floor(rawCost));
   },
 
   calculateSeasonalIncome: (tier: number, reputation: number, rank: number): number => {
@@ -490,6 +595,37 @@ export const FinanceService = {
     const seasonTicketsSold = Math.floor(stadiumCapacity * percentageOfCapacity);
     
     return Math.floor(seasonTicketsSold * finalSeasonPrice);
+  },
+
+  // Dodatkowe przychody dnia meczowego per mecz domowy:
+  // catering, merchandising, programy/LED, parkingi — proporcjonalne do frekwencji
+  calculateMatchdayAdditionalRevenues: (attendance: number, tier: number, reputation: number): {
+    catering: number;
+    merchandising: number;
+    programs: number;
+    parking: number;
+  } => {
+    const t = Math.min(4, Math.max(1, tier));
+    const p = MATCHDAY_ADDITIONAL_REVENUE_PARAMS;
+    const repMultiplier = 0.8 + (reputation / 10) * 0.4;
+
+    const rand = () => 0.80 + Math.random() * 0.40;
+
+    const catering      = Math.floor(attendance * p.cateringPerFan[t]      * repMultiplier * rand());
+    const merchandising = Math.floor(attendance * p.merchandisingPerFan[t] * repMultiplier * rand());
+    const programs      = Math.floor(attendance * p.programsPerFan[t]      * repMultiplier * rand());
+    const parking       = Math.floor(attendance * p.parkingPerFan[t]       * repMultiplier * rand());
+
+    return { catering, merchandising, programs, parking };
+  },
+
+  // Roczny przychód z wynajmu stref VIP i lóż (Skybox).
+  // Warunki: tier === 1 (Ekstraklasa) ORAZ stadiumCapacity > 15 000
+  calculateVIPBoxRevenue: (stadiumCapacity: number, reputation: number): number => {
+    const p = VIP_BOX_REVENUE_PARAMS;
+    const raw = p.base + (reputation / 10) * p.repScale + (stadiumCapacity / 40_000) * p.capacityScale;
+    const jitter = 0.85 + Math.random() * 0.30;
+    return Math.min(p.maxRevenue, Math.max(p.minRevenue, Math.floor(raw * jitter)));
   },
 
   // Bonusy za pozycję końcową w lidze (Ekstraklasa)
