@@ -1698,7 +1698,8 @@ const finalResult: SimulationOutput = {
         (typeof f.leagueId === 'string' && (
           f.leagueId.startsWith('L_PL_') ||
           f.leagueId === 'POLISH_CUP' ||
-          f.leagueId === 'SUPER_CUP'
+          f.leagueId === 'SUPER_CUP' ||
+          (f.leagueId.startsWith('CL_') && !f.leagueId.endsWith('_DRAW'))
         ))
       );
 
@@ -1715,11 +1716,26 @@ const finalResult: SimulationOutput = {
           const userLineup = lineups[userTeamId];
 
           if (opponentClub && opponentLineup && userLineup) {
+            const clLeagueNames: Record<string, string> = {
+              'CL_R1Q': 'LM - Kwalifikacje R1',
+              'CL_R1Q_RETURN': 'LM - Kwalifikacje R1 Rewanż',
+              'CL_R2Q': 'LM - Kwalifikacje R2',
+              'CL_R2Q_RETURN': 'LM - Kwalifikacje R2 Rewanż',
+              'CL_GROUP_STAGE': 'Liga Mistrzów - Faza Grupowa',
+              'CL_R16': 'Liga Mistrzów - 1/8 Finału',
+              'CL_R16_RETURN': 'LM - 1/8 Finału Rewanż',
+              'CL_QF': 'Liga Mistrzów - Ćwierćfinał',
+              'CL_QF_RETURN': 'LM - Ćwierćfinał Rewanż',
+              'CL_SF': 'Liga Mistrzów - Półfinał',
+              'CL_SF_RETURN': 'LM - Półfinał Rewanż',
+              'CL_FINAL': 'Liga Mistrzów - Finał',
+            };
             const leagueName = tomorrowFixture.leagueId === 'L_PL_1' ? 'Ekstraklasa'
               : tomorrowFixture.leagueId === 'L_PL_2' ? '1. Liga'
               : tomorrowFixture.leagueId === 'L_PL_3' ? '2. Liga'
               : tomorrowFixture.leagueId === 'POLISH_CUP' ? 'Puchar Polski'
-              : 'Superpuchar';
+              : tomorrowFixture.leagueId === 'SUPER_CUP' ? 'Superpuchar'
+              : clLeagueNames[tomorrowFixture.leagueId as string] ?? 'Liga Mistrzów';
             const opponentLeagueStandings = [...clubs]
               .filter(c => c.leagueId === opponentClub.leagueId)
               .sort((a, b) => b.stats.points - a.stats.points || b.stats.goalDifference - a.stats.goalDifference);

@@ -39,9 +39,9 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[9px] font-mono text-slate-500">{item.date}</span>
+                        <span className="text-[12px] font-mono text-slate-500">{item.date}</span>
                       </div>
-                      <span className="text-[10px] font-black uppercase italic text-white">
+                      <span className="text-[12px] font-black uppercase italic text-white">
                         {item.description}
                       </span>
                     </div>
@@ -53,12 +53,12 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
                   </div>
                   {item.previousBalance !== undefined && (
                     <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded-lg mt-2 border border-white/[0.03]">
-                      <div className="text-[8px] text-slate-400 italic font-mono">
-                        <span className="text-slate-500">stary balans:</span> <span className="text-slate-300">{formatCurrency(item.previousBalance)}</span>
+                      <div className="text-[12px] text-slate-400 italic font-mono">
+                        <span className="text-rose-500">stary balans:</span> <span className="text-slate-300">{formatCurrency(item.previousBalance)}</span>
                       </div>
-                      <span className="text-slate-600 text-[8px]">→</span>
-                      <div className="text-[8px] text-slate-400 italic font-mono">
-                        <span className="text-slate-500">nowy balans:</span> <span className="text-slate-300">{formatCurrency(item.previousBalance + item.amount)}</span>
+                      <span className="text-slate-600 text-[12px]">→</span>
+                      <div className="text-[12px] text-slate-400 italic font-mono">
+                        <span className="text-emerald-400">nowy balans:</span> <span className="text-slate-300">{formatCurrency(item.previousBalance + item.amount)}</span>
                       </div>
                     </div>
                   )}
@@ -75,7 +75,7 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
 
         <div className="p-6 bg-black/20 flex flex-col gap-4 border-t border-white/5">
            <div className="flex justify-between items-center px-4">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aktualny Bilans</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Saldo:</span>
               <span className="text-lg font-black font-mono text-white">{formatCurrency(club.budget)}</span>
            </div>
           <button onClick={onClose} className="px-10 py-3 bg-white text-slate-900 font-black italic uppercase tracking-widest text-xs rounded-xl hover:scale-105 transition-all shadow-xl">Zamknij</button>
