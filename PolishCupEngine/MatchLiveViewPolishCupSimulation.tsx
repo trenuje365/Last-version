@@ -1815,7 +1815,7 @@ dynamicThreshold *= undedogThresholdMultiplier;
                 luckyBonus = 0.01 + Math.pow(bonusMagnitude, 0.6) * 0.49;
             }
         }
-        const goalProbability = Math.min(0.90, (shotPower / (shotPower + savePower)) * 0.70 + luckyBonus);
+        const goalProbability = Math.min(0.90, (shotPower / (shotPower + savePower)) * 0.44 + luckyBonus);
         const goalRoll = seededRng(currentSeed, nextMinute, 8831);
          if (goalRoll < goalProbability && !wasPenaltyThisMinute) {
          
