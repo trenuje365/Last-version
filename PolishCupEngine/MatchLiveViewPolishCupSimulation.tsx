@@ -174,6 +174,19 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
    const [showMissedPenalty, setShowMissedPenalty] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const debugLogRef = useRef<string[]>([]);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugDisplayData, setDebugDisplayData] = useState<{
+    minute: number; side: 'HOME' | 'AWAY'; shotPower: number; savePower: number;
+    goalProbability: number; goalRoll: number; isGoal: boolean; luckyBonus: number;
+    homeThreshold: number; awayThreshold: number; dynamicThreshold: number;
+    successPasses: number; diceRolls: number; pPower: number; aPower: number;
+  }[]>([]);
+  const liveDebugStatsRef = useRef<{
+    minute: number; side: 'HOME' | 'AWAY'; shotPower: number; savePower: number;
+    goalProbability: number; goalRoll: number; isGoal: boolean; luckyBonus: number;
+    homeThreshold: number; awayThreshold: number; dynamicThreshold: number;
+    successPasses: number; diceRolls: number; pPower: number; aPower: number;
+  }[]>([]);
 
   const downloadDebugLog = () => {
     const content = debugLogRef.current.join('\n');
@@ -187,6 +200,14 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  useEffect(() => {
+    if (!showDebugPanel) return;
+    const interval = setInterval(() => {
+      setDebugDisplayData([...liveDebugStatsRef.current]);
+    }, 600);
+    return () => clearInterval(interval);
+  }, [showDebugPanel]);
  
 
 // NOWY SYSTEM KOMENTARZY
@@ -432,14 +453,14 @@ useEffect(() => {
           }, penLog, ...latest.logs]
         };
       });
-      // Po trafieniu z karnego — auto-wznowienie po 2 sekundach
+      // Po trafieniu z karnego — auto-wznowienie po 5 sekundach
       if (isScored) {
         setTimeout(() => {
           setMatchState(s => {
             if (!s || s.isFinished || s.isPenalties) return s;
             return { ...s, isPaused: false };
           });
-        }, 2000);
+        }, 5000);
       }
     }, 3000);
     return () => clearTimeout(timer);
@@ -527,6 +548,19 @@ useEffect(() => {
     let fwdQ   = active.filter(p => p.position === PlayerPosition.FWD);
     let anyQ   = active.filter(p => p.position !== PlayerPosition.GK);
 
+    // Jeśli bramkarz NIE jest dostępny (czerwona kartka / kontuzja wylotem),
+    // wyznaczamy awaryjnego bramkarza — obrońca z najwyższym goalkeeping, a w br. braku inny zawodnik.
+    let emergencyGk: Player | undefined;
+    if (!gk && anyQ.length > 0) {
+      const sorted = [...anyQ].sort((a, b) => (b.attributes.goalkeeping ?? 0) - (a.attributes.goalkeeping ?? 0));
+      emergencyGk = sorted[0];
+      defQ = defQ.filter(p => p.id !== emergencyGk!.id);
+      midQ = midQ.filter(p => p.id !== emergencyGk!.id);
+      fwdQ = fwdQ.filter(p => p.id !== emergencyGk!.id);
+      anyQ = anyQ.filter(p => p.id !== emergencyGk!.id);
+    }
+    const gkForSlot = gk ?? emergencyGk;
+
     const consume = (primary: Player[], fallbackPool: Player[]): string | null => {
       const p = primary.shift();
       if (p) { anyQ = anyQ.filter(x => x.id !== p.id); return p.id; }
@@ -536,7 +570,7 @@ useEffect(() => {
     };
 
     const newXI: (string | null)[] = chosenTactic.slots.map((_s, idx) => {
-      if (idx === 0) return gk?.id ?? null;
+      if (idx === 0) return gkForSlot?.id ?? null;
       const role = chosenTactic.slots[idx].role;
       if (role === PlayerPosition.DEF) return consume(defQ, anyQ);
       if (role === PlayerPosition.MID) return consume(midQ, anyQ);
@@ -1418,7 +1452,14 @@ if (targetPlayer && !prev.isPausedForEvent) {
           const defChoice = pickDefensiveTacticForRedCard(aiLineupNow, aiPlayersNow, nextSentOffIds);
           if (aiSide === 'HOME') nextHomeLineup = { ...nextHomeLineup, tacticId: defChoice.tacticId, startingXI: defChoice.startingXI as any };
           else nextAwayLineup = { ...nextAwayLineup, tacticId: defChoice.tacticId, startingXI: defChoice.startingXI as any };
-          updatedLogs = [{ id: `ai_red_def_${nextMinute}`, minute: nextMinute, text: `Trener ${aiClub.shortName} ustawia drużynę defensywnie (${defChoice.tacticId}) — gra w 10!`, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
+          const wasGkSentOff = targetPlayer.position === PlayerPosition.GK;
+          const emergencyGkPlayer = wasGkSentOff
+            ? (aiSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers).find(p => p.id === defChoice.startingXI[0])
+            : null;
+          const redLogText = wasGkSentOff && emergencyGkPlayer
+            ? `Trener ${aiClub.shortName} wyznacza awaryjnego bramkarza: ${emergencyGkPlayer.lastName} (${defChoice.tacticId}) — desperacja!`
+            : `Trener ${aiClub.shortName} ustawia drużynę defensywnie (${defChoice.tacticId}) — gra w 10!`;
+          updatedLogs = [{ id: `ai_red_def_${nextMinute}`, minute: nextMinute, text: redLogText, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
         }
     }
 
@@ -1517,7 +1558,14 @@ if (targetPlayer && !prev.isPausedForEvent) {
               const defChoice = pickDefensiveTacticForRedCard(aiLineupNow, aiPlayersNow, nextSentOffIds);
               if (aiSide === 'HOME') nextHomeLineup = { ...nextHomeLineup, tacticId: defChoice.tacticId, startingXI: defChoice.startingXI as any };
               else nextAwayLineup = { ...nextAwayLineup, tacticId: defChoice.tacticId, startingXI: defChoice.startingXI as any };
-              updatedLogs = [{ id: `ai_red2_def_${nextMinute}`, minute: nextMinute, text: `Trener ${aiClub.shortName} ustawia drużynę defensywnie (${defChoice.tacticId}) — gra w 10!`, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
+              const wasGkSentOff2 = targetPlayer.position === PlayerPosition.GK;
+              const emergencyGkPlayer2 = wasGkSentOff2
+                ? (aiSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers).find(p => p.id === defChoice.startingXI[0])
+                : null;
+              const red2LogText = wasGkSentOff2 && emergencyGkPlayer2
+                ? `Trener ${aiClub.shortName} wyznacza awaryjnego bramkarza: ${emergencyGkPlayer2.lastName} (${defChoice.tacticId}) — desperacja!`
+                : `Trener ${aiClub.shortName} ustawia drużynę defensywnie (${defChoice.tacticId}) — gra w 10!`;
+              updatedLogs = [{ id: `ai_red2_def_${nextMinute}`, minute: nextMinute, text: red2LogText, type: MatchEventType.GENERIC, teamSide: aiSide }, ...updatedLogs];
             }
         } else {
             updatedLogs = [{
@@ -1815,8 +1863,50 @@ dynamicThreshold *= undedogThresholdMultiplier;
                 luckyBonus = 0.01 + Math.pow(bonusMagnitude, 0.6) * 0.49;
             }
         }
-        const goalProbability = Math.min(0.90, (shotPower / (shotPower + savePower)) * 0.44 + luckyBonus);
+        // Dynamiczny mnożnik konwersji zależny od stosunku sił atakującego vs broniącego.
+        // Równe drużyny (ratio≈1.0) → mult=0.62 → ~31% konwersji przy shot≈save
+        // Duża dysproporcja (ratio≥1.4, Tier1 vs Tier4) → cap mult=0.44 → ~28% konwersji
+        // BUGFIX: pPower=GRACZ, aPower=AI — przeliczamy na rzeczywiste HOME/AWAY
+        const homePwr = userSide === 'HOME' ? pPower : aPower;
+        const awayPwr = userSide === 'AWAY' ? pPower : aPower;
+        const attackingPwr = eventSide === 'HOME' ? homePwr : awayPwr;
+        const defendingPwr = eventSide === 'HOME' ? awayPwr : homePwr;
+        const powerRatio = Math.min(1.5, attackingPwr / Math.max(1, defendingPwr));
+        const baseConversionMult = Math.max(0.44, 0.62 - (powerRatio - 1.0) * 0.45);
+        // Współczynnik nasycenia bramkowego — progresywny spadek skuteczności atakującego lidera.
+        // Działa tylko dla strony która prowadzi o > 1 bramkę.
+        // diff=2 → ×0.82 | diff=3 → ×0.65 | diff=4 → ×0.50 | diff=5 → ×0.37 | diff=6 → ×0.25 | diff=7+ → prob cap 0.01
+        const attackingScore = eventSide === 'HOME' ? hScore : aScore;
+        const defendingScore = eventSide === 'HOME' ? aScore : hScore;
+        const leadDiff = attackingScore - defendingScore;
+        let satietyMult = 1.0;
+        if (leadDiff >= 7) {
+            satietyMult = 0.0; // prob zostanie ucięte do 0.01 przez cap poniżej
+        } else if (leadDiff >= 2) {
+            satietyMult = Math.pow(0.815, leadDiff - 1); // diff=2→0.81, 3→0.67, 4→0.54, 5→0.44, 6→0.36
+        }
+        const rawGoalProbability = (shotPower / (shotPower + savePower)) * baseConversionMult * satietyMult + luckyBonus;
+        const goalProbability = leadDiff >= 7
+            ? Math.min(0.01, rawGoalProbability)
+            : Math.min(0.90, rawGoalProbability);
         const goalRoll = seededRng(currentSeed, nextMinute, 8831);
+        // --- DEBUG SNAPSHOT: zapis kalkulacji strzału dla panelu live ---
+        liveDebugStatsRef.current = [...liveDebugStatsRef.current.slice(-79), {
+          minute: nextMinute, side: eventSide,
+          shotPower: parseFloat(shotPower.toFixed(2)),
+          savePower: parseFloat(savePower.toFixed(2)),
+          goalProbability: parseFloat(goalProbability.toFixed(4)),
+          goalRoll: parseFloat(goalRoll.toFixed(4)),
+          isGoal: goalRoll < goalProbability && !wasPenaltyThisMinute,
+          luckyBonus: parseFloat(luckyBonus.toFixed(4)),
+          homeThreshold: parseFloat(homeProgressionThreshold.toFixed(4)),
+          awayThreshold: parseFloat(awayProgressionThreshold.toFixed(4)),
+          dynamicThreshold: parseFloat(currentThreshold.toFixed(4)),
+          successPasses: successfulPasses,
+          diceRolls,
+          pPower: Math.round(pPower),
+          aPower: Math.round(aPower),
+        }];
          if (goalRoll < goalProbability && !wasPenaltyThisMinute) {
          
          
@@ -3318,6 +3408,14 @@ if (activePlayerTempo === 'SLOW') {
         </button>
 
         <button
+          onClick={() => setShowDebugPanel(v => !v)}
+          className={`h-10 border font-black italic uppercase tracking-widest text-[9px] rounded-2xl transition-all shadow-xl ${showDebugPanel ? 'bg-green-500/30 border-green-400/60 text-green-300' : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20 hover:text-green-300'}`}
+          title="Panel matematyczny na żywo"
+        >
+          📊 LIVE STATS
+        </button>
+
+        <button
           onClick={() => setIsCommentaryOpen(v => !v)}
           className="h-10 bg-blue-500/10 border border-blue-500/30 text-blue-300 font-black italic uppercase tracking-widest text-[9px] rounded-2xl hover:bg-blue-500/20 hover:text-blue-200 transition-all shadow-xl"
         >
@@ -3327,6 +3425,59 @@ if (activePlayerTempo === 'SLOW') {
     )}
   </div>
 </div>
+
+  {showDebugPanel && (() => {
+        const homeShotEvents = debugDisplayData.filter(s => s.side === 'HOME');
+        const awayShotEvents = debugDisplayData.filter(s => s.side === 'AWAY');
+        const homeGoals = homeShotEvents.filter(s => s.isGoal).length;
+        const awayGoals = awayShotEvents.filter(s => s.isGoal).length;
+        const homeConv = homeShotEvents.length > 0 ? ((homeGoals / homeShotEvents.length) * 100).toFixed(1) : '—';
+        const awayConv = awayShotEvents.length > 0 ? ((awayGoals / awayShotEvents.length) * 100).toFixed(1) : '—';
+        const last8 = [...debugDisplayData].reverse().slice(0, 8);
+        const latest = debugDisplayData.length > 0 ? debugDisplayData[debugDisplayData.length - 1] : null;
+        return (
+          <div className="fixed top-4 right-4 z-50 w-80 bg-black/92 border border-yellow-500/40 rounded-2xl p-3 text-[10px] font-mono shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-yellow-400 font-black uppercase tracking-widest text-[9px]">📊 LIVE MATH DEBUG</span>
+              <button onClick={() => setShowDebugPanel(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+            </div>
+            {latest && (
+              <div className="bg-white/5 rounded-xl p-2 mb-2">
+                <div className="text-slate-400 text-[9px] uppercase mb-1">Siła drużyn (ostatni tick)</div>
+                <div className="flex justify-between">
+                  <span className="text-green-300">TWOJA: <span className="text-white font-bold">{latest.pPower}</span></span>
+                  <span className="text-red-300">RYWAL: <span className="text-white font-bold">{latest.aPower}</span></span>
+                </div>
+                <div className="flex justify-between mt-1 text-[9px]">
+                  <span className="text-blue-300">progH: <span className="text-yellow-300">{(latest.homeThreshold * 100).toFixed(1)}%</span></span>
+                  <span className="text-cyan-300">dynThresh: <span className="text-yellow-300">{(latest.dynamicThreshold * 100).toFixed(1)}%</span></span>
+                  <span className="text-orange-300">progA: <span className="text-yellow-300">{(latest.awayThreshold * 100).toFixed(1)}%</span></span>
+                </div>
+              </div>
+            )}
+            <div className="bg-white/5 rounded-xl p-2 mb-2">
+              <div className="text-slate-400 text-[9px] uppercase mb-1">Strzały → Gole (konwersja)</div>
+              <div className="text-blue-300">HOME <span className="text-white">{homeShotEvents.length} strz → {homeGoals} goli</span> <span className="text-yellow-300">({homeConv}%)</span></div>
+              <div className="text-orange-300 mt-0.5">AWAY <span className="text-white">{awayShotEvents.length} strz → {awayGoals} goli</span> <span className="text-yellow-300">({awayConv}%)</span></div>
+            </div>
+            <div className="text-slate-400 text-[9px] uppercase mb-1">Ostatnie strzały</div>
+            <div className="space-y-1 max-h-52 overflow-y-auto custom-scrollbar">
+              {last8.map((s, i) => (
+                <div key={i} className={`rounded-lg p-1.5 ${s.isGoal ? 'bg-green-500/15 border border-green-500/30' : 'bg-white/5'}`}>
+                  <div className="flex justify-between">
+                    <span className={s.side === 'HOME' ? 'text-blue-300' : 'text-orange-300'}>{s.side} {s.minute}&apos;</span>
+                    <span className={s.isGoal ? 'text-green-400 font-bold' : 'text-slate-400'}>{s.isGoal ? '⚽ GOL' : '🧤 BLOK'}</span>
+                  </div>
+                  <div className="text-slate-300 mt-0.5">shot=<span className="text-white">{s.shotPower}</span> save=<span className="text-white">{s.savePower}</span>{s.luckyBonus > 0 && <span className="text-yellow-300 ml-1">+luck={((s.luckyBonus) * 100).toFixed(1)}%</span>}</div>
+                  <div className="text-slate-400">prob=<span className="text-yellow-300">{(s.goalProbability * 100).toFixed(1)}%</span> roll=<span className={s.isGoal ? 'text-green-400' : 'text-red-400'}>{(s.goalRoll * 100).toFixed(1)}%</span></div>
+                  <div className="text-slate-500">passes={s.successPasses}/{s.diceRolls} ({s.diceRolls > 0 ? ((s.successPasses / s.diceRolls) * 100).toFixed(0) : 0}%) dynT={( s.dynamicThreshold * 100).toFixed(1)}%</div>
+                </div>
+              ))}
+              {debugDisplayData.length === 0 && <div className="text-slate-500 text-center py-2">Brak danych — czekam na strzały...</div>}
+            </div>
+          </div>
+        );
+      })()}
 
   {isTacticsOpen && (
         <MatchCupTacticsModal 
