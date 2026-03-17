@@ -167,6 +167,20 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
   const [penaltyNotice, setPenaltyNotice] = useState<string | null>(null);
    const [showMissedPenalty, setShowMissedPenalty] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const debugLogRef = useRef<string[]>([]);
+
+  const downloadDebugLog = () => {
+    const content = debugLogRef.current.join('\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debug_cup_match_${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
  
 
 // NOWY SYSTEM KOMENTARZY
@@ -576,10 +590,10 @@ useEffect(() => {
         let nextAwayInjuries = { ...prev.awayInjuries };
         let nextMomentum = prev.momentum;
         // === BALANS 2025 – stałe do łatwego tuningu ===
-        const RED_CARD_CHANCE        = 0.00009;  // ~0.065 czerwonych/mecz
-        const SEVERE_INJURY_CHANCE   = 0.00009;   // (-20%)
+        const RED_CARD_CHANCE        = 0.00001;  // ~0.065 czerwonych/mecz
+        const SEVERE_INJURY_CHANCE   = 0.00004;   // (-20%)
         const LIGHT_INJURY_CHANCE    = 0.0040;
-        const YELLOW_CARD_CHANCE     = 0.070;    // ~3.15 żółtych/mecz (normal)
+        const YELLOW_CARD_CHANCE     = 0.04;    // ~3.15 żółtych/mecz (normal)
         const BASE_EVENT_THRESHOLD   = 0.42;
         const BASE_GOAL_THRESHOLD    = 0.065;
         const MOMENTUM_INERTIA       = 0.88;
@@ -1108,28 +1122,39 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
         const cardRoll   = seededRng(currentSeed, nextMinute, 9991);
         const injuryRoll = seededRng(currentSeed, nextMinute, 9993);
 
+        // ===== DEBUG HEADER – minuta =====
+        debugLogRef.current.push(`\n=== MIN ${nextMinute} | seed=${currentSeed} | incidentSide=${incidentSide} ===`);
+        debugLogRef.current.push(`  cardRoll=${cardRoll.toFixed(8)}   injuryRoll=${injuryRoll.toFixed(8)}`);
+
         // Efektywne szanse na kartki – skalowane agresją strony która popełnia faul
         let effectiveRedChance    = RED_CARD_CHANCE;    // ~0.065 czerwonych/mecz (normalnie)
         let effectiveYellowChance = YELLOW_CARD_CHANCE; // ~3.15 żółtych/mecz (normalnie)
 
         if (sideIntensity === 'AGGRESSIVE') {
-            effectiveRedChance    *= 1.11;  // +50% czerwone przy agresji
-            effectiveYellowChance *= 2.3;  // +100% żółte przy agresji (główna kara)
+            effectiveRedChance    *= 1.02;  // +50% czerwone przy agresji
+            effectiveYellowChance *= 2.5;  // +100% żółte przy agresji (główna kara)
         } else if (sideIntensity === 'CAUTIOUS') {
             effectiveRedChance    *= 0.5;
             effectiveYellowChance *= 0.5;
         }
-
-        // Modyfikator kontuzji zależny od intensywności gry OBU drużyn
+        // Modyfikator kontuzji zależny od intensywności gry
+        // BUGFIX: mnożnik aktywuje się TYLKO gdy strona popełniająca faul (incidentSide) jest agresywna.
+        // Poprzedni warunek || otherIntensity powodował że mnożnik 1.2-1.7 był aktywny niemal zawsze.
         let injuryIntensityMult = 1.0;
-        if (sideIntensity === 'AGGRESSIVE' || otherIntensity === 'AGGRESSIVE')
-            injuryIntensityMult = 1.2 + seededRng(currentSeed, nextMinute, 7777) * 0.5; // ×1.5–2.0 przy agresji
+        if (sideIntensity === 'AGGRESSIVE' && otherIntensity === 'AGGRESSIVE')
+            injuryIntensityMult = 1.2 + seededRng(currentSeed, nextMinute, 7777) * 0.3; // obie agresywne: ×1.2–1.5
+        else if (sideIntensity === 'AGGRESSIVE')
+            injuryIntensityMult = 1.1 + seededRng(currentSeed, nextMinute, 7777) * 0.15; // tylko incidentSide agresywna: ×1.1–1.25
         else if (sideIntensity === 'CAUTIOUS' && otherIntensity === 'CAUTIOUS')
             injuryIntensityMult = 0.4; // obie ostrożne → −60% kontuzji
         else if (sideIntensity === 'CAUTIOUS' || otherIntensity === 'CAUTIOUS')
             injuryIntensityMult = 0.7; // jedna ostrożna → −30% kontuzji
         // effectiveSevereBonus dodawany do progu kontuzji (por. formuła poniżej)
         const effectiveSevereBonus = SEVERE_INJURY_CHANCE * Math.max(0, injuryIntensityMult - 1.0);
+
+        // ===== DEBUG =====
+        debugLogRef.current.push(`  sideIntensity=${sideIntensity} | effectiveRedChance=${effectiveRedChance.toFixed(8)} | effectiveYellowChance=${effectiveYellowChance.toFixed(8)}`);
+        debugLogRef.current.push(`  injuryIntensityMult=${injuryIntensityMult.toFixed(4)} | effectiveSevereBonus=${effectiveSevereBonus.toFixed(8)}`);
 
 
         // === COLLAPSE CHECK: skanuje WSZYSTKICH graczy obu drużyn każdą minutę ===
@@ -1155,6 +1180,7 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
 
                     const roll = seededRng(currentSeed, nextMinute, slotIdx + 1234 + (side === 'HOME' ? 0 : 500));
                     if (roll < collapseProb) {
+                        debugLogRef.current.push(`  >>>>>> !!! COLLAPSE FIRED !!! player=${p.lastName} cond=${cond.toFixed(2)} collapseProb=${collapseProb} roll=${roll.toFixed(8)} min=${nextMinute}`);
                         // Gracz pada z wyczerpania — groźna kontuzja, schodzi z boiska
                         if (side === 'HOME') {
                             nextHomeInjuries[id] = InjurySeverity.SEVERE;
@@ -1202,6 +1228,9 @@ const aiGoalThresholdBoost = pRiskMod * (ctx.awayClub.reputation >= ctx.homeClub
 
 if (targetPlayer && !prev.isPausedForEvent) {
 
+    // ===== DEBUG – gracz wylosowany =====
+    debugLogRef.current.push(`  targetPlayer=${targetPlayer.lastName} | storedCondition=${targetPlayer.condition} | fatigueMapVal=${fatigueMapForSide[targetPlayer.id] ?? 'undefined'}`);
+
     // Progresywna kara za zmęczenie — łączne ryzyko kontuzji (severe+light) na minutę:
     //   cond >= 75%: baseline (~0.84%/min)
     //   cond   74%: +3%  → ~3.84%/min
@@ -1237,6 +1266,12 @@ if (targetPlayer && !prev.isPausedForEvent) {
     // Łączna szansa na zdarzenie ≈ 3.3% na minutę na gracza (realistycznie niska)
     // =====================================================================
 
+    // ===== DEBUG – progi dla tego gracza =====
+    debugLogRef.current.push(`  targetCondition=${targetCondition.toFixed(2)} | totalInjuryChance=${totalInjuryChance.toFixed(8)} | sevRatio=${sevRatio.toFixed(6)}`);
+    debugLogRef.current.push(`  effectiveSevereChance=${effectiveSevereChance.toFixed(8)} | effectiveLightChance=${effectiveLightChance.toFixed(8)}`);
+    debugLogRef.current.push(`  CHECK: cardRoll(${cardRoll.toFixed(8)}) < RED(${effectiveRedChance.toFixed(8)})? ${cardRoll < effectiveRedChance}`);
+    debugLogRef.current.push(`  CHECK: injuryRoll(${injuryRoll.toFixed(8)}) < SEVERE+BONUS(${(effectiveSevereChance + effectiveSevereBonus).toFixed(8)})? ${injuryRoll < effectiveSevereChance + effectiveSevereBonus}`);
+
     // 1. CZERWONA KARTKA – niezależny roll
     if (cardRoll < effectiveRedChance) {
         nextSentOffIds.push(targetPlayer.id);
@@ -1256,6 +1291,8 @@ if (targetPlayer && !prev.isPausedForEvent) {
             teamSide: incidentSide,
             playerName: dispName
         }, ...updatedLogs];
+
+        debugLogRef.current.push(`  >>>>>> !!! RED CARD FIRED !!! player=${dispName} min=${nextMinute} cardRoll=${cardRoll.toFixed(8)} RED_CHANCE=${effectiveRedChance.toFixed(8)}`);
 
         if (incidentSide === userSide) nextIsPaused = true;
     }
@@ -1279,6 +1316,8 @@ if (targetPlayer && !prev.isPausedForEvent) {
             playerName: targetPlayer.lastName
         }, ...updatedLogs];
 
+        debugLogRef.current.push(`  >>>>>> !!! SEVERE INJURY FIRED !!! player=${targetPlayer.lastName} min=${nextMinute} cond=${targetCondition.toFixed(2)} injuryRoll=${injuryRoll.toFixed(8)} sevChance=${(effectiveSevereChance+effectiveSevereBonus).toFixed(8)}`);
+
         nextIsPaused = true;  // zatrzymanie gry – najcięższe zdarzenie
     }
 
@@ -1290,9 +1329,11 @@ if (targetPlayer && !prev.isPausedForEvent) {
             nextAwayInjuries[targetPlayer.id] = InjurySeverity.LIGHT;
         }
 
-        // logika spadku kondycji – bez zmian
+        // BUGFIX: conditionDrop zmniejszone z 25-45 do 5-10 pkt.
+        // Poprzednia wartość (45 - strength/100*20 = ~25-45) powodowała kaskadę:
+        // po 2-3 lekkich kontuzjach kondycja spadała < 30, wyzwalając Collapse Check (SEVERE).
         const pStrength = targetPlayer.attributes.strength || 50;
-        const conditionDrop = 45 - (pStrength / 100 * 20);
+        const conditionDrop = 5 + ((100 - pStrength) / 100) * 5; // zakres: 5.0 (str=100) → 10.0 (str=0)
 
         if (incidentSide === 'HOME') {
             localHomeFatigue[targetPlayer.id] = Math.max(0, (localHomeFatigue[targetPlayer.id] ?? targetPlayer.condition) - conditionDrop);
@@ -3012,6 +3053,14 @@ if (activePlayerTempo === 'SLOW') {
           className="h-12 bg-white/5 border border-white/10 text-slate-300 font-black italic uppercase tracking-widest text-[10px] rounded-2xl hover:bg-white/10 hover:text-white transition-all shadow-xl"
         >
           ⚙ TAKTYKA
+        </button>
+
+        <button
+          onClick={downloadDebugLog}
+          className="h-10 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-black italic uppercase tracking-widest text-[9px] rounded-2xl hover:bg-yellow-500/20 hover:text-yellow-300 transition-all shadow-xl"
+          title="Pobierz log debugowania jako .txt"
+        >
+          🐛 DEBUG LOG
         </button>
       </div>
     )}
