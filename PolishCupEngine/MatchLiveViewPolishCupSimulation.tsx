@@ -2673,18 +2673,26 @@ if (activePlayerTempo === 'SLOW') {
               <h2 className="text-6xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{ctx.homeClub.name}</h2>
             </div>
             <div className="flex flex-wrap gap-2 mt-1">
-              {matchState.homeGoals.map((g, i) => (
-                 <span key={i} className={`text-[9px] font-bold uppercase italic ${g.isMiss ? 'text-rose-500/80' : 'text-white/60'}`}>
-                    {g.isMiss ? '❌' : '⚽'} {g.playerName} {g.minute}'{g.isPenalty ? ' k.' : ''}
-                 </span>
-              ))}
-           {matchState.logs.filter(l => l.teamSide === 'HOME' && l.type === MatchEventType.RED_CARD).map((l, i) => (
-                 <span key={`red-h-${i}`} className="text-[9px] font-black text-red-500 uppercase italic">🟥 {l.playerName} {l.minute}'</span>
-              ))}
+              {matchState.homeGoals.map((g, i) => {
+                 const fp = ctx.homePlayers.find(px => px.lastName === g.playerName);
+                 const gName = fp ? `${fp.firstName.charAt(0)}. ${fp.lastName}` : g.playerName;
+                 return (
+                   <span key={i} className={`text-[9px] font-bold uppercase italic ${g.isMiss ? 'text-rose-500/80' : 'text-white/60'}`}>
+                      {g.isMiss ? '❌' : '⚽'} {gName} {g.minute}'{g.isPenalty ? ' k.' : ''}
+                   </span>
+                 );
+              })}
+           {matchState.logs.filter(l => l.teamSide === 'HOME' && l.type === MatchEventType.RED_CARD).map((l, i) => {
+                 const fp = ctx.homePlayers.find(px => px.lastName === l.playerName);
+                 const lName = fp ? `${fp.firstName.charAt(0)}. ${fp.lastName}` : l.playerName;
+                 return <span key={`red-h-${i}`} className="text-[9px] font-black text-red-500 uppercase italic">🟥 {lName} {l.minute}'</span>;
+              })}
              
-              {matchState.logs.filter(l => l.teamSide === 'HOME' && l.type === MatchEventType.INJURY_SEVERE).map((l, i) => (
-                 <span key={`inj-h-${i}`} className="text-[9px] font-black text-white bg-red-600/40 px-1 rounded uppercase italic"><span className="text-red-500 font-bold animate-pulse">✚ {l.playerName} {l.minute}'</span></span>
-              ))}
+              {matchState.logs.filter(l => l.teamSide === 'HOME' && l.type === MatchEventType.INJURY_SEVERE).map((l, i) => {
+                 const fp = ctx.homePlayers.find(px => px.lastName === l.playerName);
+                 const lName = fp ? `${fp.firstName.charAt(0)}. ${fp.lastName}` : l.playerName;
+                 return <span key={`inj-h-${i}`} className="text-[9px] font-black text-white bg-red-600/40 px-1 rounded uppercase italic"><span className="text-red-500 font-bold animate-pulse">✚ {lName} {l.minute}'</span></span>;
+              })}
             </div>
          </div>
 
@@ -2717,18 +2725,26 @@ if (activePlayerTempo === 'SLOW') {
               <BigJerseyIcon primary={kitColors.away.primary} secondary={kitColors.away.secondary} size="w-20 h-20" />
             </div>
             <div className="flex flex-wrap gap-2 mt-1 justify-end">
-              {matchState.awayGoals.map((g, i) => (
-                 <span key={i} className={`text-[9px] font-bold uppercase italic ${g.isMiss ? 'text-rose-500/80' : 'text-white/60'}`}>
-                    {g.playerName} {g.minute}'{g.isPenalty ? ' k.' : ''} {g.isMiss ? '❌' : '⚽'}
-                 </span>
-              ))}
-            {matchState.logs.filter(l => l.teamSide === 'AWAY' && l.type === MatchEventType.RED_CARD).map((l, i) => (
-                 <span key={`red-a-${i}`} className="text-[9px] font-black text-red-500 uppercase italic">{l.playerName} {l.minute}' 🟥</span>
-              ))}
+              {matchState.awayGoals.map((g, i) => {
+                 const fp = ctx.awayPlayers.find(px => px.lastName === g.playerName);
+                 const gName = fp ? `${fp.firstName.charAt(0)}. ${fp.lastName}` : g.playerName;
+                 return (
+                   <span key={i} className={`text-[9px] font-bold uppercase italic ${g.isMiss ? 'text-rose-500/80' : 'text-white/60'}`}>
+                      {gName} {g.minute}'{g.isPenalty ? ' k.' : ''} {g.isMiss ? '❌' : '⚽'}
+                   </span>
+                 );
+              })}
+            {matchState.logs.filter(l => l.teamSide === 'AWAY' && l.type === MatchEventType.RED_CARD).map((l, i) => {
+                 const fp = ctx.awayPlayers.find(px => px.lastName === l.playerName);
+                 const lName = fp ? `${fp.firstName.charAt(0)}. ${fp.lastName}` : l.playerName;
+                 return <span key={`red-a-${i}`} className="text-[9px] font-black text-red-500 uppercase italic">{lName} {l.minute}' 🟥</span>;
+              })}
             
-              {matchState.logs.filter(l => l.teamSide === 'AWAY' && l.type === MatchEventType.INJURY_SEVERE).map((l, i) => (
-                 <span key={`inj-a-${i}`} className="text-[9px] font-black text-white bg-red-600/40 px-1 rounded uppercase italic">{l.playerName} {l.minute}' <span className="text-red-500 font-bold animate-pulse">✚ </span></span>
-              ))}
+              {matchState.logs.filter(l => l.teamSide === 'AWAY' && l.type === MatchEventType.INJURY_SEVERE).map((l, i) => {
+                 const fp = ctx.awayPlayers.find(px => px.lastName === l.playerName);
+                 const lName = fp ? `${fp.firstName.charAt(0)}. ${fp.lastName}` : l.playerName;
+                 return <span key={`inj-a-${i}`} className="text-[9px] font-black text-white bg-red-600/40 px-1 rounded uppercase italic">{lName} {l.minute}' <span className="text-red-500 font-bold animate-pulse">✚ </span></span>;
+              })}
             </div>
          </div>
       </header>

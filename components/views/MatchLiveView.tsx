@@ -1760,7 +1760,9 @@ const summary: MatchSummary = {
         
       {goals.map((g, i) => {
           const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
-          const foundPlayer = playersList.find(px => px.lastName === g.playerName);
+          const foundPlayer = g.scorerId
+            ? playersList.find(px => px.id === g.scorerId)
+            : playersList.find(px => px.lastName === g.playerName);
           const nameToDisplay = foundPlayer
             ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}`
             : g.playerName;

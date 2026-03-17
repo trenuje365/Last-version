@@ -378,16 +378,16 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
           if (isGoal) {
             if (activePenalty.side === 'HOME') {
               nextHomeScore++;
-              newHomeGoals.push({ playerName: activePenalty.kicker.lastName, minute: prev.minute, isPenalty: true });
+              newHomeGoals.push({ playerName: activePenalty.kicker.lastName, scorerId: activePenalty.kicker.id, minute: prev.minute, isPenalty: true });
             } else {
               nextAwayScore++;
-              newAwayGoals.push({ playerName: activePenalty.kicker.lastName, minute: prev.minute, isPenalty: true });
+              newAwayGoals.push({ playerName: activePenalty.kicker.lastName, scorerId: activePenalty.kicker.id, minute: prev.minute, isPenalty: true });
             }
           } else {
             if (activePenalty.side === 'HOME') {
-              newHomeGoals.push({ playerName: activePenalty.kicker.lastName, minute: prev.minute, isPenalty: true, isMiss: true });
+              newHomeGoals.push({ playerName: activePenalty.kicker.lastName, scorerId: activePenalty.kicker.id, minute: prev.minute, isPenalty: true, isMiss: true });
             } else {
-              newAwayGoals.push({ playerName: activePenalty.kicker.lastName, minute: prev.minute, isPenalty: true, isMiss: true });
+              newAwayGoals.push({ playerName: activePenalty.kicker.lastName, scorerId: activePenalty.kicker.id, minute: prev.minute, isPenalty: true, isMiss: true });
             }
           }
 
@@ -1853,9 +1853,13 @@ const summary: MatchSummary = {
       <div className={`flex flex-wrap gap-2 mt-1 ${side === 'AWAY' ? 'justify-end' : 'justify-start'}`}>
         
       {goals.map((g, i) => {
-          // TUTAJ WSTAW TEN KOD - Inteligentne formatowanie nazwiska strzelca
-          const nameToDisplay = g.playerName.includes('.') ? g.playerName : g.playerName; 
-          // KONIEC WSTAWKI
+          const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+          const foundPlayer = g.scorerId
+            ? playersList.find(px => px.id === g.scorerId)
+            : playersList.find(px => px.lastName === g.playerName);
+          const nameToDisplay = foundPlayer
+            ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}`
+            : g.playerName;
           return (
             <span key={`g-${i}`} className={`text-[9px] font-bold flex items-center gap-1 ${g.isMiss ? 'text-rose-500' : g.varDisallowed ? 'text-slate-500' : 'text-white'}`}>
               {g.isMiss ? '❌' : '⚽'}{' '}
@@ -1866,8 +1870,26 @@ const summary: MatchSummary = {
           );
         })}
 
-        {cards.map((c, i) => <span key={`c-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">{c.type === MatchEventType.RED_CARD ? '🟥' : '🟨'} {c.playerName}</span>)}
-        {injs.map((j, i) => <span key={`j-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1"><span className={j.type === MatchEventType.INJURY_SEVERE ? 'text-red-500' : 'text-white'}>✚</span> {j.playerName}</span>)}
+        {cards.map((c, i) => {
+          const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+          const foundPlayer = playersList.find(px => px.lastName === c.playerName);
+          const cardName = foundPlayer ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}` : c.playerName;
+          return (
+            <span key={`c-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">
+              {c.type === MatchEventType.RED_CARD ? '🟥' : '🟨'} {cardName} ({c.minute}')
+            </span>
+          );
+        })}
+        {injs.map((j, i) => {
+          const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+          const foundPlayer = playersList.find(px => px.lastName === j.playerName);
+          const injName = foundPlayer ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}` : j.playerName;
+          return (
+            <span key={`j-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">
+              <span className={j.type === MatchEventType.INJURY_SEVERE ? 'text-red-500' : 'text-white'}>✚</span> {injName} ({j.minute}')
+            </span>
+          );
+        })}
       </div>
     );
   };
@@ -1899,7 +1921,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
           const liveRating = calculateLiveRating(p, side, matchState);
           const nameWithInitial = `${p.firstName.charAt(0)}. ${p.lastName}`;
           // Poprawiona detekcja goli: sprawdzamy zarówno nazwisko jak i format z inicjałem
-          const goalsCount = (side === 'HOME' ? matchState!.homeGoals : matchState!.awayGoals).filter(g => g.playerName === p.lastName || g.playerName === nameWithInitial).length;
+          const goalsCount = (side === 'HOME' ? matchState!.homeGoals : matchState!.awayGoals).filter(g => !g.isMiss && (g.playerName === p.lastName || g.playerName === nameWithInitial || g.scorerId === p.id)).length;
           const assistsCount = (side === 'HOME' ? matchState!.homeGoals : matchState!.awayGoals).filter(g => g.assistantId === p.id).length;
           const f = fatigue[pid] || 100;
           const isSentOff = matchState!.sentOffIds.includes(pid);
