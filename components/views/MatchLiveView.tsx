@@ -1469,7 +1469,9 @@ return {
           
           // Dodajemy przychód z biletów dla gospodarza
           const tier = parseInt(c.leagueId.split('_')[2] || '1');
-          const ticketRevenue = isHome ? FinanceService.calculateMatchTicketRevenue(attendance, tier, c.reputation) : 0;
+          const { revenue: ticketRevenue, avgPrice: ticketAvgPrice } = isHome
+            ? FinanceService.calculateMatchTicketRevenue(attendance, tier, c.reputation)
+            : { revenue: 0, avgPrice: 0 };
           const netChange = ticketRevenue - matchCost;
 
           const s = isHome ? matchState.homeScore : matchState.awayScore;
@@ -1486,13 +1488,12 @@ return {
           if (isHome) {
             // 🏟️ Przychody z biletów
             if (ticketRevenue > 0) {
-              const ticketPrice = FinanceService.calculateTicketPrice(tier, c.reputation);
               financeLogsToAdd.push({
                 id: Math.random().toString(36).substr(2, 9),
                 date: currentDate.toISOString().split('T')[0],
                 amount: ticketRevenue,
                 type: 'INCOME' as const,
-                description: `Bilety (vs ${ctx.awayClub.name}): ${attendance} widzów @ ${ticketPrice} PLN`,
+                description: `Bilety (vs ${ctx.awayClub.name}): ${attendance} widzów @ ${ticketAvgPrice} PLN`,
                 previousBalance: currentBalance
               });
               currentBalance += ticketRevenue;

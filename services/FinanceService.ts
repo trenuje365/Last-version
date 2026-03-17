@@ -432,13 +432,11 @@ export const FinanceService = {
   },
 
   evaluateFASigningBoardDecision: (player: Player, proposedSalary: number, proposedBonus: number, squad: Player[], club: Club): { approved: boolean, reason: string } => {
-    const currentWageBill = FinanceService.calculateCurrentWageBill(squad);
-    const newTotalWageBill = currentWageBill + proposedSalary;
-    
-    // 1. BLOKADA KSIĘGOWEGO (Budżet ogólny)
-    const budgetSafetyLimit = club.budget * 0.70;
-    if (newTotalWageBill > budgetSafetyLimit) {
-      return { approved: false, reason: "DYREKTOR FINANSOWY: Niestety nie możemy sobie pozwolić na taki wydatek." };
+    // 1. BLOKADA KSIĘGOWEGO: proponowana pensja > 25% budżetu transferowego
+    // (Nie porównujemy łącznego funduszu płac do budżetu – to są zupełnie różne pojęcia finansowe)
+    const salaryCap = club.budget * 0.25;
+    if (proposedSalary > salaryCap) {
+      return { approved: false, reason: `DYREKTOR FINANSOWY: Proponowana pensja przekracza 25% naszego budżetu transferowego (limit: ${Math.floor(salaryCap).toLocaleString()} PLN).` };
     }
 
     // 2. BLOKADA STRUKTURALNA (Porównanie z liderami płac)
@@ -574,9 +572,11 @@ export const FinanceService = {
   },
 
   // Przychód z biletów jednorazowych
-  calculateMatchTicketRevenue: (attendance: number, tier: number, reputation: number): number => {
-    const ticketPrice = FinanceService.calculateTicketPrice(tier, reputation);
-    return Math.floor(attendance * ticketPrice);
+  calculateMatchTicketRevenue: (attendance: number, tier: number, reputation: number): { revenue: number; avgPrice: number } => {
+    const maxPrice = FinanceService.calculateTicketPrice(tier, reputation);
+    const minPrice = 20;
+    const avgPrice = Math.floor(minPrice + Math.random() * (maxPrice - minPrice));
+    return { revenue: Math.floor(attendance * avgPrice), avgPrice };
   },
 
   // Przychód z karnetów na sezon (tylko dla gospodarza)
