@@ -378,11 +378,8 @@ intensityResponseFactor: 1.0,
     if (!redCardNotice) return;
     const timer = setTimeout(() => {
       setRedCardNotice(null);
-      setMatchState(prev => {
-        if (!prev || prev.isFinished || prev.isHalfTime || prev.isPenalties || prev.isPausedForEvent) return prev;
-        return { ...prev, isPaused: false };
-      });
-    }, 4000);
+      // Gra pozostaje wstrzymana — gracz musi sam wznowić po obejrzeniu czerwonej
+    }, 3000);
     return () => clearTimeout(timer);
   }, [redCardNotice]);
 
@@ -424,7 +421,7 @@ useEffect(() => {
           awayScore: finalAScore,
           homeGoals: finalHGoals,
           awayGoals: finalAGoals,
-          isPaused: false,
+          isPaused: isScored ? true : false,  // po golu — pauza 2 sek; po pudле — wznów
           isPausedForEvent: false,
           logs: [{
             id: `PEN_RES_${minute}`,
@@ -435,6 +432,15 @@ useEffect(() => {
           }, penLog, ...latest.logs]
         };
       });
+      // Po trafieniu z karnego — auto-wznowienie po 2 sekundach
+      if (isScored) {
+        setTimeout(() => {
+          setMatchState(s => {
+            if (!s || s.isFinished || s.isPenalties) return s;
+            return { ...s, isPaused: false };
+          });
+        }, 2000);
+      }
     }, 3000);
     return () => clearTimeout(timer);
   }, [matchState?.isPausedForEvent]);
@@ -663,8 +669,8 @@ useEffect(() => {
         // === BALANS 2025 – stałe do łatwego tuningu ===
         const RED_CARD_CHANCE        = 0.00001;  // ~0.065 czerwonych/mecz
         const SEVERE_INJURY_CHANCE   = 0.00004;   // (-20%)
-        const LIGHT_INJURY_CHANCE    = 0.0040;
-        const YELLOW_CARD_CHANCE     = 0.04;    // ~3.15 żółtych/mecz (normal)
+        const LIGHT_INJURY_CHANCE    = 0.0020;
+        const YELLOW_CARD_CHANCE     = 0.022;    // ~3.15 żółtych/mecz (normal)
         const BASE_EVENT_THRESHOLD   = 0.42;
         const BASE_GOAL_THRESHOLD    = 0.065;
         const MOMENTUM_INERTIA       = 0.88;
@@ -928,6 +934,25 @@ useEffect(() => {
 
 
         const playerTacticId = userSide === 'HOME' ? prev.homeLineup.tacticId : prev.awayLineup.tacticId;
+
+        // === BONUS WALECZNOŚCI TIER3/TIER4 ("Chłopaki walczą") ===
+        // Słabszy klub grający defensywnie dostaje losowy bonus utrudniający faworytowi atak.
+        // Warunek: AI jest Tier3/4 (rep <= 5) vs gracz Tier1 (rep >= 8) + gra defensywnie.
+        const aiRepNow = aiSide === 'HOME' ? ctx.homeClub.reputation : ctx.awayClub.reputation;
+        const playerRepNow = userSide === 'HOME' ? ctx.homeClub.reputation : ctx.awayClub.reputation;
+        const aiTacticNow = TacticRepository.getById(aiSide === 'HOME' ? nextHomeLineup.tacticId : nextAwayLineup.tacticId);
+        const aiIsUltraDefensive = (currentAiShout?.mindset === 'DEFENSIVE' || aiTacticNow.defenseBias > 65);
+
+        if (aiRepNow <= 5 && playerRepNow >= 8 && aiIsUltraDefensive) {
+            // Losowy bonus 5–15% (różny każdą minutę — nieprzewidywalny)
+            const fightBonus = 0.05 + seededRng(currentSeed, nextMinute, 3131) * 0.10;
+            // Podnosimy próg dla atakującego gracza (trudniej wejść w pole karne)
+            if (userSide === 'HOME') {
+                homeProgressionThreshold = Math.min(0.95, homeProgressionThreshold + fightBonus);
+            } else {
+                awayProgressionThreshold = Math.min(0.95, awayProgressionThreshold + fightBonus);
+            }
+        }
 
         let coachEfficiency = 1.0; 
         if (aiCoach) {
@@ -1679,6 +1704,13 @@ dynamicThreshold *= undedogThresholdMultiplier;
             if (defMindset === 'OFFENSIVE') counterBonus += 0.04;
             if (defTempo === 'FAST') counterBonus += 0.03;
             if (counterBonus > 0) dynamicThreshold = Math.max(0.20, dynamicThreshold - counterBonus);
+            // Ekstra bonus kontry dla Tier3/4 atakującego Tier1 — walka o każdy centymetr boiska
+            const attackingClubRep = eventSide === 'HOME' ? ctx.homeClub.reputation : ctx.awayClub.reputation;
+            const defendingClubRep = eventSide === 'HOME' ? ctx.awayClub.reputation : ctx.homeClub.reputation;
+            if (attackingClubRep <= 5 && defendingClubRep >= 8) {
+                const extraCounterBonus = 0.05 + seededRng(currentSeed, nextMinute, 4242) * 0.05; // 5–10%
+                dynamicThreshold = Math.max(0.20, dynamicThreshold - extraCounterBonus);
+            }
         }
 
         // Podłączenie pActionMod gracza: FAST obniża próg ~4.7%, SLOW podnosi ~5.3%, AGGRESSIVE daje mały bonus
@@ -1698,10 +1730,11 @@ dynamicThreshold *= undedogThresholdMultiplier;
         const goalDiff = Math.abs(hScore - aScore);
         const leads = (eventSide === 'HOME' && hScore > aScore) || (eventSide === 'AWAY' && aScore > hScore);
 
-           // 1. Logika Nasycenia (PRO): Łagodniejszy mnożnik, by faworyt nie przestawał grać przy 2:0.
-        if (leads && goalDiff >= 3) {
-            const satietyFactor = 1 + (goalDiff - 1) * 0.54; 
-            dynamicThreshold *= satietyFactor;
+           // 1. Logika Nasycenia (PRO): zaczyna od 2:0, łagodna krzywa bez twardego blokowania.
+        // goalDiff=2 → ×1.17 | diff=3 → ×1.34 | diff=4 → ×1.51 | diff=5+ → cap 0.95
+        if (leads && goalDiff >= 2) {
+            const satietyFactor = 1 + (goalDiff - 1) * 0.17;
+            dynamicThreshold = Math.min(0.95, dynamicThreshold * satietyFactor);
             // --- BOOST: bezpośredni losowy wzrost momentum rywala po 5. bramce ---
             if (goalDiff >= 5) {
                 const momentumBoost = 18 + Math.random() * 12; // 18–30
@@ -1767,7 +1800,24 @@ dynamicThreshold *= undedogThresholdMultiplier;
   log.type === MatchEventType.GOAL ||
   log.type === MatchEventType.PENALTY_MISSED
 ));
-         if (shotPower > savePower && !wasPenaltyThisMinute) {
+        // Współczynnik konwersji probabilistyczny: nawet dominujący napastnik nie strzela za każdym razem.
+        // Tier 1 (fin~75) vs Tier 4 GK (gk~45) → ~42% | Tier 1 vs Tier 1 GK → ~35% | Tier 4 vs Tier 1 GK → ~27%
+        const shootingClubRep = eventSide === 'HOME' ? ctx.homeClub.reputation : ctx.awayClub.reputation;
+        let luckyBonus = 0;
+        if (shootingClubRep <= 7) {
+            // "Strzał życia" — rzadki losowy bonus dla drużyn Tier 2/3/4
+            // Tier 4 (rep≤3): 18% szans | Tier 3 (rep 4-5): 13% | Tier 2 (rep 6-7): 8%
+            const luckActivationRoll = seededRng(currentSeed, nextMinute, 7171);
+            const luckChance = shootingClubRep <= 3 ? 0.18 : shootingClubRep <= 5 ? 0.13 : 0.08;
+            if (luckActivationRoll < luckChance) {
+                // Bonus 1%–50%: rozkład z przewagą małych wartości (pow 0.6), rzadko duże
+                const bonusMagnitude = seededRng(currentSeed, nextMinute, 7172);
+                luckyBonus = 0.01 + Math.pow(bonusMagnitude, 0.6) * 0.49;
+            }
+        }
+        const goalProbability = Math.min(0.90, (shotPower / (shotPower + savePower)) * 0.70 + luckyBonus);
+        const goalRoll = seededRng(currentSeed, nextMinute, 8831);
+         if (goalRoll < goalProbability && !wasPenaltyThisMinute) {
          
          
                 eventType = MatchEventType.GOAL;
@@ -1794,12 +1844,14 @@ dynamicThreshold *= undedogThresholdMultiplier;
                 nextIsPaused = true; // Pauza 3 sekundy — wznowienie przez useEffect
 
                 const isEquivalent = Math.abs(pPower - aPower) < 25;
-                nextPostGoalSuppressionDuration = 4 + Math.floor(Math.random() * 5);
+                nextPostGoalSuppressionDuration = isEquivalent
+                    ? 4 + Math.floor(Math.random() * 5)   // 4–8 min — mecze równe
+                    : 7 + Math.floor(Math.random() * 6);  // 7–12 min — duża dysproporcja: faworyt trzyma piłkę
 
                 if (isEquivalent) {
-                   nextPostGoalPenaltyPct = 0.10 + (Math.random() * 0.10);
+                   nextPostGoalPenaltyPct = 0.10 + (Math.random() * 0.10); // 10–20%
                 } else {
-                   nextPostGoalPenaltyPct = 0.02 + (Math.random() * 0.08);
+                   nextPostGoalPenaltyPct = 0.13 + (Math.random() * 0.10); // 13–23% — silniejszy nie naciska od razu
                 }
            } else {
 
