@@ -267,7 +267,7 @@ export const PostMatchStudioView: React.FC = () => {
 
               {/* Score Center */}
               <div className="flex flex-col items-center gap-2">
-                <div className="bg-black/40 px-12 py-5 rounded-[35px] border border-white/10 text-8xl font-mono font-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.4)] shrink-0">
+                <div className="bg-black/40 px-12 py-5 rounded-[35px] border border-white/10 text-8xl font-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.4)] shrink-0">
                   {homeScore} <span className="text-slate-700">:</span> {awayScore}
                 </div>
                 <div className="bg-emerald-500/10 px-4 py-1 rounded-full border border-emerald-500/20">
