@@ -166,6 +166,7 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
   
   const [isFinishing, setIsFinishing] = useState(false);
   const [isCelebratingGoal, setIsCelebratingGoal] = useState(false);
+  const [isUserPaused, setIsUserPaused] = useState(false);
   const [isTacticsOpen, setIsTacticsOpen] = useState(false);
   const [penaltyNotice, setPenaltyNotice] = useState<string | null>(null);
   const [redCardNotice, setRedCardNotice] = useState<string | null>(null);
@@ -384,16 +385,19 @@ intensityResponseFactor: 1.0,
     if (matchState && (matchState.homeScore > 0 || matchState.awayScore > 0) && !matchState.isPenalties) {
       setIsCelebratingGoal(true);
       const celebTimer = setTimeout(() => setIsCelebratingGoal(false), 3000);
-      // Wznowienie gry po 3 sekundach od bramki
-      const resumeTimer = setTimeout(() => {
-        setMatchState(prev => {
-          if (!prev || prev.isFinished || prev.isHalfTime || prev.isPenalties || prev.isPausedForEvent) return prev;
-          return { ...prev, isPaused: false };
-        });
-      }, 3000);
-      return () => { clearTimeout(celebTimer); clearTimeout(resumeTimer); };
+      return () => { clearTimeout(celebTimer); };
     }
   }, [matchState?.homeScore, matchState?.awayScore]);
+
+  // Wznowienie gry gdy animacja GOL kończy migać — tylko jeśli user nie pauzował ręcznie
+  useEffect(() => {
+    if (isCelebratingGoal) return;
+    if (isUserPaused) return;
+    setMatchState(prev => {
+      if (!prev || prev.isFinished || prev.isHalfTime || prev.isPenalties || prev.isPausedForEvent || prev.minute === 0) return prev;
+      return { ...prev, isPaused: false };
+    });
+  }, [isCelebratingGoal]);
 
   useEffect(() => {
     if (!redCardNotice) return;
@@ -3379,9 +3383,12 @@ if (activePlayerTempo === 'SLOW') {
               if (s.isExtraTime) {
                  return { ...htResumedState, period: 4, minute: 105, aiActiveShout: htActiveShout };
               }
+              setIsUserPaused(false);
               return { ...htResumedState, period: 2, minute: 45, aiActiveShout: htActiveShout };
             }
-            return { ...s, isPaused: !s.isPaused };
+            const nextPaused = !s.isPaused;
+            setIsUserPaused(nextPaused);
+            return { ...s, isPaused: nextPaused };
           })} 
           className={`flex-1 rounded-3xl font-black uppercase italic text-xl shadow-2xl transition-all hover:scale-[1.02] active:scale-95 border-b-4
             ${matchState.isHalfTime ? 'bg-blue-600 border-blue-800 text-white' : 
@@ -3401,7 +3408,7 @@ if (activePlayerTempo === 'SLOW') {
 
         <button
           onClick={downloadDebugLog}
-          className="h-10 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-black italic uppercase tracking-widest text-[9px] rounded-2xl hover:bg-yellow-500/20 hover:text-yellow-300 transition-all shadow-xl"
+          className="hidden h-10 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-black italic uppercase tracking-widest text-[9px] rounded-2xl hover:bg-yellow-500/20 hover:text-yellow-300 transition-all shadow-xl"
           title="Pobierz log debugowania jako .txt"
         >
           🐛 DEBUG LOG
@@ -3409,7 +3416,7 @@ if (activePlayerTempo === 'SLOW') {
 
         <button
           onClick={() => setShowDebugPanel(v => !v)}
-          className={`h-10 border font-black italic uppercase tracking-widest text-[9px] rounded-2xl transition-all shadow-xl ${showDebugPanel ? 'bg-green-500/30 border-green-400/60 text-green-300' : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20 hover:text-green-300'}`}
+          className={`hidden h-10 border font-black italic uppercase tracking-widest text-[9px] rounded-2xl transition-all shadow-xl ${showDebugPanel ? 'bg-green-500/30 border-green-400/60 text-green-300' : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20 hover:text-green-300'}`}
           title="Panel matematyczny na żywo"
         >
           📊 LIVE STATS
