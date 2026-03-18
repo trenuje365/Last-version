@@ -47,6 +47,8 @@ import { CLSFDrawView } from './components/views/CLSFDrawView';
 import { PreMatchCLFinalView } from './components/views/PreMatchCLFinalView';
 import { PostMatchCLFinalView } from './components/views/PostMatchCLFinalView';
 import { EuropeanClubsView } from './components/views/EuropeanClubsView';
+import { ELDrawView } from './LECupEngine/ELDrawView';
+import { ELHistoryView } from './LECupEngine/ELHistoryView';
 
 // Internal component to handle view switching
 const AppContent: React.FC = () => {
@@ -57,6 +59,10 @@ const AppContent: React.FC = () => {
 
       case ViewState.CL_HISTORY:
   return <CLHistoryView />;
+case ViewState.EL_DRAW:
+  return <ELDrawView />;
+case ViewState.EL_HISTORY:
+  return <ELHistoryView />;
 case ViewState.PRE_MATCH_CL_STUDIO:
   return <PreMatchCLStudioView />;
 

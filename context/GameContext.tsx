@@ -10,6 +10,7 @@ PlayerPosition, EuropeanStatus
 } from '../types';
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from '../resources/static_db/clubs/ChampionsLeagueTeams';
 import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../resources/static_db/clubs/EuropeLeagueTeams';
+import { ELDrawService } from '../LECupEngine/ELDrawService';
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../resources/static_db/clubs/ConferenceLeagueTeams';
 import { STATIC_CLUBS, STATIC_LEAGUES, STATIC_CL_CLUBS, STATIC_EL_CLUBS, STATIC_CONF_CLUBS, START_DATE } from '../constants';
 import { SeasonTemplateGenerator } from '../services/SeasonTemplateGenerator';
@@ -113,6 +114,7 @@ interface GameContextType {
   setActiveTrainingId: (id: string | null) => void;
   confirmCupDraw: (pairs: Fixture[]) => void;
   confirmCLDraw: (pairs: Fixture[]) => void;
+  confirmELDraw: (pairs: Fixture[]) => void;
   confirmCLGroupDraw: () => void;
     confirmCLR16Draw: () => void;
   confirmCLQFDraw: () => void;
@@ -866,7 +868,7 @@ setMessages([welcomeMail, fanMail]);
   };
 
   const advanceDay = useCallback(() => {
-    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW) return;
+    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW) return;
 
     const dateToProcess = new Date(currentDate);
     // Czy to automatyczny skok (jumpToDate/jumpToNextEvent) — NIE ręczny klik gracza?
@@ -988,11 +990,26 @@ setMessages([welcomeMail, fanMail]);
       dateToProcess, seasonTemplate, allFixtures, userTeamId, clubs
     );
 
+    // skipDayAdvance = true oznacza że data NIE zostanie przesunięta
+    // (gracz musi jeszcze zagrać mecz lub potwierdzić akcję tego dnia)
+    let skipDayAdvance = false;
+
     if (primaryEvent?.participation === 'player') {
       setTargetJumpTime(null);
       const slot = primaryEvent.slot;
 
       switch (slot.competition) {
+
+        // ── LE: Losowanie Rundy 1 Preeliminacyjnej ──────────────────────────
+        case CompetitionType.EL_R1Q_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const elTeamIds = ELDrawService.getEligibleTeams(RAW_EUROPA_LEAGUE_CLUBS, sessionSeed);
+          const elPairs = ELDrawService.drawPairs(elTeamIds, clubs, dateToProcess, sessionSeed);
+          setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: elPairs });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_DRAW);
+          skipDayAdvance = true; break;
+        }
 
         // ── LM: Losowanie Rundy 1 Preeliminacyjnej ──────────────────────────
         case CompetitionType.CHAMPIONS_LEAGUE_DRAW: {
@@ -1002,7 +1019,7 @@ setMessages([welcomeMail, fanMail]);
           setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Losowanie Rundy 2 Preeliminacyjnej ──────────────────────────
@@ -1017,7 +1034,7 @@ setMessages([welcomeMail, fanMail]);
           setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: r2qPairs });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Losowanie Fazy Grupowej ─────────────────────────────────────
@@ -1030,7 +1047,7 @@ setMessages([welcomeMail, fanMail]);
           setActiveGroupDraw({ id: slot.id, label: slot.label, date: dateToProcess, groups });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_GROUP_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Faza Grupowa (mecz gracza) ──────────────────────────────────
@@ -1041,9 +1058,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
 
           break;
@@ -1055,7 +1072,7 @@ setMessages([welcomeMail, fanMail]);
           if (!clGroups) break; // faza grupowa jeszcze nie zakończona
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_R16_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: 1/8 Finału (mecze) ──────────────────────────────────────────
@@ -1067,9 +1084,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
             break;
         }
@@ -1079,7 +1096,7 @@ setMessages([welcomeMail, fanMail]);
           if (processedDrawIds.includes(slot.id)) break;
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_QF_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: 1/4 Finału (mecze) ──────────────────────────────────────────
@@ -1091,9 +1108,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
                    break;
         }
@@ -1103,7 +1120,7 @@ setMessages([welcomeMail, fanMail]);
           if (processedDrawIds.includes(slot.id)) break;
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_SF_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Ogłoszenie Finalistów ────────────────────────────────────────
@@ -1125,7 +1142,7 @@ setMessages([welcomeMail, fanMail]);
           }
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_FINAL_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: 1/2 Finału (mecze) ──────────────────────────────────────────
@@ -1138,9 +1155,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
           // Po rewanżu 1/2 finału: wygeneruj finał i pokaż parę finałową
           if (slot.competition === CompetitionType.CL_SF_RETURN) {
@@ -1174,9 +1191,9 @@ setMessages([welcomeMail, fanMail]);
        
           const alreadyPlayed = finalFixture.status === MatchStatus.FINISHED;
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_FINAL);
-            return;
+            skipDayAdvance = true; break;
           }
           // Finał rozegrany — wyślij mail o zwycięzcy (raz)
           if (userTeamId) {
@@ -1222,9 +1239,9 @@ setMessages([welcomeMail, fanMail]);
         case CompetitionType.CL_R1Q_RETURN:
         case CompetitionType.CL_R2Q:
         case CompetitionType.CL_R2Q_RETURN: {
-          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── Puchar Polski: Losowanie ─────────────────────────────────────────
@@ -1254,27 +1271,27 @@ setMessages([welcomeMail, fanMail]);
             setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: cupPairs });
             setCupParticipants(participants);
             navigateTo(ViewState.CUP_DRAW);
-            return;
+            skipDayAdvance = true; break;
           }
           // Ogłoszenie finalistów PP — pokaż ekran finalistów (raz)
           if (slot.label.toUpperCase().includes('OGŁOSZENIE') || slot.label.toUpperCase().includes('OGLOSZENIE')) {
             if (processedDrawIds.includes(slot.id)) break;
             setProcessedDrawIds(prev => [...prev, slot.id]);
             navigateTo(ViewState.POLISH_CUP_FINALISTS);
-            return;
+            skipDayAdvance = true; break;
           }
           // Dzień meczowy PP — gracz uczestniczy
           // Jeśli to automatyczny skok: zatrzymaj i wróć na Dashboard (gracz edytuje skład)
-          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── Superpuchar (gracz uczestniczy) ────────────────────────────────
         case CompetitionType.SUPER_CUP: {
-          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── Zakończenie sezonu — pauza, gracz czyta emaile i klika "Nowy sezon" ──
@@ -1340,23 +1357,21 @@ setMessages([welcomeMail, fanMail]);
       }
     }
 
-    // ── Puchar Polski: dzień meczowy — gracz nie uczestniczy (auto-skok) ────
-    // Zatrzymaj auto-skok, aby gracz mógł kliknąć przycisk na Dashboardzie.
-    // Przycisk "PUCHAR POLSKI (wyniki)" wywołuje processBackgroundCupMatches() + nawigację.
+    // ── Puchar Polski / Superpuchar: background — zatrzymaj auto-skok ────────
+    // Gracz musi ręcznie kliknąć przycisk na Dashboardzie (wyniki).
     if (isAutoJumping &&
         primaryEvent?.participation === 'background' &&
-        primaryEvent.slot.competition === CompetitionType.POLISH_CUP) {
+        (primaryEvent.slot.competition === CompetitionType.POLISH_CUP ||
+         primaryEvent.slot.competition === CompetitionType.SUPER_CUP)) {
       setTargetJumpTime(null);
       return;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Uwaga: CUP/SUPERPUCHAR background NIE jest przetwarzany tu.
-    // Gracz klika przycisk "wyniki" na Dashboardzie → processBackgroundCupMatches.
+    // 1. GUARD + SYMULACJA + FINANSE — wykonywane ZAWSZE, niezależnie od eventu dnia.
+    //    Dzięki temu pensje, squad review i inne zadania dnia nie są pomijane
+    //    gdy tego samego dnia jest losowanie (LE/LM/PP) lub mecz.
     // ─────────────────────────────────────────────────────────────────────────
-
-// 1. Obliczanie wyniku symulacji (Używamy aktualnych stanów z zewnątrz setterów)
-    // Guard: nie symuluj tej samej daty wielokrotnie (zabezpieczenie przed stale closure w advanceDay)
     const dateKey = dateToProcess.toDateString();
     if (lastProcessedLeagueDateRef.current === dateKey) {
       DebugLoggerService.log('GUARD', `ZABLOKOWANO advanceDay dla: ${dateKey} (stale closure)`);
@@ -1762,6 +1777,9 @@ const finalResult: SimulationOutput = {
     }
     // --- END SCOUT ASSISTANT ---
 
+    // Nie przesuwamy daty jeśli gracz musi jeszcze zagrać mecz lub potwierdzić akcję tego dnia
+    if (skipDayAdvance) return;
+
     setCurrentDate(nextDay);
     setLastRecoveryDate(new Date(dateToProcess));
   }, [currentDate, userTeamId, allFixtures, applySimulationResult, startNextSeason, viewState, seasonTemplate, cupParticipants, clubs, processedDrawIds, navigateTo, globalFixtures, targetJumpTime]);
@@ -2070,6 +2088,65 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   };
 
+  // ── Liga Europy: potwierdzenie losowania R1Q ─────────────────────────────
+  const confirmELDraw = (pairs: Fixture[]) => {
+    if (!activeCupDraw) return;
+
+    // Zapisz pary (draw fixtures)
+    setGlobalFixtures(prev => [...prev, ...pairs]);
+
+    const year = currentDate.getFullYear();
+    const matchFixtures: Fixture[] = [];
+
+    pairs.forEach((pair, i) => {
+      const pairNum = i + 1;
+      matchFixtures.push({
+        id: `EL_R1Q_MATCH_${pairNum}_${year}`,
+        leagueId: CompetitionType.EL_R1Q,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        date: new Date(year, 6, 5),   // 5 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      matchFixtures.push({
+        id: `EL_R1Q_MATCH_${pairNum}_${year}_RETURN`,
+        leagueId: CompetitionType.EL_R1Q_RETURN,
+        homeTeamId: pair.awayTeamId,
+        awayTeamId: pair.homeTeamId,
+        date: new Date(year, 6, 10),  // 10 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    });
+    setGlobalFixtures(prev => [...prev, ...matchFixtures]);
+
+    setProcessedDrawIds(prev => [...prev, activeCupDraw.id]);
+    setActiveCupDraw(null);
+
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `EL_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Zakończono losowanie Ligi Europy — Runda 1',
+        body: 'Zakończono ceremonię losowania Rundy 1 Kwalifikacyjnej Ligi Europy UEFA. Zapraszamy do zapoznania się z wylosowanymi parami.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 82,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
   const markMessageRead = (id: string) => setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
   const deleteMessage = (id: string) => setMessages(prev => prev.filter(m => m.id !== id));
  const updatePlayer = (clubId: string, playerId: string, newData: Partial<Player>) => {
@@ -2215,7 +2292,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
-            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, activeGroupDraw,
+            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, activeGroupDraw,
     confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
     }}>
       {children}

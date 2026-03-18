@@ -20,55 +20,52 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  
   // --- LIPIEC (Przygotowania i Start) ------------------------------------------------------------------------------------------------------------
   { day: 1,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "Przygotowania do nowego sezonu", priority: 100 },
+  { day: 2,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R1Q_DRAW, label: "LOSOWANIE LE: RUNDA 1 PREELIMINACYJNA", priority: 88 },
 
+
+//LIGA MISTRZOW - losowanie 1 rundy preeliminacyjnej 
 { day: 3, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.CHAMPIONS_LEAGUE_DRAW, label: "LOSOWANIE LM: RUNDA 1 PREELIMINACYJNA", priority: 90 },
 
 
+ { day: 4, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.BOARD, label: "ZEBRANIE ZARZĄDU KLUBU", priority: 80 },
+
+
+{ day: 5,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R1Q, label: "LE: R1Q - 1. mecz", priority: 82 },
+ 
   { day: 9,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Otwarcie letniego okna transferowego", priority: 60 },
 
-  { day: 10, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.BOARD, label: "ZEBRANIE ZARZĄDU KLUBU", priority: 80 },
+  { day: 10, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R1Q_RETURN, label: "LE: R1Q - Rewanż", priority: 82 },
 
-// LIGA MISTRZOW 
 
+// LIGA MISTRZOW 1 mecz 1 rudna 
 { day: 11, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R1Q, label: "LM: R1Q - 1. mecz", priority: 85 },
- // --- PUCHARY EUROPEJSKIE 11 lipiec preeliminacje LIGA EUROPY i KONFERENCJI --- 1 mecz
-
-  
-
+//SUPERPUCHAR POLSKI ///
   { day: 12, month: 6, type: SlotType.WEEKEND, comp: CompetitionType.SUPER_CUP, label: "Mecz o Superpuchar Polski", priority: 95 },
-
-
+  //LOSOWANIE PUCHARU POLSKI 1/64
   { day: 13, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.POLISH_CUP, label: "LOSOWANIE PUCHARU POLSKI 1/64", priority: 40 },
- 
- 
   { day: 14, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 1)", priority: 20 },
-  
-
-
+//Liga mistrzow rewanż 1 rundy 
 { day: 15, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R1Q_RETURN, label: "LM: R1Q - Rewanż", priority: 85 },
-
- // --- PUCHARY EUROPEJSKIE 28 lipiec preeliminacje LIGA EUROPY i KONFERENCJI --- 1 mecz
-
-
-
-
+///LOSOWANIE LIGI MISTRZOW 2 RUNDY PREELIMINACYJNEJ
  { day: 16, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R2Q_DRAW, label: "LOSOWANIE LM: RUNDA 2 PREELIMINACYJNA", priority: 90 },
-  { day: 17, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 4)", priority: 20 },
+ { day: 17, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 4)", priority: 20 },
   { day: 18, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 5)", priority: 20 },
 
+  //19 lipca LIGA EUROPY - losowanie 2 rundy preeliminacyjnej - DO ZAIMPLEMENTOWANIA
 
-
+//MECZE 1/64 PUCHARU POLSKI ///
   { day: 20, month: 6, type: SlotType.WEEKEND, comp: CompetitionType.POLISH_CUP, label: "Puchar Polski: 1/64", priority: 50 },
 
 
 
   { day: 24, month: 6, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 1", priority: 10 },
 
-/// -- LIGA MISTRZOW
-
+/// -- LIGA MISTRZOW 2 runda preeliminacyjna 1 mecz
  { day: 27, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R2Q, label: "LM: R2Q - 1. mecz", priority: 85 },
 
- // --- PUCHARY EUROPEJSKIE 28 lipiec preeliminacje LIGA EUROPY i KONFERENCJI --- 1 mecz
+
+
+
 
 
 
@@ -80,10 +77,11 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
   // --- SIERPIEŃ --------------------------------------------------------------------------------------------------------------------------
   { day: 5,  month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 3", priority: 10 },
+
+ // --- 8 sierpnia LIGA EUROPY - preeliminacje 2 runda - pierwszy mecz - DO ZAIMPLEMENTOWANIA
+
   { day: 11,  month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 4", priority: 10 },
- 
-
-
+///LOSOWANIE PP 1/32
   { day: 12, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.POLISH_CUP, label: "LOSOWANIE PUCHARU POLSKI 1/32", priority: 40 },
   
 
@@ -91,8 +89,11 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 //-- LIGA MISTRZOW 2 RUNDA REWANZ 
  { day: 14, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R2Q_RETURN, label: "LM: R2Q - Rewanż", priority: 85 },
 
-  // --- PUCHARY EUROPEJSKIE 15 Sierpnia preeliminacje LIGA EUROPY --- rewanż
-   // --- PUCHARY EUROPEJSKIE 16 Sierpnia preeliminacje LIGA KONFERENCJI ---  
+  // --- 15 Sierpnia LIGA EUROPY preeliminacje 2 runda - rewanż - DO ZAIMPLEMENTOWANIA
+
+
+
+   
 
 
 

@@ -53,6 +53,8 @@ export enum ViewState {
   MATCH_LIVE_CL = 'MATCH_LIVE_CL',
   CL_BRACKET = 'CL_BRACKET',
   CL_HISTORY = 'CL_HISTORY',
+  EL_DRAW = 'EL_DRAW',
+  EL_HISTORY = 'EL_HISTORY',
   CL_R16_DRAW = 'CL_R16_DRAW',
   CL_QF_DRAW = 'CL_QF_DRAW',
   CL_SF_DRAW = 'CL_SF_DRAW',
@@ -202,6 +204,12 @@ export enum CompetitionType {
   CL_SF_RETURN = 'CL_SF_RETURN',
   CL_FINAL = 'CL_FINAL',
   CL_FINAL_DRAW = 'CL_FINAL_DRAW',
+
+  // ── Liga Europy UEFA ──────────────────────────────────────────────────────
+  EL_R1Q_DRAW = 'EL_R1Q_DRAW',
+  EL_R1Q = 'EL_R1Q',
+  EL_R1Q_RETURN = 'EL_R1Q_RETURN',
+  // Kolejne rundy LE będą tu dodawane
 }
 
 export enum SlotType {

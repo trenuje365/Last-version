@@ -2,7 +2,7 @@
 
 export interface ChampionshipEntry {
   season: string;
-  competition: 'EKSTRAKLASA' | 'PUCHAR_POLSKI' | 'SUPERPUCHAR_POLSKI' | 'LIGA_MISTRZOW';
+  competition: 'EKSTRAKLASA' | 'PUCHAR_POLSKI' | 'SUPERPUCHAR_POLSKI' | 'LIGA_MISTRZOW' | 'LIGA_EUROPY';
   winner: string;
   runnerUp?: string;
   year: number;
@@ -97,7 +97,7 @@ export class ChampionshipHistoryService {
     return this.getHistory();
   }
 
-  static getByCompetition(competition: 'EKSTRAKLASA' | 'PUCHAR_POLSKI' | 'SUPERPUCHAR_POLSKI' | 'LIGA_MISTRZOW'): ChampionshipEntry[] {
+  static getByCompetition(competition: 'EKSTRAKLASA' | 'PUCHAR_POLSKI' | 'SUPERPUCHAR_POLSKI' | 'LIGA_MISTRZOW' | 'LIGA_EUROPY'): ChampionshipEntry[] {
     return this.getHistory()
       .filter(c => c.competition === competition)
       .sort((a, b) => b.year - a.year);
