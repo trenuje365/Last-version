@@ -4,7 +4,7 @@ import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../types';
 
 export const ScoreResultsPolishCup: React.FC = () => {
-  const { fixtures, clubs, currentDate, navigateTo, jumpToNextEvent, userTeamId, setActiveMatchState: setMatchState } = useGame();
+  const { fixtures, clubs, currentDate, navigateTo, advanceDay, userTeamId, setActiveMatchState: setMatchState } = useGame();
 
   const cupResults = useMemo(() => {
     const dateStr = currentDate.toDateString();
@@ -31,7 +31,7 @@ export const ScoreResultsPolishCup: React.FC = () => {
 
   const handleNext = () => {
     setMatchState(null); 
-    jumpToNextEvent();
+    advanceDay();
     navigateTo(ViewState.DASHBOARD);
   };
 

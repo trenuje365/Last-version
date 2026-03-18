@@ -31,6 +31,7 @@ export const Dashboard: React.FC = () => {
     markMessageRead,
     lastMatchSummary,
    processBackgroundCupMatches,
+   processCLMatchDay,
    coaches,
    viewCoachDetails,
     fixtures,
@@ -226,12 +227,41 @@ const boardConfidence = useMemo(() => {
           info: 'Symulacja wyników',
         };
       }
+      // ── Liga Mistrzów — mecze (gracz nie uczestniczy) ────────────────────
+      const CL_MATCH_COMPS = [
+        CompetitionType.CL_R1Q, CompetitionType.CL_R1Q_RETURN,
+        CompetitionType.CL_R2Q, CompetitionType.CL_R2Q_RETURN,
+        CompetitionType.CL_GROUP_STAGE,
+        CompetitionType.CL_R16, CompetitionType.CL_R16_RETURN,
+        CompetitionType.CL_QF, CompetitionType.CL_QF_RETURN,
+        CompetitionType.CL_SF, CompetitionType.CL_SF_RETURN,
+      ];
+      if ((CL_MATCH_COMPS as string[]).includes(todayEvent.slot.competition as string)) {
+        return {
+          text: '⭐ LIGA MISTRZÓW – WYNIKI',
+          action: () => { processCLMatchDay(); navigateTo(ViewState.POST_MATCH_CL_STUDIO); },
+          isMatch: false,
+          disabled: isJumping,
+          info: 'Wyniki meczów Ligi Mistrzów',
+        };
+      }
+      // ── Liga Europy — mecze (gracz nie uczestniczy) ──────────────────────
+      if (todayEvent.slot.competition === CompetitionType.EL_R1Q ||
+          todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN) {
+        return {
+          text: '🟠 LIGA EUROPY – WYNIKI',
+          action: () => { processCLMatchDay(); navigateTo(ViewState.EL_HISTORY); },
+          isMatch: false,
+          disabled: isJumping,
+          info: 'Wyniki meczów Ligi Europy',
+        };
+      }
     }
 
     // ── Domyślnie: przesuń dzień ───────────────────────────────────────────
     return { text: isJumping ? 'PRZETWARZANIE...' : 'NASTĘPNY DZIEŃ', action: advanceDay, isMatch: false, disabled: isJumping };
   }, [currentDate, advanceDay, navigateTo, lineupValidation, isJumping,
-      processBackgroundCupMatches, fixtures, userTeamId, confirmSeasonEnd, seasonTemplate, clubs]);
+      processBackgroundCupMatches, processCLMatchDay, fixtures, userTeamId, confirmSeasonEnd, seasonTemplate, clubs]);
 
   const searchResults = useMemo(() => {
     if (!searchTerm || searchTerm.length < 2) return [];

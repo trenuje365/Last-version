@@ -12,7 +12,7 @@ const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-tr
 export const PostMatchCupStudioView: React.FC = () => {
   console.log('🎬 PostMatchCupStudioView RENDERED');
   
-  const { lastMatchSummary, navigateTo, processBackgroundCupMatches, jumpToNextEvent, players, currentDate, addSupercupWinner } = useGame();
+  const { lastMatchSummary, navigateTo, processBackgroundCupMatches, advanceDay, players, currentDate, addSupercupWinner } = useGame();
   const savedMatchesRef = useRef<Set<string>>(new Set());
 
   if (!lastMatchSummary) {
@@ -137,7 +137,7 @@ export const PostMatchCupStudioView: React.FC = () => {
 
   const handleReturn = () => {
     if (isSuperCup) {
-       jumpToNextEvent();
+       advanceDay();
        navigateTo(ViewState.DASHBOARD);
     } else {
        processBackgroundCupMatches();

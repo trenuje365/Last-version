@@ -8,7 +8,7 @@ const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 sha
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
 export const CLFinalDrawView: React.FC = () => {
-  const { clubs, fixtures, userTeamId, navigateTo } = useGame();
+  const { clubs, fixtures, userTeamId, navigateTo, advanceDay } = useGame();
 
   const getClub = (id: string) => clubs.find(c => c.id === id);
 
@@ -48,7 +48,7 @@ export const CLFinalDrawView: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => navigateTo(ViewState.DASHBOARD)}
+            onClick={() => { advanceDay(); navigateTo(ViewState.DASHBOARD); }}
             className="px-10 py-4 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm"
           >
             DALEJ →

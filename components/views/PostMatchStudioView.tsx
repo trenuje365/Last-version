@@ -11,7 +11,7 @@ import { DebugLoggerService } from '../../services/DebugLoggerService';
 const GLASS_PANEL = "bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.6)]";
 
 export const PostMatchStudioView: React.FC = () => {
-  const { lastMatchSummary, navigateTo, roundResults, currentDate, jumpToNextEvent, clubs, players } = useGame();
+  const { lastMatchSummary, navigateTo, roundResults, currentDate, advanceDay, clubs, players } = useGame();
   const [pageIndex, setPageIndex] = useState(1);
   const [showExpertModal, setShowExpertModal] = useState(false);
 
@@ -84,7 +84,7 @@ export const PostMatchStudioView: React.FC = () => {
   };
 
   const handleReturnToDashboard = () => {
-    jumpToNextEvent();
+    advanceDay();
     navigateTo(ViewState.DASHBOARD);
   };
 

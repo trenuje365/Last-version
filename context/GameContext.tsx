@@ -1357,12 +1357,25 @@ setMessages([welcomeMail, fanMail]);
       }
     }
 
-    // ── Puchar Polski / Superpuchar: background — zatrzymaj auto-skok ────────
+    // ── Puchar Polski / Superpuchar / LM / LE: background — zatrzymaj auto-skok ─────
     // Gracz musi ręcznie kliknąć przycisk na Dashboardzie (wyniki).
     if (isAutoJumping &&
         primaryEvent?.participation === 'background' &&
         (primaryEvent.slot.competition === CompetitionType.POLISH_CUP ||
-         primaryEvent.slot.competition === CompetitionType.SUPER_CUP)) {
+         primaryEvent.slot.competition === CompetitionType.SUPER_CUP ||
+         primaryEvent.slot.competition === CompetitionType.CL_R1Q ||
+         primaryEvent.slot.competition === CompetitionType.CL_R1Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_R2Q ||
+         primaryEvent.slot.competition === CompetitionType.CL_R2Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_GROUP_STAGE ||
+         primaryEvent.slot.competition === CompetitionType.CL_R16 ||
+         primaryEvent.slot.competition === CompetitionType.CL_R16_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_QF ||
+         primaryEvent.slot.competition === CompetitionType.CL_QF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_SF ||
+         primaryEvent.slot.competition === CompetitionType.CL_SF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_R1Q ||
+         primaryEvent.slot.competition === CompetitionType.EL_R1Q_RETURN)) {
       setTargetJumpTime(null);
       return;
     }
@@ -1778,7 +1791,12 @@ const finalResult: SimulationOutput = {
     // --- END SCOUT ASSISTANT ---
 
     // Nie przesuwamy daty jeśli gracz musi jeszcze zagrać mecz lub potwierdzić akcję tego dnia
-    if (skipDayAdvance) return;
+    if (skipDayAdvance) {
+      // Resetuj GUARD ref — następne wywołanie advanceDay dla tej samej daty
+      // MUSI przejść i faktycznie przesunąć datę (slot będzie już w processedDrawIds)
+      lastProcessedLeagueDateRef.current = '';
+      return;
+    }
 
     setCurrentDate(nextDay);
     setLastRecoveryDate(new Date(dateToProcess));
