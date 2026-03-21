@@ -16,7 +16,8 @@ export const TeamSelection: React.FC = () => {
       c.isDefaultActive && 
       ((selectedLeagueTier === 1 && c.leagueId === 'L_PL_1') ||
        (selectedLeagueTier === 2 && c.leagueId === 'L_PL_2') ||
-       (selectedLeagueTier === 3 && c.leagueId === 'L_PL_3'))
+       (selectedLeagueTier === 3 && c.leagueId === 'L_PL_3') ||
+       (selectedLeagueTier === 4 && c.leagueId === 'L_PL_4'))
     );
   }, [clubs, selectedLeagueTier]);
 
@@ -71,7 +72,7 @@ export const TeamSelection: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            {[1, 2, 3].map(tier => (
+            {[1, 2, 3, 4].map(tier => (
                 <button
                   key={tier}
                   onClick={() => setSelectedLeagueTier(tier)}

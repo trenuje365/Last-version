@@ -51,6 +51,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  { day: 17, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 4)", priority: 20 },
   { day: 18, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 5)", priority: 20 },
 
+  // LOSOWANIE LIGI EUROPY 2 RUNDY PREELIMINACYJNEJ
   { day: 19, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R2Q_DRAW, label: "LOSOWANIE LE: RUNDA 2 PREELIMINACYJNA", priority: 88 },
 
 //MECZE 1/64 PUCHARU POLSKI ///
@@ -78,6 +79,8 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   // --- SIERPIEŃ --------------------------------------------------------------------------------------------------------------------------
   { day: 5,  month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 3", priority: 10 },
 
+
+  // LE 2 runda kwalifikacyjna 1 mecz
   { day: 8,  month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R2Q, label: "LE: R2Q - 1. mecz", priority: 82 },
 
   { day: 11,  month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 4", priority: 10 },
@@ -89,6 +92,8 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 //-- LIGA MISTRZOW 2 RUNDA REWANZ 
  { day: 14, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R2Q_RETURN, label: "LM: R2Q - Rewanż", priority: 85 },
 
+
+ // -- LIGA EUROPY 2 RUNDA REWANZ
   { day: 15, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R2Q_RETURN, label: "LE: R2Q - Rewanż", priority: 82 },
 
 
@@ -96,10 +101,12 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
    
 
 
+   // LOSOWANIE FAZ GRUPOWYCH PUCHAROW EUROPEJSKICH LIGA EUROPY 17 Month 7 LOSOWANIE LE: FAZA GRUPOWA
 
 
 
-   // LOSOWANIE FAZ GRUPOWYCH PUCHAROW EUROPEJSKICH
+   // LOSOWANIE FAZ GRUPOWYCH PUCHAROW EUROPEJSKICH LIGA MISTRZÓW
+  
  { day: 18, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.CL_GROUP_DRAW, label: "LOSOWANIE LM: FAZA GRUPOWA", priority: 90 },
 
   { day: 20, month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 5", priority: 10 },
@@ -132,7 +139,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  
   
 
-    // --- PUCHARY EUROPEJSKIE --- 19 września LIGA EUROPY ---- faza grupowa
+    // --- PUCHARY EUROPEJSKIE --- 19 września LIGA EUROPY ---- faza grupowa (1 runda)
       // --- PUCHARY EUROPEJSKIE --- 20 września LIGA KONFERENCJI ---- faza grupowa
 
       { day: 22, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 9", priority: 10 },
