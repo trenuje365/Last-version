@@ -45,6 +45,17 @@ export const BackgroundMatchProcessor = {
       CompetitionType.CL_R2Q, CompetitionType.CL_R2Q_RETURN,
       CompetitionType.CL_GROUP_DRAW, CompetitionType.CL_GROUP_STAGE,
       CompetitionType.CHAMPIONS_LEAGUE_DRAW,
+      CompetitionType.CL_R16_DRAW, CompetitionType.CL_R16, CompetitionType.CL_R16_RETURN,
+      CompetitionType.CL_QF_DRAW, CompetitionType.CL_QF, CompetitionType.CL_QF_RETURN,
+      CompetitionType.CL_SF_DRAW, CompetitionType.CL_SF, CompetitionType.CL_SF_RETURN,
+      CompetitionType.CL_FINAL_DRAW, CompetitionType.CL_FINAL,
+      CompetitionType.EL_R1Q_DRAW, CompetitionType.EL_R1Q, CompetitionType.EL_R1Q_RETURN,
+      CompetitionType.EL_R2Q_DRAW, CompetitionType.EL_R2Q, CompetitionType.EL_R2Q_RETURN,
+      CompetitionType.EL_GROUP_DRAW, CompetitionType.EL_GROUP_STAGE,
+      CompetitionType.EL_R16_DRAW, CompetitionType.EL_R16, CompetitionType.EL_R16_RETURN,
+      CompetitionType.EL_QF_DRAW, CompetitionType.EL_QF, CompetitionType.EL_QF_RETURN,
+      CompetitionType.EL_SF_DRAW, CompetitionType.EL_SF, CompetitionType.EL_SF_RETURN,
+      CompetitionType.EL_FINAL_DRAW, CompetitionType.EL_FINAL,
     ]);
     const todayFixtures = fixtures.filter(f =>
       f.date.toDateString() === dateStr &&

@@ -50,6 +50,11 @@ import { EuropeanClubsView } from './components/views/EuropeanClubsView';
 import { ELDrawView } from './LECupEngine/ELDrawView';
 import { ELR2QDrawView } from './LECupEngine/ELR2QDrawView';
 import { ELHistoryView } from './LECupEngine/ELHistoryView';
+import { ELGroupDrawView } from './components/views/ELGroupDrawView';
+import { ELR16DrawView } from './components/views/ELR16DrawView';
+import { ELQFDrawView } from './components/views/ELQFDrawView';
+import { ELSFDrawView } from './components/views/ELSFDrawView';
+import { ELFinalDrawView } from './components/views/ELFinalDrawView';
 
 // Internal component to handle view switching
 const AppContent: React.FC = () => {
@@ -66,6 +71,16 @@ case ViewState.EL_R2Q_DRAW:
   return <ELR2QDrawView />;
 case ViewState.EL_HISTORY:
   return <ELHistoryView />;
+case ViewState.EL_GROUP_DRAW:
+  return <ELGroupDrawView />;
+case ViewState.EL_R16_DRAW:
+  return <ELR16DrawView />;
+case ViewState.EL_QF_DRAW:
+  return <ELQFDrawView />;
+case ViewState.EL_SF_DRAW:
+  return <ELSFDrawView />;
+case ViewState.EL_FINAL_DRAW:
+  return <ELFinalDrawView />;
 case ViewState.PRE_MATCH_CL_STUDIO:
   return <PreMatchCLStudioView />;
 

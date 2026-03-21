@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../types';
 import ligaMistrzowBg from '../Graphic/themes/liga_mistrzow.png';
+import ligaEuropaBg from '../Graphic/themes/LigaEuropa.png';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
@@ -19,18 +20,30 @@ export const PostMatchCLStudioView: React.FC = () => {
         f.leagueId === CompetitionType.CL_GROUP_STAGE ||
        f.leagueId === CompetitionType.CL_R16 || f.leagueId === CompetitionType.CL_R16_RETURN ||
             f.leagueId === CompetitionType.CL_QF || f.leagueId === CompetitionType.CL_QF_RETURN ||
-       f.leagueId === CompetitionType.CL_SF || f.leagueId === CompetitionType.CL_SF_RETURN)
+       f.leagueId === CompetitionType.CL_SF || f.leagueId === CompetitionType.CL_SF_RETURN ||
+       f.leagueId === CompetitionType.EL_QF || f.leagueId === CompetitionType.EL_QF_RETURN ||
+       f.leagueId === CompetitionType.EL_SF || f.leagueId === CompetitionType.EL_SF_RETURN ||
+       f.leagueId === CompetitionType.EL_FINAL)
     );
   }, [fixtures, currentDate]);
 
   const getClub = (id: string) => clubs.find(c => c.id === id);
+
+  const isELDay = results.length > 0 &&
+    (results[0].leagueId === CompetitionType.EL_QF ||
+     results[0].leagueId === CompetitionType.EL_QF_RETURN ||
+     results[0].leagueId === CompetitionType.EL_SF ||
+     results[0].leagueId === CompetitionType.EL_SF_RETURN ||
+     results[0].leagueId === CompetitionType.EL_FINAL);
 
     const isReturn = results.length > 0 &&
     (results[0].leagueId === CompetitionType.CL_R1Q_RETURN ||
      results[0].leagueId === CompetitionType.CL_R2Q_RETURN ||
      results[0].leagueId === CompetitionType.CL_R16_RETURN ||
      results[0].leagueId === CompetitionType.CL_QF_RETURN ||
-     results[0].leagueId === CompetitionType.CL_SF_RETURN);
+     results[0].leagueId === CompetitionType.CL_SF_RETURN ||
+     results[0].leagueId === CompetitionType.EL_QF_RETURN ||
+     results[0].leagueId === CompetitionType.EL_SF_RETURN);
 
   const isQF = results.length > 0 &&
     (results[0].leagueId === CompetitionType.CL_QF ||
@@ -49,6 +62,17 @@ export const PostMatchCLStudioView: React.FC = () => {
     const isR16 = results.length > 0 &&
     (results[0].leagueId === CompetitionType.CL_R16 ||
      results[0].leagueId === CompetitionType.CL_R16_RETURN);
+
+  const isELQF = results.length > 0 &&
+    (results[0].leagueId === CompetitionType.EL_QF ||
+     results[0].leagueId === CompetitionType.EL_QF_RETURN);
+
+  const isELSF = results.length > 0 &&
+    (results[0].leagueId === CompetitionType.EL_SF ||
+     results[0].leagueId === CompetitionType.EL_SF_RETURN);
+
+  const isELFinal = results.length > 0 &&
+    results[0].leagueId === CompetitionType.EL_FINAL;
 
   // Dla rewanżu: oblicz agregat dla każdego meczu
   const getAggregate = (fixture: typeof results[0]) => {
@@ -72,7 +96,7 @@ export const PostMatchCLStudioView: React.FC = () => {
 
       {/* TŁO */}
       <div className="fixed inset-0 z-0">
-        <img src={ligaMistrzowBg} alt="" className="w-full h-full object-cover opacity-30" />
+        <img src={isELDay ? ligaEuropaBg : ligaMistrzowBg} alt="" className="w-full h-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-slate-950/90" />
       </div>
 
@@ -82,23 +106,29 @@ export const PostMatchCLStudioView: React.FC = () => {
         <div className={GLASS_CARD + " p-6 flex items-center justify-between shrink-0"}>
           <div className={GLOSS_LAYER} />
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-3xl">
-              ⭐
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isELDay ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-amber-400/10 border border-amber-400/20'}`}>
+              {isELDay ? '🟠' : '⭐'}
             </div>
             <div>
-              <p className="text-amber-400 text-[9px] font-black uppercase tracking-[0.5em]">UEFA Champions League · Wyniki</p>
+              <p className={`text-[9px] font-black uppercase tracking-[0.5em] ${isELDay ? 'text-orange-400' : 'text-amber-400'}`}>{isELDay ? 'UEFA Europa League · Wyniki' : 'UEFA Champions League · Wyniki'}</p>
                         <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">
-                                           {isGroupStage
-                  ? `Faza Grupowa LM · Wyniki`
-                  : isSF
-                    ? (isReturn ? '1/2 Finału — Rewanż · Wyniki' : '1/2 Finału — 1. Mecz · Wyniki')
-                    : isQF
-                      ? (isReturn ? '1/4 Finału — Rewanż · Wyniki' : '1/4 Finału — 1. Mecz · Wyniki')
-                      : isR16
-                        ? (isReturn ? '1/8 Finału — Rewanż · Wyniki' : '1/8 Finału — 1. Mecz · Wyniki')
-                        : isReturn
-                          ? `Rewanż — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`
-                          : `1. Mecz — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`}
+                          {isELFinal
+                  ? 'Finał Ligi Europy · Wynik'
+                  : isELSF
+                    ? (isReturn ? 'LE: 1/2 Finału — Rewanż · Wyniki' : 'LE: 1/2 Finału — 1. Mecz · Wyniki')
+                    : isELQF
+                      ? (isReturn ? 'LE: 1/4 Finału — Rewanż · Wyniki' : 'LE: 1/4 Finału — 1. Mecz · Wyniki')
+                      : isGroupStage
+                        ? `Faza Grupowa LM · Wyniki`
+                        : isSF
+                          ? (isReturn ? '1/2 Finału — Rewanż · Wyniki' : '1/2 Finału — 1. Mecz · Wyniki')
+                          : isQF
+                            ? (isReturn ? '1/4 Finału — Rewanż · Wyniki' : '1/4 Finału — 1. Mecz · Wyniki')
+                            : isR16
+                              ? (isReturn ? '1/8 Finału — Rewanż · Wyniki' : '1/8 Finału — 1. Mecz · Wyniki')
+                              : isReturn
+                                ? `Rewanż — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`
+                                : `1. Mecz — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`}
               </h1>
               <p className="text-slate-400 text-xs mt-1">{currentDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>

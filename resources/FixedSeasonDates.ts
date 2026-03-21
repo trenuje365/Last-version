@@ -101,8 +101,8 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
    
 
 
-   // LOSOWANIE FAZ GRUPOWYCH PUCHAROW EUROPEJSKICH LIGA EUROPY 17 Month 7 LOSOWANIE LE: FAZA GRUPOWA
-
+   // LOSOWANIE FAZ GRUPOWYCH PUCHAROW EUROPEJSKICH LIGA EUROPY
+ { day: 17, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_DRAW, label: "LOSOWANIE LE: FAZA GRUPOWA", priority: 88 },
 
 
    // LOSOWANIE FAZ GRUPOWYCH PUCHAROW EUROPEJSKICH LIGA MISTRZÓW
@@ -136,20 +136,15 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
   
  
- 
-  
+    // --- PUCHARY EUROPEJSKIE --- 19 września LIGA EUROPY ---- faza grupowa 1 kolejka
+ { day: 19, month: 8, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 1", priority: 82 },
 
-    // --- PUCHARY EUROPEJSKIE --- 19 września LIGA EUROPY ---- faza grupowa (1 runda)
       // --- PUCHARY EUROPEJSKIE --- 20 września LIGA KONFERENCJI ---- faza grupowa
 
       { day: 22, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 9", priority: 10 },
 
 { day: 26,  month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 10", priority: 10 },
   { day: 30, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 11", priority: 10 },
-
-  
-
- 
 
 
 
@@ -175,16 +170,15 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
  { day: 21,  month: 9, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 14", priority: 10 },
 
-   // --- PUCHARY EUROPEJSKIE --- 18 pazdziernika LIGA EUROPY ----faza grupowa 2 runda
+   // --- PUCHARY EUROPEJSKIE --- 18 pazdziernika LIGA EUROPY ----faza grupowa 2 kolejka
+ { day: 18, month: 9,  type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 2", priority: 82 },
+
+ // --- PUCHARY EUROPEJSKIE --- 25 pazdziernika LIGA MISTRZÓW----faza grupowa 3 kolejka
  { day: 25, month: 9,  type: SlotType.MIDWEEK, comp: CompetitionType.CL_GROUP_STAGE, label: "LM: Faza Grupowa - Kolejka 3", priority: 85 },
 
-     // --- PUCHARY EUROPEJSKIE --- 19 pazdziernika LIGA KONFERENCJI ----faza grupowa 2 runda
-  
+     // --- PUCHARY EUROPEJSKIE --- 26 pazdziernika LIGA EUROPY ----faza grupowa 3 kolejka
+ { day: 26, month: 9,  type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 3", priority: 82 },
 
-
-  // --- PUCHARY EUROPEJSKIE --- 25 pazdziernika LIGA MISTRZÓW----faza grupowa 3 runda
-
-    // --- PUCHARY EUROPEJSKIE --- 26 pazdziernika LIGA EUROPY ----faza grupowa 3 runda
       // --- PUCHARY EUROPEJSKIE --- 27 pazdziernika LIGA KONFERENCJI ----faza grupowa 3 runda
 
   { day: 30, month: 9, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 15", priority: 10 },
@@ -217,11 +211,13 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-  // --- PUCHARY EUROPEJSKIE --- 25 listopad LIGA MISTRZÓW----faza grupowa 4 runda
+  // --- PUCHARY EUROPEJSKIE --- 25 listopad LIGA MISTRZÓW----faza grupowa 4 kolejka
 { day: 25, month: 10, type: SlotType.MIDWEEK, comp: CompetitionType.CL_GROUP_STAGE, label: "LM: Faza Grupowa - Kolejka 4", priority: 85 },
 
 
-  // --- PUCHARY EUROPEJSKIE --- 26 listopad LIGA EUROPY ----faza grupowa 4 runda
+  // --- PUCHARY EUROPEJSKIE --- 26 listopad LIGA EUROPY ----faza grupowa 4 kolejka
+{ day: 26, month: 10, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 4", priority: 82 },
+
     // --- PUCHARY EUROPEJSKIE --- 27 listopad LIGA KONFERENCJI ----faza grupowa 4 runda
   
 
@@ -233,22 +229,26 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 1,  month: 11, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 17", priority: 10 },
 
 
-  // --- PUCHARY EUROPEJSKIE --- 4 grudnia LIGA MISTRZÓW----faza grupowa 5 runda
+  // --- PUCHARY EUROPEJSKIE --- 4 grudnia LIGA MISTRZÓW----faza grupowa 5 kolejka
 { day: 4,  month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.CL_GROUP_STAGE, label: "LM: Faza Grupowa - Kolejka 5", priority: 85 },
 
 
 
-  // --- PUCHARY EUROPEJSKIE --- 5 grudnia LIGA EUROPY ----faza grupowa 5 runda
+  // --- PUCHARY EUROPEJSKIE --- 5 grudnia LIGA EUROPY ----faza grupowa 5 kolejka
+{ day: 5,  month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 5", priority: 82 },
+
     // --- PUCHARY EUROPEJSKIE --- 6 grudnia LIGA KONFERENCJI ----faza grupowa 5 runda
 
 { day: 10, month: 11, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 18", priority: 10 },
 
   
-// --- PUCHARY EUROPEJSKIE --- 14 grudnia LIGA MISTRZÓW----faza grupowa 6 runda
+// --- PUCHARY EUROPEJSKIE --- 14 grudnia LIGA MISTRZÓW----faza grupowa 6 kolejka
 { day: 14, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.CL_GROUP_STAGE, label: "LM: Faza Grupowa - Kolejka 6", priority: 85 },
 
+// --- PUCHARY EUROPEJSKIE --- 15 grudnia LIGA EUROPY ----faza grupowa 6 kolejka
+{ day: 15, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 6", priority: 82 },
 
-  // --- PUCHARY EUROPEJSKIE --- 15 grudnia LIGA EUROPY ----faza grupowa 6 runda
+
     // --- PUCHARY EUROPEJSKIE --- 16 grudnia LIGA KONFERENCJI ----faza grupowa 6 runda
 
 
@@ -257,7 +257,14 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 18, month: 11, type: SlotType.WEEKEND, comp: CompetitionType.BREAK, label: "Początek Przerwy Zimowej", priority: 100 },
 
 
+
+
+
+
+
 { day: 19, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R16_DRAW, label: "LOSOWANIE LM: 1/8 FINAŁU", priority: 90 },
+
+{ day: 20, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R16_DRAW, label: "LOSOWANIE LE: 1/8 FINAŁU", priority: 88 },
 
 
   // --- STYCZEŃ ---------------------------------------------------------------------------------------------------------------------------------------
@@ -270,8 +277,12 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   // --- PUCHARY EUROPEJSKIE --- 19 styczen LIGA MISTRZÓW----1/8 finału
   { day: 19, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R16, label: "LM: 1/8 Finału - 1. mecz", priority: 85 },
 
+  { day: 20, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R16, label: "LE: 1/8 Finału - 1. mecz", priority: 82 },
 
-    // --- PUCHARY EUROPEJSKIE --- 20 styczen LIGA EUROPY ----1/8 finału DO ZAIMPLEMENTOWANIA
+
+
+
+
       // --- PUCHARY EUROPEJSKIE --- 21 styczen LIGA KONFERENCJI ----1/8 finału DO ZAIMPLEMENTOWANIA
  
   { day: 23, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
@@ -280,10 +291,12 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
  // --- PUCHARY EUROPEJSKIE --- 25 styczen LIGA MISTRZÓW----1.8 finału REWANZ
  { day: 25, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R16_RETURN, label: "LM: 1/8 Finału - Rewanż", priority: 85 },
-    
- 
- 
- // --- PUCHARY EUROPEJSKIE --- 26 styczen LIGA EUROPY ----1.8 finału/rewanże  DO ZAIMPLEMNTOWANIA
+
+ { day: 26, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R16_RETURN, label: "LE: 1/8 Finału - Rewanż", priority: 82 },
+
+
+
+
       // --- PUCHARY EUROPEJSKIE --- 27 styczen LIGA KONFERENCJI ----1.8 finału/rewanże DO ZAIMPLEMNTOWANIA
  
 
@@ -292,6 +305,9 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 // ---- 27 styczeń LOSOWANIE 1/4 FINAŁU LIGI MISTRZÓW 
 { day: 27, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CL_QF_DRAW, label: "LOSOWANIE LM: 1/4 FINAŁU", priority: 90 },
 
+
+// ---- 28 styczeń LOSOWANIE 1/4 FINAŁU LIGI EUROPY
+{ day: 28, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.EL_QF_DRAW, label: "LOSOWANIE LE: 1/4 FINAŁU", priority: 88 },
 
 
 
@@ -307,7 +323,14 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
   // --- PUCHARY EUROPEJSKIE --- 16 LUTY LIGA MISTRZÓW----cwierfinaly 1/4
   { day: 16, month: 1, type: SlotType.MIDWEEK, comp: CompetitionType.CL_QF, label: "LM: 1/4 Finału - 1. mecz", priority: 85 },
-  // --- PUCHARY EUROPEJSKIE --- 17 LUTY LIGA EUROPY ----cwierfinaly
+  
+  
+  
+  // --- PUCHARY EUROPEJSKIE --- 17 LUTY LIGA EUROPY ----cwierfinaly 1 mecz 1/4
+  { day: 17, month: 1, type: SlotType.MIDWEEK, comp: CompetitionType.EL_QF, label: "LE: 1/4 Finału - 1. mecz", priority: 82 },
+
+
+
     // --- PUCHARY EUROPEJSKIE --- 18 LUTY LIGA KONFERENCJI ----cwierfinaly
 
 
@@ -333,8 +356,15 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
   // --- PUCHARY EUROPEJSKIE --- 2 MARZEC LIGA MISTRZÓW----cwierfinaly/rewanże 1/4
    { day: 2, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.CL_QF_RETURN, label: "LM: 1/4 Finału - Rewanż", priority: 85 },
-  // --- PUCHARY EUROPEJSKIE --- 3 MARZEC LIGA EUROPY ----cwierfinaly/rewanże
-    // --- PUCHARY EUROPEJSKIE --- 4 MARZEC LIGA KONFERENCJI ----cwierfinaly/rewanże
+  
+  
+   // --- PUCHARY EUROPEJSKIE --- 3 MARZEC LIGA EUROPY ----cwierfinaly/rewanż 1/4
+   { day: 3, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.EL_QF_RETURN, label: "LE: 1/4 Finału - Rewanż", priority: 82 },
+
+  
+  
+  
+   // --- PUCHARY EUROPEJSKIE --- 4 MARZEC LIGA KONFERENCJI ----cwierfinaly/rewanże
   
  
 //=== 6 MARZEC LOSOWANIE PÓŁFINAŁÓW LIGI MISTRZÓW
@@ -343,6 +373,11 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
   { day: 7, month: 2, type: SlotType.WEEKEND, comp: CompetitionType.POLISH_CUP, label: "Puchar Polski: 1/4", priority: 50 },
+  
+  
+  // 8 marzec - losowanie połfinałów Ligi europy 
+  { day: 8, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.EL_SF_DRAW, label: "LOSOWANIE LE: 1/2 FINAŁU", priority: 88 },
+  
   { day: 9, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.POLISH_CUP, label: "LOSOWANIE PUCHARU POLSKI 1/2", priority: 40 },
 
 
@@ -367,8 +402,14 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
     // --- PUCHARY EUROPEJSKIE --- 26 Marzec LIGA MISTRZÓW----polfinaly 1/2
      { day: 26, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.CL_SF, label: "LM: 1/2 Finału - 1. mecz", priority: 85 },
-  // --- PUCHARY EUROPEJSKIE --- 27 MARZEC LIGA EUROPY ----polfinaly
-    // --- PUCHARY EUROPEJSKIE --- 28 MARZEC LIGA KONFERENCJI ----polfinaly
+  
+  
+     // 27 MARZEC LIGA EUROPY ----polfinaly - 1 mecz 1/2
+     { day: 27, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.EL_SF, label: "LE: 1/2 Finału - 1. mecz", priority: 82 },
+  
+  
+  
+     // --- PUCHARY EUROPEJSKIE --- 28 MARZEC LIGA KONFERENCJI ----polfinaly
 
 
 
@@ -396,11 +437,24 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
     // --- PUCHARY EUROPEJSKIE --- 15 Kwiecen LIGA MISTRZÓW----polfinaly/rewanże 1/2
      { day: 15, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.CL_SF_RETURN, label: "LM: 1/2 Finału - Rewanż", priority: 85 },
-  // --- PUCHARY EUROPEJSKIE --- 16 Kwiecien LIGA EUROPY ----polfinaly/rewanże
-    // --- PUCHARY EUROPEJSKIE --- 17 Kwiecien LIGA KONFERENCJI ----polfinaly/rewanże
+ 
+ 
+     //  16 Kwiecien LIGA EUROPY ----polfinaly rewzn 
+     { day: 16, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.EL_SF_RETURN, label: "LE: 1/2 Finału - Rewanż", priority: 82 },
+ 
+ 
+ 
+     // --- PUCHARY EUROPEJSKIE --- 17 Kwiecien LIGA KONFERENCJI ----polfinaly/rewanże
 
 // --- 18 kwietnia ogloszenienie finalistow ligii mistrzów 
 { day: 18, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.CL_FINAL_DRAW, label: "OGŁOSZENIE FINALISTÓW LM", priority: 90 },
+
+// 19 kwietnia ogłoszenie finalistów ligi europy
+{ day: 19, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.EL_FINAL_DRAW, label: "OGŁOSZENIE FINALISTÓW LE", priority: 88 },
+
+
+
+
 { day: 21,  month: 3, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 29", priority: 10 },
 { day: 27,  month: 3, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 30", priority: 10 },
 
@@ -418,6 +472,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
  // --- FINAL PUCHARY EUROPEJSKIE --- 20 Maj LIGA EUROPY ----
+  { day: 20, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.EL_FINAL, label: "LE: Finał", priority: 100 },
 
 
 

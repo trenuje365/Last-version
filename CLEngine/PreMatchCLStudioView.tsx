@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../types';
 import ligaMistrzowBg from '../Graphic/themes/liga_mistrzow.png';
+import ligaEuropaBg from '../Graphic/themes/LigaEuropa.png';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
@@ -19,7 +20,10 @@ export const PreMatchCLStudioView: React.FC = () => {
        f.leagueId === CompetitionType.CL_GROUP_STAGE ||
        f.leagueId === CompetitionType.CL_R16 || f.leagueId === CompetitionType.CL_R16_RETURN ||
        f.leagueId === CompetitionType.CL_QF  || f.leagueId === CompetitionType.CL_QF_RETURN  ||
-       f.leagueId === CompetitionType.CL_SF  || f.leagueId === CompetitionType.CL_SF_RETURN)
+       f.leagueId === CompetitionType.CL_SF  || f.leagueId === CompetitionType.CL_SF_RETURN  ||
+       f.leagueId === CompetitionType.EL_QF  || f.leagueId === CompetitionType.EL_QF_RETURN  ||
+       f.leagueId === CompetitionType.EL_SF  || f.leagueId === CompetitionType.EL_SF_RETURN  ||
+       f.leagueId === CompetitionType.EL_FINAL)
     );
   }, [fixtures, currentDate]);
 
@@ -30,7 +34,9 @@ export const PreMatchCLStudioView: React.FC = () => {
      todayPairs[0].leagueId === CompetitionType.CL_R2Q_RETURN ||
      todayPairs[0].leagueId === CompetitionType.CL_R16_RETURN ||
      todayPairs[0].leagueId === CompetitionType.CL_QF_RETURN  ||
-     todayPairs[0].leagueId === CompetitionType.CL_SF_RETURN);
+     todayPairs[0].leagueId === CompetitionType.CL_SF_RETURN  ||
+     todayPairs[0].leagueId === CompetitionType.EL_QF_RETURN  ||
+     todayPairs[0].leagueId === CompetitionType.EL_SF_RETURN);
 
   const isR2Q = todayPairs.length > 0 &&
     (todayPairs[0].leagueId === CompetitionType.CL_R2Q ||
@@ -51,9 +57,31 @@ const isR16 = todayPairs.length > 0 &&
     (todayPairs[0].leagueId === CompetitionType.CL_SF ||
      todayPairs[0].leagueId === CompetitionType.CL_SF_RETURN);
 
+  const isELDay = todayPairs.length > 0 &&
+    (todayPairs[0].leagueId === CompetitionType.EL_QF ||
+     todayPairs[0].leagueId === CompetitionType.EL_QF_RETURN ||
+     todayPairs[0].leagueId === CompetitionType.EL_SF ||
+     todayPairs[0].leagueId === CompetitionType.EL_SF_RETURN ||
+     todayPairs[0].leagueId === CompetitionType.EL_FINAL);
+
+  const isELQF = isELDay &&
+    (todayPairs[0].leagueId === CompetitionType.EL_QF ||
+     todayPairs[0].leagueId === CompetitionType.EL_QF_RETURN);
+
+  const isELSF = isELDay &&
+    (todayPairs[0].leagueId === CompetitionType.EL_SF ||
+     todayPairs[0].leagueId === CompetitionType.EL_SF_RETURN);
+
+  const isELFinal = isELDay &&
+    todayPairs[0].leagueId === CompetitionType.EL_FINAL;
+
   const handleSimulate = () => {
     processCLMatchDay();
-    navigateTo(ViewState.POST_MATCH_CL_STUDIO);
+    if (isELDay) {
+      navigateTo(ViewState.EL_HISTORY);
+    } else {
+      navigateTo(ViewState.POST_MATCH_CL_STUDIO);
+    }
   };
 
   const userHasMatch = todayPairs.some(f => f.homeTeamId === userTeamId || f.awayTeamId === userTeamId);
@@ -69,7 +97,7 @@ const isR16 = todayPairs.length > 0 &&
 
       {/* TŁO */}
       <div className="fixed inset-0 z-0">
-        <img src={ligaMistrzowBg} alt="" className="w-full h-full object-cover opacity-30" />
+        <img src={isELDay ? ligaEuropaBg : ligaMistrzowBg} alt="" className="w-full h-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-slate-950/90" />
       </div>
 
@@ -79,23 +107,29 @@ const isR16 = todayPairs.length > 0 &&
         <div className={GLASS_CARD + " p-6 flex items-center justify-between shrink-0"}>
           <div className={GLOSS_LAYER} />
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-3xl">
-              ⭐
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isELDay ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-amber-400/10 border border-amber-400/20'}`}>
+              {isELDay ? '🟠' : '⭐'}
             </div>
             <div>
-              <p className="text-amber-400 text-[9px] font-black uppercase tracking-[0.5em]">UEFA Champions League</p>
+              <p className={`text-[9px] font-black uppercase tracking-[0.5em] ${isELDay ? 'text-orange-400' : 'text-amber-400'}`}>{isELDay ? 'UEFA Europa League' : 'UEFA Champions League'}</p>
                 <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">
-                {isGroupStage
-                  ? `Faza Grupowa LM · ${todayPairs.length} Meczów`
-                  : isSF
-                    ? (isReturn ? '1/2 Finału — Rewanż' : `1/2 Finału — 1. Mecz · ${todayPairs.length} par`)
-                    : isQF
-                      ? (isReturn ? '1/4 Finału — Rewanż' : `1/4 Finału — 1. Mecz · ${todayPairs.length} par`)
-                      : isR16
-                        ? (isReturn ? '1/8 Finału — Rewanż' : `1/8 Finału — 1. Mecz · ${todayPairs.length} par`)
-                        : isReturn
-                          ? `Rewanż — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`
-                          : `1. Mecz — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`}
+                {isELFinal
+                  ? `Finał Ligi Europy · 1 Mecz`
+                  : isELSF
+                    ? (isReturn ? 'LE: 1/2 Finału — Rewanż' : `LE: 1/2 Finału — 1. Mecz · ${todayPairs.length} par`)
+                    : isELQF
+                      ? (isReturn ? 'LE: 1/4 Finału — Rewanż' : `LE: 1/4 Finału — 1. Mecz · ${todayPairs.length} par`)
+                      : isGroupStage
+                        ? `Faza Grupowa LM · ${todayPairs.length} Meczów`
+                        : isSF
+                          ? (isReturn ? '1/2 Finału — Rewanż' : `1/2 Finału — 1. Mecz · ${todayPairs.length} par`)
+                          : isQF
+                            ? (isReturn ? '1/4 Finału — Rewanż' : `1/4 Finału — 1. Mecz · ${todayPairs.length} par`)
+                            : isR16
+                              ? (isReturn ? '1/8 Finału — Rewanż' : `1/8 Finału — 1. Mecz · ${todayPairs.length} par`)
+                              : isReturn
+                                ? `Rewanż — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`
+                                : `1. Mecz — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`}
               </h1>
               <p className="text-slate-400 text-xs mt-1">{currentDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
@@ -110,7 +144,7 @@ const isR16 = todayPairs.length > 0 &&
           )}
           <button
             onClick={handleSimulate}
-            className="px-10 py-4 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm"
+            className={`px-10 py-4 font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm ${isELDay ? 'bg-orange-500 hover:bg-orange-400 text-white' : 'bg-amber-400 hover:bg-amber-300 text-slate-900'}`}
           >
             SYMULUJ MECZE →
           </button>

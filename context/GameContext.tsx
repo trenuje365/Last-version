@@ -83,6 +83,8 @@ interface GameContextType {
     activeCupDraw: { id: string, label: string, date: Date, pairs: Fixture[] } | null;
   activeGroupDraw: { id: string, label: string, date: Date, groups: string[][] } | null;
   clGroups: string[][] | null;
+  activeELGroupDraw: { id: string, label: string, date: Date, groups: string[][] } | null;
+  elGroups: string[][] | null;
   supercupWinners: { season: string; winner: string; year: number; }[];
   addSupercupWinner: (season: string, winner: string, year: number) => void;
 
@@ -117,9 +119,14 @@ interface GameContextType {
   confirmELDraw: (pairs: Fixture[]) => void;
   confirmELR2QDraw: (pairs: Fixture[]) => void;
   confirmCLGroupDraw: () => void;
+  confirmELGroupDraw: () => void;
+  confirmELR16Draw: () => void;
     confirmCLR16Draw: () => void;
   confirmCLQFDraw: () => void;
   confirmCLSFDraw: () => void;
+  confirmELQFDraw: () => void;
+  confirmELSFDraw: () => void;
+  confirmELFinalDraw: () => void;
   confirmSeasonEnd: () => void;
 
   processBackgroundCupMatches: () => void;
@@ -173,6 +180,8 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [activeCupDraw, setActiveCupDraw] = useState<{ id: string, label: string, date: Date, pairs: Fixture[] } | null>(null);
   const [activeGroupDraw, setActiveGroupDraw] = useState<{ id: string, label: string, date: Date, groups: string[][] } | null>(null);
   const [clGroups, setClGroups] = useState<string[][] | null>(null);
+  const [activeELGroupDraw, setActiveELGroupDraw] = useState<{ id: string, label: string, date: Date, groups: string[][] } | null>(null);
+  const [elGroups, setElGroups] = useState<string[][] | null>(null);
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
@@ -1032,6 +1041,157 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
+        // ── LE: Losowanie Fazy Grupowej ─────────────────────────────────────
+        case CompetitionType.EL_GROUP_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const elR2QWinners = ELDrawService.getGroupStagePool(allFixtures);
+          const elGroups = ELDrawService.drawGroupStage(elR2QWinners, RAW_EUROPA_LEAGUE_CLUBS, clubs, sessionSeed);
+          setActiveELGroupDraw({ id: slot.id, label: slot.label, date: dateToProcess, groups: elGroups });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_GROUP_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: Losowanie 1/8 Finału ────────────────────────────────────────
+        case CompetitionType.EL_R16_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          if (!elGroups) break; // faza grupowa jeszcze nie zakończona
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_R16_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: Losowanie 1/4 Finału ────────────────────────────────────────
+        case CompetitionType.EL_QF_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_QF_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: 1/4 Finału (mecze) ──────────────────────────────────────────
+        case CompetitionType.EL_QF:
+        case CompetitionType.EL_QF_RETURN: {
+          const alreadyPlayedELQF = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.EL_QF || f.leagueId === CompetitionType.EL_QF_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedELQF) {
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+            skipDayAdvance = true; break;
+          }
+          break;
+        }
+
+        // ── LE: Losowanie 1/2 Finału ────────────────────────────────────────
+        case CompetitionType.EL_SF_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_SF_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: 1/2 Finału (mecze) ──────────────────────────────────────────
+        case CompetitionType.EL_SF:
+        case CompetitionType.EL_SF_RETURN: {
+          const alreadyPlayedELSF = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.EL_SF || f.leagueId === CompetitionType.EL_SF_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedELSF) {
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+            skipDayAdvance = true; break;
+          }
+          if (slot.competition === CompetitionType.EL_SF_RETURN) {
+            const allSFReturnDone = allFixtures
+              .filter(f => f.leagueId === CompetitionType.EL_SF_RETURN)
+              .every(f => f.status === MatchStatus.FINISHED);
+            if (allSFReturnDone) {
+              const finalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.EL_FINAL);
+              if (!finalAlreadyExists) {
+                const sfWinnersEL = ELDrawService.getSFWinners(allFixtures);
+                const sfPoolEL = ELDrawService.getSFParticipants(allFixtures);
+                const safeSFWinnersEL = ELDrawService.guaranteeWinners(sfWinnersEL, sfPoolEL, 2);
+                if (safeSFWinnersEL.length === 2) {
+                  const finalDateEL = new Date(dateToProcess.getFullYear(), 4, 20);
+                  const finalFixtureEL = ELDrawService.generateFinalFixture(
+                    safeSFWinnersEL[0], safeSFWinnersEL[1], finalDateEL, finalDateEL.getFullYear()
+                  );
+                  setGlobalFixtures(prev => [...prev, finalFixtureEL]);
+                }
+              }
+            }
+          }
+          break;
+        }
+
+        // ── LE: Ogłoszenie Finalistów ────────────────────────────────────────
+        case CompetitionType.EL_FINAL_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const elFinalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.EL_FINAL);
+          if (!elFinalAlreadyExists) {
+            const sfWinnersEL2 = ELDrawService.getSFWinners(allFixtures);
+            const sfPoolEL2 = ELDrawService.getSFParticipants(allFixtures);
+            const safeSFWinnersEL2 = ELDrawService.guaranteeWinners(sfWinnersEL2, sfPoolEL2, 2);
+            if (safeSFWinnersEL2.length === 2) {
+              const finalDateEL2 = new Date(dateToProcess.getFullYear(), 4, 20);
+              const finalFixtureEL2 = ELDrawService.generateFinalFixture(
+                safeSFWinnersEL2[0], safeSFWinnersEL2[1], finalDateEL2, finalDateEL2.getFullYear()
+              );
+              setGlobalFixtures(prev => [...prev, finalFixtureEL2]);
+            }
+          }
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_FINAL_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: FINAŁ ────────────────────────────────────────────────────────
+        case CompetitionType.EL_FINAL: {
+          const elFinalFixture = allFixtures.find(f => f.leagueId === CompetitionType.EL_FINAL);
+          if (!elFinalFixture) break;
+          const alreadyPlayedELFinal = elFinalFixture.status === MatchStatus.FINISHED;
+          if (!alreadyPlayedELFinal) {
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+            skipDayAdvance = true; break;
+          }
+          if (userTeamId) {
+            const mailKey = `EL_FINAL_RESULT_${elFinalFixture.date.getFullYear()}`;
+            if (!sentMailIdsRef.current.has(mailKey)) {
+              sentMailIdsRef.current.add(mailKey);
+              const h = elFinalFixture.homeScore ?? 0;
+              const a = elFinalFixture.awayScore ?? 0;
+              let winnerId: string;
+              if (h > a) winnerId = elFinalFixture.homeTeamId;
+              else if (a > h) winnerId = elFinalFixture.awayTeamId;
+              else winnerId = (elFinalFixture.homePenaltyScore ?? 0) >= (elFinalFixture.awayPenaltyScore ?? 0)
+                ? elFinalFixture.homeTeamId : elFinalFixture.awayTeamId;
+              const winner = clubs.find(c => c.id === winnerId);
+              const isUserWinner = winnerId === userTeamId;
+              const mail: MailMessage = {
+                id: mailKey,
+                sender: 'UEFA',
+                role: 'Biuro Rozgrywek UEFA',
+                subject: `Zdobywca Ligi Europy ${elFinalFixture.date.getFullYear()}`,
+                body: isUserWinner
+                  ? `GRATULACJE! Twój klub zdobył Ligę Europy ${elFinalFixture.date.getFullYear()}!`
+                  : `Finał Ligi Europy zakończony. Zdobywcą Ligi Europy ${elFinalFixture.date.getFullYear()} został ${winner?.name ?? winnerId}.`,
+                date: new Date(currentDate),
+                isRead: false,
+                type: MailType.SYSTEM,
+                priority: 100,
+              };
+              setMessages(prev => [mail, ...prev]);
+            }
+          }
+          break;
+        }
+
         // ── LM: Losowanie Rundy 1 Preeliminacyjnej ──────────────────────────
         case CompetitionType.CHAMPIONS_LEAGUE_DRAW: {
           if (processedDrawIds.includes(slot.id)) break;
@@ -1398,7 +1558,15 @@ setMessages([welcomeMail, fanMail]);
          primaryEvent.slot.competition === CompetitionType.EL_R1Q ||
          primaryEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ||
          primaryEvent.slot.competition === CompetitionType.EL_R2Q ||
-         primaryEvent.slot.competition === CompetitionType.EL_R2Q_RETURN)) {
+         primaryEvent.slot.competition === CompetitionType.EL_R2Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_GROUP_STAGE ||
+         primaryEvent.slot.competition === CompetitionType.EL_R16 ||
+         primaryEvent.slot.competition === CompetitionType.EL_R16_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_QF ||
+         primaryEvent.slot.competition === CompetitionType.EL_QF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_SF ||
+         primaryEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_FINAL)) {
       setTargetJumpTime(null);
       return;
     }
@@ -1870,6 +2038,87 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   };
 
+  const confirmELGroupDraw = () => {
+    if (!activeELGroupDraw) return;
+    setElGroups(activeELGroupDraw.groups);
+
+    const year = activeELGroupDraw.date.getFullYear();
+    const matchdayDates = [
+      new Date(year, 8,  19),  // MD1 — 19 września
+      new Date(year, 9,  18),  // MD2 — 18 października
+      new Date(year, 9,  26),  // MD3 — 26 października
+      new Date(year, 10, 26),  // MD4 — 26 listopada
+      new Date(year, 11,  5),  // MD5 — 5 grudnia
+      new Date(year, 11, 15),  // MD6 — 15 grudnia
+    ];
+    const groupFixtures = ELDrawService.generateGroupStageFixtures(
+      activeELGroupDraw.groups,
+      matchdayDates,
+      year,
+    );
+    setGlobalFixtures(prev => [...prev, ...groupFixtures]);
+
+    setProcessedDrawIds(prev => [...prev, activeELGroupDraw.id]);
+    setActiveELGroupDraw(null);
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `EL_GROUP_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie Fazy Grupowej Ligi Europy',
+        body: `Zakończono ceremonię losowania fazy grupowej Ligi Europy. Sprawdź skład swojej grupy.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 82
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+    const nextDayEL = new Date(currentDate);
+    nextDayEL.setDate(nextDayEL.getDate() + 1);
+    setCurrentDate(nextDayEL);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
+
+  const confirmELR16Draw = useCallback(() => {
+    if (!elGroups) return;
+    const drawYear = currentDate.getFullYear();
+    const leg1Date = new Date(drawYear + 1, 0, 20); // 20 stycznia
+    const leg2Date = new Date(drawYear + 1, 0, 26); // 26 stycznia
+    const fixtureYear = drawYear + 1;
+
+    const r16Fixtures = ELDrawService.generateELR16Fixtures(
+      elGroups, allFixtures, leg1Date, leg2Date, fixtureYear,
+    );
+    setGlobalFixtures(prev => [...prev, ...r16Fixtures]);
+
+    if (userTeamId) {
+      const isUserIn = r16Fixtures.some(
+        f => f.leagueId === CompetitionType.EL_R16 &&
+             (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId)
+      );
+      const mail: MailMessage = {
+        id: `EL_R16_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie 1/8 Finału Ligi Europy',
+        body: isUserIn
+          ? 'Twój klub awansował do 1/8 finału Ligi Europy! Sprawdź swojego rywala w historii LE.'
+          : 'Przeprowadzono losowanie 1/8 finału Ligi Europy. Sprawdź pary w historii LE.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 88,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, elGroups, userTeamId, navigateTo]);
 
   const confirmCLR16Draw = useCallback(() => {
     if (!clGroups) return;
@@ -1992,6 +2241,128 @@ const finalResult: SimulationOutput = {
     setCurrentDate(nextDay);
     navigateTo(ViewState.DASHBOARD);
   }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
+
+  const confirmELQFDraw = useCallback(() => {
+    const drawYear = currentDate.getFullYear();
+    const leg1Date = new Date(drawYear, 1, 17); // 17 lutego
+    const leg2Date = new Date(drawYear, 2, 3);  // 3 marca
+    const fixtureYear = drawYear;
+
+    const r16Winners = ELDrawService.getR16Winners(allFixtures);
+    const r16Pool = ELDrawService.getR16Participants(allFixtures);
+    const safeR16Winners = ELDrawService.guaranteeWinners(r16Winners, r16Pool, 8);
+    const qfFixtures = ELDrawService.generateQFFixtures(
+      safeR16Winners, leg1Date, leg2Date, fixtureYear, sessionSeed,
+    );
+    setGlobalFixtures(prev => [...prev, ...qfFixtures]);
+
+    if (userTeamId) {
+      const isUserIn = qfFixtures.some(
+        f => f.leagueId === CompetitionType.EL_QF &&
+             (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId)
+      );
+      const mail: MailMessage = {
+        id: `EL_QF_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie 1/4 Finału Ligi Europy',
+        body: isUserIn
+          ? 'Twój klub awansował do 1/4 finału Ligi Europy! Sprawdź swojego rywala w historii LE.'
+          : 'Przeprowadzono losowanie 1/4 finału Ligi Europy. Sprawdź pary w historii LE.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 88,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
+
+  const confirmELSFDraw = useCallback(() => {
+    const drawYear = currentDate.getFullYear();
+    const leg1Date = new Date(drawYear, 2, 27); // 27 marca
+    const leg2Date = new Date(drawYear, 3, 16); // 16 kwietnia
+    const fixtureYear = drawYear;
+
+    const qfWinners = ELDrawService.getQFWinners(allFixtures);
+    const qfPool = ELDrawService.getQFParticipants(allFixtures);
+    const safeQFWinners = ELDrawService.guaranteeWinners(qfWinners, qfPool, 4);
+    const sfFixtures = ELDrawService.generateSFFixtures(
+      safeQFWinners, leg1Date, leg2Date, fixtureYear, sessionSeed,
+    );
+    setGlobalFixtures(prev => [...prev, ...sfFixtures]);
+
+    if (userTeamId) {
+      const isUserIn = sfFixtures.some(
+        f => f.leagueId === CompetitionType.EL_SF &&
+             (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId)
+      );
+      const mail: MailMessage = {
+        id: `EL_SF_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie 1/2 Finału Ligi Europy',
+        body: isUserIn
+          ? 'Twój klub awansował do 1/2 finału Ligi Europy! Sprawdź swojego rywala w historii LE.'
+          : 'Przeprowadzono losowanie 1/2 finału Ligi Europy. Sprawdź pary w historii LE.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 88,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
+
+  const confirmELFinalDraw = useCallback(() => {
+    const finalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.EL_FINAL);
+    if (!finalAlreadyExists) {
+      const sfWinners = ELDrawService.getSFWinners(allFixtures);
+      const sfPool = ELDrawService.getSFParticipants(allFixtures);
+      const safeSFWinners = ELDrawService.guaranteeWinners(sfWinners, sfPool, 2);
+      if (safeSFWinners.length === 2) {
+        const finalDate = new Date(currentDate.getFullYear(), 4, 20);
+        const finalFixture = ELDrawService.generateFinalFixture(
+          safeSFWinners[0], safeSFWinners[1], finalDate, finalDate.getFullYear()
+        );
+        setGlobalFixtures(prev => [...prev, finalFixture]);
+      }
+    }
+
+    if (userTeamId) {
+      const sfWinners = ELDrawService.getSFWinners(allFixtures);
+      const isUserIn = sfWinners.includes(userTeamId);
+      const mail: MailMessage = {
+        id: `EL_FINAL_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Ogłoszenie Finalistów Ligi Europy',
+        body: isUserIn
+          ? 'Twój klub awansował do Finału Ligi Europy! Sprawdź szczegóły w historii LE.'
+          : 'Ogłoszono finaliśtów Ligi Europy. Sprawdź parę finałową w historii LE.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 90,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, userTeamId, navigateTo]);
 
   const confirmSeasonEnd = useCallback(() => {
     const nextSeasonYear = currentDate.getFullYear() + 1;
@@ -2392,7 +2763,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
+    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
     }}>
       {children}
     </GameContext.Provider>

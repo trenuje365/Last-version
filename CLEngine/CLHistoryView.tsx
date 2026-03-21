@@ -69,6 +69,23 @@ interface CLPair {
   };
 }
 
+// ── Matematycznie pewny awans do 1/8 (top-2 w grupie) ──────────────────────
+// Każda drużyna rozgrywa 6 meczów grupowych; row.played pochodzi
+// z computeGroupTable i obejmuje wyłącznie zakończone mecze grupowe.
+const hasClinched = (
+  position: number,
+  table: { pts: number; played: number }[],
+): boolean => {
+  if (position >= 2) return false;
+  const teamPts = table[position].pts;
+  for (let i = 2; i < table.length; i++) {
+    const rival = table[i];
+    const remaining = Math.max(0, 6 - rival.played);
+    if (rival.pts + 3 * remaining >= teamPts) return false;
+  }
+  return true;
+};
+
 export const CLHistoryView: React.FC = () => {
   const { fixtures, clubs, userTeamId, navigateTo, clGroups } = useGame();
   const [selectedRoundKey, setSelectedRoundKey] = useState<string>('R1Q');
@@ -685,7 +702,7 @@ const clFixtures = useMemo(
                                         <span className={`font-black uppercase italic text-[11px] truncate ${isUser ? 'text-amber-300' : promotes ? 'text-white' : 'text-slate-300'}`}>
                                           {club?.name ?? row.id}
                                         </span>
-                                        {promotes && <span className="ml-1 text-[7px] font-black text-blue-400 uppercase tracking-widest shrink-0">AWANS</span>}
+                                        {hasClinched(ri, table) && <span className="ml-1 text-[7px] font-black text-blue-400 uppercase tracking-widest shrink-0">✓ AWANS</span>}
                                       </div>
                                     </td>
                                     <td className="px-2 py-2 text-center text-slate-500">{row.played}</td>

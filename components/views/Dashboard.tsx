@@ -171,12 +171,18 @@ const boardConfidence = useMemo(() => {
             error: lineupValidation.valid ? null : lineupValidation.error,
           };
 
-        // ── Liga Mistrzów — mecz ─────────────────────────────────────────────
+        // ── Liga Mistrzów / Liga Europy — mecz ──────────────────────────
         case EventKind.MATCH_EURO: {
-          const isFinal = todayEvent.slot.competition === CompetitionType.CL_FINAL;
+          const isCLFinal = todayEvent.slot.competition === CompetitionType.CL_FINAL;
+          const isELFinal = todayEvent.slot.competition === CompetitionType.EL_FINAL;
+          const isELComp = todayEvent.slot.competition === CompetitionType.EL_QF ||
+                           todayEvent.slot.competition === CompetitionType.EL_QF_RETURN ||
+                           todayEvent.slot.competition === CompetitionType.EL_SF ||
+                           todayEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
+                           todayEvent.slot.competition === CompetitionType.EL_FINAL;
           return {
-            text: isFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : 'LIGA MISTRZÓW ⭐',
-            action: () => navigateTo(isFinal ? ViewState.PRE_MATCH_CL_FINAL : ViewState.PRE_MATCH_CL_STUDIO),
+            text: isCLFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : isELFinal ? '🟠 FINAŁ LIGI EUROPY' : isELComp ? '🟠 LIGA EUROPY' : 'LIGA MISTRZÓW ⭐',
+            action: () => navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_FINAL : ViewState.PRE_MATCH_CL_STUDIO),
             isMatch: true,
             disabled: isJumping,
           };
@@ -198,7 +204,15 @@ const boardConfidence = useMemo(() => {
               ? '🟠 LOSOWANIE LIGI EUROPY'
               : todayEvent.slot.competition === CompetitionType.EL_R2Q_DRAW
                 ? '🟠 LOSOWANIE LE: RUNDA 2 PREELIMINACYJNA'
-                : '⭐ LOSOWANIE LIGI MISTRZÓW',
+                : todayEvent.slot.competition === CompetitionType.EL_R16_DRAW
+                  ? '🟠 LOSOWANIE LE: 1/8 FINAŁU'
+                  : todayEvent.slot.competition === CompetitionType.EL_QF_DRAW
+                    ? '🟠 LOSOWANIE LE: 1/4 FINAŁU'
+                    : todayEvent.slot.competition === CompetitionType.EL_SF_DRAW
+                      ? '🟠 LOSOWANIE LE: 1/2 FINAŁU'
+                      : todayEvent.slot.competition === CompetitionType.EL_FINAL_DRAW
+                        ? '🟠 OGŁOSZENIE FINALISTÓW LE'
+                        : '⭐ LOSOWANIE LIGI MISTRZÓW',
             action: advanceDay,
             isMatch: false,
             disabled: isJumping,
@@ -251,7 +265,15 @@ const boardConfidence = useMemo(() => {
       if (todayEvent.slot.competition === CompetitionType.EL_R1Q ||
           todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ||
           todayEvent.slot.competition === CompetitionType.EL_R2Q ||
-          todayEvent.slot.competition === CompetitionType.EL_R2Q_RETURN) {
+          todayEvent.slot.competition === CompetitionType.EL_R2Q_RETURN ||
+          todayEvent.slot.competition === CompetitionType.EL_GROUP_STAGE ||
+          todayEvent.slot.competition === CompetitionType.EL_R16 ||
+          todayEvent.slot.competition === CompetitionType.EL_R16_RETURN ||
+          todayEvent.slot.competition === CompetitionType.EL_QF ||
+          todayEvent.slot.competition === CompetitionType.EL_QF_RETURN ||
+          todayEvent.slot.competition === CompetitionType.EL_SF ||
+          todayEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
+          todayEvent.slot.competition === CompetitionType.EL_FINAL) {
         return {
           text: '🟠 LIGA EUROPY – WYNIKI',
           action: () => { processCLMatchDay(); navigateTo(ViewState.EL_HISTORY); },
