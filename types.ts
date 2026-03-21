@@ -54,6 +54,7 @@ export enum ViewState {
   CL_BRACKET = 'CL_BRACKET',
   CL_HISTORY = 'CL_HISTORY',
   EL_DRAW = 'EL_DRAW',
+  EL_R2Q_DRAW = 'EL_R2Q_DRAW',
   EL_HISTORY = 'EL_HISTORY',
   CL_R16_DRAW = 'CL_R16_DRAW',
   CL_QF_DRAW = 'CL_QF_DRAW',
@@ -209,7 +210,9 @@ export enum CompetitionType {
   EL_R1Q_DRAW = 'EL_R1Q_DRAW',
   EL_R1Q = 'EL_R1Q',
   EL_R1Q_RETURN = 'EL_R1Q_RETURN',
-  // Kolejne rundy LE będą tu dodawane
+  EL_R2Q_DRAW = 'EL_R2Q_DRAW',
+  EL_R2Q = 'EL_R2Q',
+  EL_R2Q_RETURN = 'EL_R2Q_RETURN',
 }
 
 export enum SlotType {

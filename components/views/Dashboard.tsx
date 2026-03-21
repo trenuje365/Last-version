@@ -196,7 +196,9 @@ const boardConfidence = useMemo(() => {
           return {
             text: todayEvent.slot.competition === CompetitionType.EL_R1Q_DRAW
               ? '🟠 LOSOWANIE LIGI EUROPY'
-              : '⭐ LOSOWANIE LIGI MISTRZÓW',
+              : todayEvent.slot.competition === CompetitionType.EL_R2Q_DRAW
+                ? '🟠 LOSOWANIE LE: RUNDA 2 PREELIMINACYJNA'
+                : '⭐ LOSOWANIE LIGI MISTRZÓW',
             action: advanceDay,
             isMatch: false,
             disabled: isJumping,
@@ -247,7 +249,9 @@ const boardConfidence = useMemo(() => {
       }
       // ── Liga Europy — mecze (gracz nie uczestniczy) ──────────────────────
       if (todayEvent.slot.competition === CompetitionType.EL_R1Q ||
-          todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN) {
+          todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ||
+          todayEvent.slot.competition === CompetitionType.EL_R2Q ||
+          todayEvent.slot.competition === CompetitionType.EL_R2Q_RETURN) {
         return {
           text: '🟠 LIGA EUROPY – WYNIKI',
           action: () => { processCLMatchDay(); navigateTo(ViewState.EL_HISTORY); },

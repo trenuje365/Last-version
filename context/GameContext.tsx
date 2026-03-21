@@ -115,6 +115,7 @@ interface GameContextType {
   confirmCupDraw: (pairs: Fixture[]) => void;
   confirmCLDraw: (pairs: Fixture[]) => void;
   confirmELDraw: (pairs: Fixture[]) => void;
+  confirmELR2QDraw: (pairs: Fixture[]) => void;
   confirmCLGroupDraw: () => void;
     confirmCLR16Draw: () => void;
   confirmCLQFDraw: () => void;
@@ -175,6 +176,7 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
+ const [currentPolishCupWinnerId, setCurrentPolishCupWinnerId] = useState<string>('PL_LEGIA_WARSZAWA');
  const [supercupWinners, setSupercupWinners] = useState<{ season: string; winner: string; year: number; }[]>(() => {
     // Załaduj z localStorage przy inicjalizacji
     try {
@@ -350,6 +352,7 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     );
     
     let cupWinnerId: string | undefined;
+    let cupLoserId: string | undefined;
     if (cupFinal) {
      const hScore = cupFinal.homeScore || 0;
       const aScore = cupFinal.awayScore || 0;
@@ -360,6 +363,7 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
         homeWin = cupFinal.homePenaltyScore > (cupFinal.awayPenaltyScore || 0);
       }
       cupWinnerId = homeWin ? cupFinal.homeTeamId : cupFinal.awayTeamId;
+      cupLoserId = homeWin ? cupFinal.awayTeamId : cupFinal.homeTeamId;
     }
 
     // 2. Logika awansów i spadków
@@ -583,6 +587,12 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
  
     setGlobalFixtures([nextSuperCup]); // Czyścimy stare puchary, zostawiamy tylko nowy Superpuchar
     if (champion?.id) setCurrentPolishChampionId(champion.id);
+
+    // Ustal kto idzie do LE R2Q: zwycięzca PP, chyba że jest też mistrzem — wtedy przegrany finału
+    if (cupWinnerId) {
+      const polishCupR2QId = (cupWinnerId === champion?.id && cupLoserId) ? cupLoserId : cupWinnerId;
+      setCurrentPolishCupWinnerId(polishCupR2QId);
+    }
 
 
         const seasonEndDate = new Date(newYear - 1, 5, 30); // 30 czerwca kończącego się sezonu
@@ -868,7 +878,7 @@ setMessages([welcomeMail, fanMail]);
   };
 
   const advanceDay = useCallback(() => {
-    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW) return;
+    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW) return;
 
     const dateToProcess = new Date(currentDate);
     // Czy to automatyczny skok (jumpToDate/jumpToNextEvent) — NIE ręczny klik gracza?
@@ -1008,6 +1018,17 @@ setMessages([welcomeMail, fanMail]);
           setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: elPairs });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.EL_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: Losowanie Rundy 2 Preeliminacyjnej ──────────────────────────
+        case CompetitionType.EL_R2Q_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const elR2QPool = ELDrawService.getR2QPool(RAW_EUROPA_LEAGUE_CLUBS, allFixtures, currentPolishCupWinnerId);
+          const elR2QPairs = ELDrawService.drawR2QPairs(elR2QPool, clubs, dateToProcess, sessionSeed);
+          setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: elR2QPairs });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_R2Q_DRAW);
           skipDayAdvance = true; break;
         }
 
@@ -1375,7 +1396,9 @@ setMessages([welcomeMail, fanMail]);
          primaryEvent.slot.competition === CompetitionType.CL_SF ||
          primaryEvent.slot.competition === CompetitionType.CL_SF_RETURN ||
          primaryEvent.slot.competition === CompetitionType.EL_R1Q ||
-         primaryEvent.slot.competition === CompetitionType.EL_R1Q_RETURN)) {
+         primaryEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_R2Q ||
+         primaryEvent.slot.competition === CompetitionType.EL_R2Q_RETURN)) {
       setTargetJumpTime(null);
       return;
     }
@@ -2165,6 +2188,64 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   };
 
+  // ── Liga Europy: potwierdzenie losowania R2Q ─────────────────────────────
+  const confirmELR2QDraw = (pairs: Fixture[]) => {
+    if (!activeCupDraw) return;
+
+    setGlobalFixtures(prev => [...prev, ...pairs]);
+
+    const year = currentDate.getFullYear();
+    const matchFixtures: Fixture[] = [];
+
+    pairs.forEach((pair, i) => {
+      const pairNum = i + 1;
+      matchFixtures.push({
+        id: `EL_R2Q_MATCH_${pairNum}_${year}`,
+        leagueId: CompetitionType.EL_R2Q,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        date: new Date(year, 7, 8),   // 8 sierpnia
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      matchFixtures.push({
+        id: `EL_R2Q_MATCH_${pairNum}_${year}_RETURN`,
+        leagueId: CompetitionType.EL_R2Q_RETURN,
+        homeTeamId: pair.awayTeamId,
+        awayTeamId: pair.homeTeamId,
+        date: new Date(year, 7, 15),  // 15 sierpnia
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    });
+    setGlobalFixtures(prev => [...prev, ...matchFixtures]);
+
+    setProcessedDrawIds(prev => [...prev, activeCupDraw.id]);
+    setActiveCupDraw(null);
+
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `EL_R2Q_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Zakończono losowanie Ligi Europy — Runda 2',
+        body: 'Zakończono ceremonię losowania Rundy 2 Kwalifikacyjnej Ligi Europy UEFA. Zapraszamy do zapoznania się z wylosowanymi parami.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 82,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
   const markMessageRead = (id: string) => setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
   const deleteMessage = (id: string) => setMessages(prev => prev.filter(m => m.id !== id));
  const updatePlayer = (clubId: string, playerId: string, newData: Partial<Player>) => {
@@ -2310,7 +2391,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
-            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, activeGroupDraw,
+            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, activeGroupDraw,
     confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
     }}>
       {children}

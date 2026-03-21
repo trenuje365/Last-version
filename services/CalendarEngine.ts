@@ -304,6 +304,16 @@ export const CalendarEngine = {
         };
       }
 
+      // ── LE: LOSOWANIE R2Q ─────────────────────────────────────────────────────
+      case CompetitionType.EL_R2Q_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.EL_R2Q_DRAW,
+        };
+      }
+
       // ── LE: MECZE PREELIMINACYJNE R1Q ─────────────────────────────────────
       case CompetitionType.EL_R1Q:
       case CompetitionType.EL_R1Q_RETURN: {
@@ -315,6 +325,24 @@ export const CalendarEngine = {
             f.status === MatchStatus.SCHEDULED,
         );
         if (!hasAnyScheduled) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
+      // ── LE: MECZE PREELIMINACYJNE R2Q ─────────────────────────────────────
+      case CompetitionType.EL_R2Q:
+      case CompetitionType.EL_R2Q_RETURN: {
+        const hasAnyScheduledR2Q = allFixtures.some(
+          f =>
+            f.date.toDateString() === dateStr &&
+            (f.leagueId === CompetitionType.EL_R2Q || f.leagueId === CompetitionType.EL_R2Q_RETURN) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAnyScheduledR2Q) return null;
         return {
           slot,
           kind: EventKind.MATCH_EURO,

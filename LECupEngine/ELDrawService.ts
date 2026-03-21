@@ -114,7 +114,100 @@ export const ELDrawService = {
     return pairs;
   },
 
-  // ── Miejsce na przyszłe rundy ─────────────────────────────────────────────
-  // getR2QPool(...) { ... }
-  // drawR2QPairs(...) { ... }
+  // ── R2Q: Zwycięzcy R1Q + drużyny które nie grały R1Q + Zwycięzca PP ─────
+  getR2QPool(
+    rawClubs: RawELClub[],
+    allFixtures: Fixture[],
+    polishCupWinnerId: string,
+  ): string[] {
+    // 1. Wszystkie ID, które wystąpiły w R1Q (home lub away)
+    const r1qParticipantIds = new Set<string>();
+    allFixtures.forEach(f => {
+      if (f.leagueId === CompetitionType.EL_R1Q) {
+        r1qParticipantIds.add(f.homeTeamId);
+        r1qParticipantIds.add(f.awayTeamId);
+      }
+    });
+
+    // 2. Zwycięzcy R1Q — wyznaczani z zakończonych rewanży
+    const r1qWinners: string[] = [];
+    allFixtures.forEach(f => {
+      if (f.leagueId !== CompetitionType.EL_R1Q_RETURN || f.status !== MatchStatus.FINISHED) return;
+      const firstLegId = f.id.replace('_RETURN', '');
+      const leg1 = allFixtures.find(x => x.id === firstLegId);
+      if (!leg1 || leg1.homeScore === null || leg1.awayScore === null) return;
+
+      const teamATotal = (leg1.homeScore as number) + (f.awayScore ?? 0);
+      const teamBTotal = (leg1.awayScore as number) + (f.homeScore ?? 0);
+
+      let winnerId: string;
+      if (teamATotal > teamBTotal) {
+        winnerId = leg1.homeTeamId;
+      } else if (teamBTotal > teamATotal) {
+        winnerId = leg1.awayTeamId;
+      } else if (f.homePenaltyScore != null && f.awayPenaltyScore != null) {
+        winnerId = f.homePenaltyScore > f.awayPenaltyScore ? leg1.awayTeamId : leg1.homeTeamId;
+      } else {
+        winnerId = leg1.homeTeamId;
+      }
+      r1qWinners.push(winnerId);
+    });
+
+    // 3. Europejskie drużyny LE, które NIE grały R1Q (bez polskich)
+    const nonR1qEligible = rawClubs
+      .filter(c => c.country !== 'POL' && !r1qParticipantIds.has(generateELClubId(c.name)))
+      .sort((a, b) => a.tier - b.tier || b.reputation - a.reputation)
+      .map(c => generateELClubId(c.name));
+
+    // 4. Budowa puli: Zwycięzca PP ZAWSZE pierwszy, potem zwycięzcy R1Q, potem uzupełnienie
+    const pool: string[] = [];
+
+    if (polishCupWinnerId) pool.push(polishCupWinnerId);
+
+    for (const id of r1qWinners) {
+      if (!pool.includes(id)) pool.push(id);
+    }
+
+    for (const id of nonR1qEligible) {
+      if (pool.length >= 64) break;
+      if (!pool.includes(id)) pool.push(id);
+    }
+
+    // Awaryjne uzupełnienie przegranymi z R1Q jeśli < 64
+    if (pool.length < 64) {
+      const r1qLoserIds = [...r1qParticipantIds]
+        .filter(id => !r1qWinners.includes(id) && !pool.includes(id));
+      pool.push(...r1qLoserIds.slice(0, 64 - pool.length));
+    }
+
+    return pool.slice(0, 64);
+  },
+
+  drawR2QPairs(teamIds: string[], clubs: Club[], date: Date, seed: number): Fixture[] {
+    const shuffled = [...teamIds];
+    let s = (seed ^ 0xF22EEE11) >>> 0;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      s = (s * 1664525 + 1013904223) & 0xffffffff;
+      const j = Math.abs(s) % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const pairs: Fixture[] = [];
+    for (let i = 0; i < shuffled.length - 1; i += 2) {
+      const homeId = shuffled[i];
+      const awayId = shuffled[i + 1];
+      if (!homeId || !awayId) continue;
+      pairs.push({
+        id: `EL_R2Q_PAIR_${i / 2 + 1}_${date.getFullYear()}`,
+        leagueId: CompetitionType.EL_R2Q_DRAW,
+        homeTeamId: homeId,
+        awayTeamId: awayId,
+        date,
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    }
+    return pairs;
+  },
 };

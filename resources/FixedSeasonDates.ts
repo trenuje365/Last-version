@@ -51,7 +51,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  { day: 17, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 4)", priority: 20 },
   { day: 18, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Letnie przygotowania (Dzień 5)", priority: 20 },
 
-  //19 lipca LIGA EUROPY - losowanie 2 rundy preeliminacyjnej - DO ZAIMPLEMENTOWANIA
+  { day: 19, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R2Q_DRAW, label: "LOSOWANIE LE: RUNDA 2 PREELIMINACYJNA", priority: 88 },
 
 //MECZE 1/64 PUCHARU POLSKI ///
   { day: 20, month: 6, type: SlotType.WEEKEND, comp: CompetitionType.POLISH_CUP, label: "Puchar Polski: 1/64", priority: 50 },
@@ -78,7 +78,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   // --- SIERPIEŃ --------------------------------------------------------------------------------------------------------------------------
   { day: 5,  month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 3", priority: 10 },
 
- // --- 8 sierpnia LIGA EUROPY - preeliminacje 2 runda - pierwszy mecz - DO ZAIMPLEMENTOWANIA
+  { day: 8,  month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R2Q, label: "LE: R2Q - 1. mecz", priority: 82 },
 
   { day: 11,  month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 4", priority: 10 },
 ///LOSOWANIE PP 1/32
@@ -89,7 +89,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 //-- LIGA MISTRZOW 2 RUNDA REWANZ 
  { day: 14, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R2Q_RETURN, label: "LM: R2Q - Rewanż", priority: 85 },
 
-  // --- 15 Sierpnia LIGA EUROPY preeliminacje 2 runda - rewanż - DO ZAIMPLEMENTOWANIA
+  { day: 15, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R2Q_RETURN, label: "LE: R2Q - Rewanż", priority: 82 },
 
 
 

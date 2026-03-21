@@ -9,7 +9,10 @@ HealthStatus,
 PlayerPosition, EuropeanStatus
 } from '../types';
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from '../resources/static_db/clubs/ChampionsLeagueTeams';
-import { STATIC_CLUBS, STATIC_LEAGUES, STATIC_CL_CLUBS, START_DATE } from '../constants';
+import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../resources/static_db/clubs/EuropeLeagueTeams';
+import { ELDrawService } from '../LECupEngine/ELDrawService';
+import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../resources/static_db/clubs/ConferenceLeagueTeams';
+import { STATIC_CLUBS, STATIC_LEAGUES, STATIC_CL_CLUBS, STATIC_EL_CLUBS, STATIC_CONF_CLUBS, START_DATE } from '../constants';
 import { SeasonTemplateGenerator } from '../services/SeasonTemplateGenerator';
 import { LeagueScheduleGenerator } from '../services/LeagueScheduleGenerator';
 import { CalendarEngine } from '../services/CalendarEngine';
@@ -28,10 +31,12 @@ import { PolishCupDrawService } from '../services/PolishCupDrawService';
 import { CLDrawService } from '../services/CLDrawService';
 import { SuperCupService } from '../services/SuperCupService';
 import { CoachService } from '../services/CoachService';
+import { RefereeService } from '../services/RefereeService';
 import { FreeAgentService } from '../services/FreeAgentService';
 import { AiContractService } from '@/services/AiContractService';
 import { BackgroundMatchProcessorCL } from '../services/BackgroundMatchProcessorCL';
 import { ScoutAssistantService } from '../services/ScoutAssistantService';
+import { ChampionshipHistoryService } from '../data/championship_history';
 
 interface SimulationOutput {
   updatedFixtures: Fixture[];
@@ -78,6 +83,8 @@ interface GameContextType {
     activeCupDraw: { id: string, label: string, date: Date, pairs: Fixture[] } | null;
   activeGroupDraw: { id: string, label: string, date: Date, groups: string[][] } | null;
   clGroups: string[][] | null;
+  supercupWinners: { season: string; winner: string; year: number; }[];
+  addSupercupWinner: (season: string, winner: string, year: number) => void;
 
   activeIntensity: TrainingIntensity;
   setTrainingIntensity: (intensity: TrainingIntensity) => void;
@@ -107,6 +114,7 @@ interface GameContextType {
   setActiveTrainingId: (id: string | null) => void;
   confirmCupDraw: (pairs: Fixture[]) => void;
   confirmCLDraw: (pairs: Fixture[]) => void;
+  confirmELDraw: (pairs: Fixture[]) => void;
   confirmCLGroupDraw: () => void;
     confirmCLR16Draw: () => void;
   confirmCLQFDraw: () => void;
@@ -123,10 +131,8 @@ finalizeFreeAgentContract: (mailId: string) => void;
 
  europeanStatus: Record<string, EuropeanStatus>;
   setEuropeanStatus: React.Dispatch<React.SetStateAction<Record<string, EuropeanStatus>>>;
+  addFinanceLog: (clubId: string, description: string, amount: number, date?: Date, previousBalance?: number) => void;
 }
-
-
-
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -135,7 +141,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionSeed, setSessionSeed] = useState<number>(0);
   const [viewState, setViewState] = useState<ViewState>(ViewState.START_MENU);
   const [previousViewState, setPreviousViewState] = useState<ViewState | null>(null);
-  const [clubs, setClubs] = useState<Club[]>([...STATIC_CLUBS, ...STATIC_CL_CLUBS]);
+  const [clubs, setClubs] = useState<Club[]>([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS]);
   const [leagues, setLeagues] = useState<League[]>(STATIC_LEAGUES);
   const [players, setPlayers] = useState<Record<string, Player[]>>({});
   const [lineups, setLineups] = useState<Record<string, Lineup>>({});
@@ -169,9 +175,64 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
+ const [supercupWinners, setSupercupWinners] = useState<{ season: string; winner: string; year: number; }[]>(() => {
+    // Załaduj z localStorage przy inicjalizacji
+    try {
+      const stored = localStorage?.getItem('fm_championship_history');
+      if (stored) {
+        const all = JSON.parse(stored) as any[];
+        return all.filter(e => e.competition === 'SUPERPUCHAR_POLSKI') || [];
+      }
+    } catch (e) {
+      console.error('Failed to load supercup winners from localStorage:', e);
+    }
+    // Fallback na dane domyślne
+    return [
+      { season: '2023/2024', winner: 'Jagiellonia Białystok', year: 2024 }
+    ];
+  });
 
   // Guard: zapobiega wielokrotnemu uruchomieniu processLeagueEvent dla tej samej daty
   const lastProcessedLeagueDateRef = React.useRef<string | null>(null);
+
+  // Helper do dodawania logów finansowych
+  const addFinanceLog = useCallback((clubId: string, description: string, amount: number, date?: Date, previousBalance?: number) => {
+    const logDate = (date || currentDate).toISOString().split('T')[0];
+    
+    // Jeśli previousBalance nie podany, pobierz z klubu
+    let prevBalance = previousBalance;
+    if (prevBalance === undefined) {
+      const club = clubs.find(c => c.id === clubId);
+      // Jeśli operacja zwiększała budżet, to poprzednie saldo = obecne - kwota
+      // Jeśli operacja zmniejszała budżet, to poprzednie saldo = obecne - (-kwota) = obecne + kwota
+      prevBalance = club ? club.budget - amount : 0;
+    }
+    
+    const newLog = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: logDate,
+      amount: amount,
+      type: amount >= 0 ? 'INCOME' as const : 'EXPENSE' as const,
+      description: description,
+      previousBalance: prevBalance
+    };
+
+    setClubs(prev => prev.map(c => 
+      c.id === clubId 
+        ? { ...c, financeHistory: [newLog, ...(c.financeHistory || [])].slice(0, 50) } 
+        : c
+    ));
+  }, [currentDate, clubs]);
+
+  const addSupercupWinner = useCallback((season: string, winner: string, year: number) => {
+    setSupercupWinners(prev => {
+      const exists = prev.some(w => w.season === season);
+      if (exists) {
+        return prev.map(w => w.season === season ? { season, winner, year } : w);
+      }
+      return [...prev, { season, winner, year }];
+    });
+  }, []);
 
   // Guard: śledzi ID maili już wysłanych w trakcie sesji (by nie duplikować przy stale closure)
   const sentMailIdsRef = React.useRef<Set<string>>(new Set());
@@ -189,6 +250,20 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     const rawCL = RAW_CHAMPIONS_LEAGUE_CLUBS.find(c => generateEuropeanClubId(c.name) === clubId);
     if (rawCL) {
         const newSquad = SquadGeneratorService.generateEuropeanSquad(clubId, rawCL.tier, rawCL.reputation, rawCL.country);
+        setPlayers(prev => ({ ...prev, [clubId]: newSquad }));
+        return newSquad;
+    }
+
+    const rawEL = RAW_EUROPA_LEAGUE_CLUBS.find(c => generateELClubId(c.name) === clubId);
+    if (rawEL) {
+        const newSquad = SquadGeneratorService.generateEuropeanSquad(clubId, rawEL.tier, rawEL.reputation, rawEL.country);
+        setPlayers(prev => ({ ...prev, [clubId]: newSquad }));
+        return newSquad;
+    }
+
+    const rawCONF = RAW_CONFERENCE_LEAGUE_CLUBS.find(c => generateCONFClubId(c.name) === clubId);
+    if (rawCONF) {
+        const newSquad = SquadGeneratorService.generateEuropeanSquad(clubId, rawCONF.tier, rawCONF.reputation, rawCONF.country);
         setPlayers(prev => ({ ...prev, [clubId]: newSquad }));
         return newSquad;
     }
@@ -220,7 +295,7 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     setSessionSeed(Math.floor(Math.random() * 1000000));
     const template = SeasonTemplateGenerator.generate(startYear);
     // -> tutaj wstaw kod
-    const coachData = CoachService.generateInitialCoaches([...STATIC_CLUBS, ...STATIC_CL_CLUBS]);
+    const coachData = CoachService.generateInitialCoaches([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS]);
     setCoaches(coachData.coaches);
     setClubs(coachData.updatedClubs);
    
@@ -241,13 +316,21 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
       const clubId = generateEuropeanClubId(club.name);
             europeanPlayers[clubId] = SquadGeneratorService.generateEuropeanSquad(clubId, club.tier, club.reputation, club.country);
     });
+    RAW_EUROPA_LEAGUE_CLUBS.forEach(club => {
+      const clubId = generateELClubId(club.name);
+      europeanPlayers[clubId] = SquadGeneratorService.generateEuropeanSquad(clubId, club.tier, club.reputation, club.country);
+    });
+    RAW_CONFERENCE_LEAGUE_CLUBS.forEach(club => {
+      const clubId = generateCONFClubId(club.name);
+      europeanPlayers[clubId] = SquadGeneratorService.generateEuropeanSquad(clubId, club.tier, club.reputation, club.country);
+    });
     setPlayers(prev => ({ ...prev, ...europeanPlayers }));
 
     setMessages([]);
     setProcessedDrawIds([]);
     const initialSuperCup = SuperCupService.generateFixture(2025, STATIC_CLUBS);
     setGlobalFixtures([initialSuperCup]);
-    setClubs([...STATIC_CLUBS.map(c => ({ ...c, isInPolishCup: false })), ...STATIC_CL_CLUBS]);
+    setClubs([...STATIC_CLUBS.map(c => ({ ...c, isInPolishCup: false })), ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS]);
     navigateTo(ViewState.MANAGER_CREATION);
   };
 
@@ -382,14 +465,85 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
       }
 
       const newTier = parseInt(newLeagueId.split('_')[2]) || 4;
-      const seasonalAwardRank = standingsL1.findIndex(c => c.id === club.id) + 1 || 10;
-      const nextSeasonInjection = FinanceService.calculateSeasonalIncome(newTier, newReputation, seasonalAwardRank);
+      
+      // Obliczanie rankingu klubu w nowej lidze (po potencjalnym awansie/spadku)
+      let leagueRanking = 10;
+      let currentLeagueStandings: Club[] = [];
+      
+      if (newLeagueId === 'L_PL_1') {
+        currentLeagueStandings = standingsL1;
+      } else if (newLeagueId === 'L_PL_2') {
+        currentLeagueStandings = standingsL2;
+      } else if (newLeagueId === 'L_PL_3') {
+        currentLeagueStandings = standingsL3;
+      }
+      
+      if (currentLeagueStandings.length > 0) {
+        leagueRanking = currentLeagueStandings.findIndex(c => c.id === club.id) + 1 || leagueRanking;
+      }
+      
+      const seasonalAwardRank = leagueRanking;
+      let nextSeasonInjection = FinanceService.calculateSeasonalIncome(newTier, newReputation, seasonalAwardRank);
+      
+      // Bonusy ligowe (tylko dla Ekstraklasy - tier 1)
+      let leagueBonusAmount = 0;
+      if (newTier === 1 && newLeagueId === 'L_PL_1') {
+        leagueBonusAmount = FinanceService.calculateLeagueFinishBonus(leagueRanking, newTier);
+        nextSeasonInjection += leagueBonusAmount;
+      }
+      
+      // Bonusy za Puchar Polski
+      let cupBonusAmount = 0;
+      if (club.id === cupWinnerId) {
+        cupBonusAmount = FinanceService.calculatePolishCupBonus('WINNER');
+        nextSeasonInjection += cupBonusAmount;
+      }
+
+      // Tworzymy logi finansowe dla bonusów
+      const financeLogsToAdd: any[] = [];
+      let currentBalance = club.budget;
+
+      const seasonalLog = {
+        id: Math.random().toString(36).substring(2, 9),
+        date: currentDate.toISOString().split('T')[0],
+        amount: nextSeasonInjection,
+        type: 'INCOME' as const,
+        description: `Zastrzyk finansowy (TV, Sponsoring, Nagrody)`,
+        previousBalance: currentBalance
+      };
+      financeLogsToAdd.push(seasonalLog);
+
+      // Jeśli są bonusy ligowe lub pucharowe, dodaj je jako osobne wpisy
+      if (leagueBonusAmount > 0) {
+        currentBalance += nextSeasonInjection - leagueBonusAmount; // Uwzględniamy inne przychody
+        financeLogsToAdd.push({
+          id: Math.random().toString(36).substring(2, 9),
+          date: currentDate.toISOString().split('T')[0],
+          amount: leagueBonusAmount,
+          type: 'INCOME' as const,
+          description: `Nagroda za ${leagueRanking === 1 ? 'Mistrzostwo Polski' : (leagueRanking === 2 ? '2. miejsce w Ekstraklasie' : (leagueRanking === 3 ? '3. miejsce w Ekstraklasie' : (leagueRanking === 4 ? '4. miejsce w Ekstraklasie' : `${leagueRanking}. miejsce w Ekstraklasie`)))}`,
+          previousBalance: currentBalance
+        });
+      }
+      
+      if (cupBonusAmount > 0) {
+        currentBalance = currentBalance - (leagueBonusAmount > 0 ? leagueBonusAmount : 0) + nextSeasonInjection;
+        financeLogsToAdd.push({
+          id: Math.random().toString(36).substring(2, 9),
+          date: currentDate.toISOString().split('T')[0],
+          amount: cupBonusAmount,
+          type: 'INCOME' as const,
+          description: `Nagroda za zwycięstwo w Pucharze Polski`,
+          previousBalance: currentBalance
+        });
+      }
 
       return {
         ...club,
         leagueId: newLeagueId,
         reputation: newReputation,
         budget: club.budget + nextSeasonInjection,
+        financeHistory: [...financeLogsToAdd, ...(club.financeHistory || [])].slice(0, 50),
         stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
         isInPolishCup: false 
       };
@@ -470,6 +624,30 @@ if (userTeamId) {
         setMessages(prev => [...newEndMails, ...prev]);
       }
     }
+    RefereeService.applyEndOfSeasonAdjustments();
+    RefereeService.resetSeasonStats();
+    
+    // Zapisz zwycięzców do historii
+    const seasonKey = `${newYear - 1}/${newYear}`;
+    if (champion?.name) {
+      // Znajdź drugie miejsce w Ekstraklasie
+      const secondPlace = standingsL1[1];
+      ChampionshipHistoryService.addEkstraklasaChampion(
+        seasonKey,
+        champion.name,
+        secondPlace?.name || 'Nieznany',
+        newYear
+      );
+    }
+    
+    if (cupWinnerId) {
+      const cupWinner = updatedClubs.find(c => c.id === cupWinnerId);
+      if (cupWinner?.name) {
+        ChampionshipHistoryService.addCupChampion(seasonKey, 'PUCHAR_POLSKI', cupWinner.name, newYear);
+      }
+    }
+    // Superpuchar będzie uzupełniany po meczu (na razie tylko zwycięzcy ligi i pucharu)
+    
     setRoundResults({});
     sentMailIdsRef.current = new Set();
     lastProcessedLeagueDateRef.current = null;
@@ -495,8 +673,8 @@ const selectUserTeam = (clubId: string) => {
     });
     setLineups(prev => ({ ...prev, ...otherLineups }));
 
-   const welcomeMail = MailService.generateWelcomeMail(club, squad);
-const fanMail = MailService.generateFanWelcomeMail(club, squad); // Tę funkcję zaraz dopiszemy
+   const welcomeMail = MailService.generateWelcomeMail(club, squad, currentDate);
+const fanMail = MailService.generateFanWelcomeMail(club, squad, currentDate); // Tę funkcję zaraz dopiszemy
 setMessages([welcomeMail, fanMail]);
 
     navigateTo(ViewState.DASHBOARD);
@@ -604,14 +782,22 @@ setMessages([welcomeMail, fanMail]);
   }, [currentDate, userTeamId, allFixtures, clubs, players, lineups, sessionSeed]);
 
   const processCLMatchDay = useCallback(() => {
+    // null zamiast userTeamId — gracz kliknął "Symuluj", więc symulujemy WSZYSTKIE mecze
+    // łącznie z drużyną gracza (brak trybu live dla CL)
     const clResult = BackgroundMatchProcessorCL.processChampionsLeagueEvent(
-      currentDate, userTeamId, allFixtures, clubs, sessionSeed
+      currentDate, null, allFixtures, clubs, sessionSeed
     );
     setGlobalFixtures(prev => {
       const clMap = new Map(clResult.updatedFixtures.map(f => [f.id, f]));
       return prev.map(f => {
         const clF = clMap.get(f.id);
-        if (clF && (clF.status !== f.status || clF.homeScore !== f.homeScore || clF.awayScore !== f.awayScore)) {
+        if (clF && (
+          clF.status !== f.status ||
+          clF.homeScore !== f.homeScore ||
+          clF.awayScore !== f.awayScore ||
+          clF.homePenaltyScore !== f.homePenaltyScore ||
+          clF.awayPenaltyScore !== f.awayPenaltyScore
+        )) {
           return clF;
         }
         return f;
@@ -682,7 +868,7 @@ setMessages([welcomeMail, fanMail]);
   };
 
   const advanceDay = useCallback(() => {
-    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW) return;
+    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW) return;
 
     const dateToProcess = new Date(currentDate);
     // Czy to automatyczny skok (jumpToDate/jumpToNextEvent) — NIE ręczny klik gracza?
@@ -804,11 +990,26 @@ setMessages([welcomeMail, fanMail]);
       dateToProcess, seasonTemplate, allFixtures, userTeamId, clubs
     );
 
+    // skipDayAdvance = true oznacza że data NIE zostanie przesunięta
+    // (gracz musi jeszcze zagrać mecz lub potwierdzić akcję tego dnia)
+    let skipDayAdvance = false;
+
     if (primaryEvent?.participation === 'player') {
       setTargetJumpTime(null);
       const slot = primaryEvent.slot;
 
       switch (slot.competition) {
+
+        // ── LE: Losowanie Rundy 1 Preeliminacyjnej ──────────────────────────
+        case CompetitionType.EL_R1Q_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const elTeamIds = ELDrawService.getEligibleTeams(RAW_EUROPA_LEAGUE_CLUBS, sessionSeed);
+          const elPairs = ELDrawService.drawPairs(elTeamIds, clubs, dateToProcess, sessionSeed);
+          setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: elPairs });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.EL_DRAW);
+          skipDayAdvance = true; break;
+        }
 
         // ── LM: Losowanie Rundy 1 Preeliminacyjnej ──────────────────────────
         case CompetitionType.CHAMPIONS_LEAGUE_DRAW: {
@@ -818,7 +1019,7 @@ setMessages([welcomeMail, fanMail]);
           setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Losowanie Rundy 2 Preeliminacyjnej ──────────────────────────
@@ -833,7 +1034,7 @@ setMessages([welcomeMail, fanMail]);
           setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: r2qPairs });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Losowanie Fazy Grupowej ─────────────────────────────────────
@@ -846,7 +1047,7 @@ setMessages([welcomeMail, fanMail]);
           setActiveGroupDraw({ id: slot.id, label: slot.label, date: dateToProcess, groups });
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_GROUP_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: Faza Grupowa (mecz gracza) ──────────────────────────────────
@@ -857,10 +1058,11 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
+
           break;
         }
 
@@ -870,7 +1072,7 @@ setMessages([welcomeMail, fanMail]);
           if (!clGroups) break; // faza grupowa jeszcze nie zakończona
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_R16_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: 1/8 Finału (mecze) ──────────────────────────────────────────
@@ -882,9 +1084,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
             break;
         }
@@ -894,7 +1096,7 @@ setMessages([welcomeMail, fanMail]);
           if (processedDrawIds.includes(slot.id)) break;
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_QF_DRAW);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── LM: 1/4 Finału (mecze) ──────────────────────────────────────────
@@ -906,9 +1108,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
           }
                    break;
         }
@@ -918,7 +1120,29 @@ setMessages([welcomeMail, fanMail]);
           if (processedDrawIds.includes(slot.id)) break;
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.CL_SF_DRAW);
-          return;
+          skipDayAdvance = true; break;
+        }
+
+        // ── LM: Ogłoszenie Finalistów ────────────────────────────────────────
+        case CompetitionType.CL_FINAL_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          // Wygeneruj fixture finałowy jeśli jeszcze nie istnieje
+          const finalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.CL_FINAL);
+          if (!finalAlreadyExists) {
+            const sfWinners = CLDrawService.getSFWinners(allFixtures);
+            const sfPool2 = CLDrawService.getSFParticipants(allFixtures);
+            const safeSFWinners2 = CLDrawService.guaranteeWinners(sfWinners, sfPool2, 2);
+            if (safeSFWinners2.length === 2) {
+              const finalDate = new Date(dateToProcess.getFullYear(), 4, 30);
+              const finalFixture = CLDrawService.generateFinalFixture(
+                safeSFWinners2[0], safeSFWinners2[1], finalDate, finalDate.getFullYear()
+              );
+              setGlobalFixtures(prev => [...prev, finalFixture]);
+            }
+          }
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CL_FINAL_DRAW);
+          skipDayAdvance = true; break;
         }
 
         // ── LM: 1/2 Finału (mecze) ──────────────────────────────────────────
@@ -931,9 +1155,31 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-            return;
+            skipDayAdvance = true; break;
+          }
+          // Po rewanżu 1/2 finału: wygeneruj finał i pokaż parę finałową
+          if (slot.competition === CompetitionType.CL_SF_RETURN) {
+            const allSFReturnDone = allFixtures
+              .filter(f => f.leagueId === CompetitionType.CL_SF_RETURN)
+              .every(f => f.status === MatchStatus.FINISHED);
+            if (allSFReturnDone) {
+              const finalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.CL_FINAL);
+              if (!finalAlreadyExists) {
+                const sfWinners = CLDrawService.getSFWinners(allFixtures);
+                const sfPool = CLDrawService.getSFParticipants(allFixtures);
+                const safeSFWinners = CLDrawService.guaranteeWinners(sfWinners, sfPool, 2);
+                if (safeSFWinners.length === 2) {
+                  const finalDate = new Date(dateToProcess.getFullYear(), 4, 30);
+                  const finalFixture = CLDrawService.generateFinalFixture(
+                    safeSFWinners[0], safeSFWinners[1], finalDate, finalDate.getFullYear()
+                  );
+                  setGlobalFixtures(prev => [...prev, finalFixture]);
+                }
+              }
+              // Finaliści zostaną ogłoszeni 18 kwietnia przez dedykowany slot CL_FINAL_DRAW
+            }
           }
           break;
         }
@@ -941,24 +1187,13 @@ setMessages([welcomeMail, fanMail]);
         // ── LM: FINAŁ ────────────────────────────────────────────────────────
         case CompetitionType.CL_FINAL: {
           const finalFixture = allFixtures.find(f => f.leagueId === CompetitionType.CL_FINAL);
-          if (!finalFixture) {
-            const sfWinners = CLDrawService.getSFWinners(allFixtures);
-            if (sfWinners.length === 2) {
-              const finalDate = new Date(dateToProcess);
-              const newFixture = CLDrawService.generateFinalFixture(
-                sfWinners[0], sfWinners[1], finalDate, finalDate.getFullYear(),
-              );
-              setGlobalFixtures(prev => [...prev, newFixture]);
-            }
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
-            navigateTo(ViewState.PRE_MATCH_CL_FINAL);
-            return;
-          }
+          
+       
           const alreadyPlayed = finalFixture.status === MatchStatus.FINISHED;
           if (!alreadyPlayed) {
-            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
             navigateTo(ViewState.PRE_MATCH_CL_FINAL);
-            return;
+            skipDayAdvance = true; break;
           }
           // Finał rozegrany — wyślij mail o zwycięzcy (raz)
           if (userTeamId) {
@@ -1004,9 +1239,9 @@ setMessages([welcomeMail, fanMail]);
         case CompetitionType.CL_R1Q_RETURN:
         case CompetitionType.CL_R2Q:
         case CompetitionType.CL_R2Q_RETURN: {
-          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── Puchar Polski: Losowanie ─────────────────────────────────────────
@@ -1036,20 +1271,27 @@ setMessages([welcomeMail, fanMail]);
             setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: cupPairs });
             setCupParticipants(participants);
             navigateTo(ViewState.CUP_DRAW);
-            return;
+            skipDayAdvance = true; break;
+          }
+          // Ogłoszenie finalistów PP — pokaż ekran finalistów (raz)
+          if (slot.label.toUpperCase().includes('OGŁOSZENIE') || slot.label.toUpperCase().includes('OGLOSZENIE')) {
+            if (processedDrawIds.includes(slot.id)) break;
+            setProcessedDrawIds(prev => [...prev, slot.id]);
+            navigateTo(ViewState.POLISH_CUP_FINALISTS);
+            skipDayAdvance = true; break;
           }
           // Dzień meczowy PP — gracz uczestniczy
           // Jeśli to automatyczny skok: zatrzymaj i wróć na Dashboard (gracz edytuje skład)
-          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── Superpuchar (gracz uczestniczy) ────────────────────────────────
         case CompetitionType.SUPER_CUP: {
-          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); return; }
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CUP_STUDIO);
-          return;
+          skipDayAdvance = true; break;
         }
 
         // ── Zakończenie sezonu — pauza, gracz czyta emaile i klika "Nowy sezon" ──
@@ -1081,7 +1323,7 @@ setMessages([welcomeMail, fanMail]);
               };
 
               const summaryDataLocal: SeasonSummaryData = {
-                year: currentYear,
+                year: currentYear - 1,
                 championName: standingsL1[0]?.name || 'Nieznany',
                 promotions: [
                   { from: '1. Liga', to: 'Ekstraklasy', teams: standingsL2.slice(0, 3).map(t => t.name) },
@@ -1115,13 +1357,34 @@ setMessages([welcomeMail, fanMail]);
       }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Uwaga: CUP/SUPERPUCHAR background NIE jest przetwarzany tu.
-    // Gracz klika przycisk "wyniki" na Dashboardzie → processBackgroundCupMatches.
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── Puchar Polski / Superpuchar / LM / LE: background — zatrzymaj auto-skok ─────
+    // Gracz musi ręcznie kliknąć przycisk na Dashboardzie (wyniki).
+    if (isAutoJumping &&
+        primaryEvent?.participation === 'background' &&
+        (primaryEvent.slot.competition === CompetitionType.POLISH_CUP ||
+         primaryEvent.slot.competition === CompetitionType.SUPER_CUP ||
+         primaryEvent.slot.competition === CompetitionType.CL_R1Q ||
+         primaryEvent.slot.competition === CompetitionType.CL_R1Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_R2Q ||
+         primaryEvent.slot.competition === CompetitionType.CL_R2Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_GROUP_STAGE ||
+         primaryEvent.slot.competition === CompetitionType.CL_R16 ||
+         primaryEvent.slot.competition === CompetitionType.CL_R16_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_QF ||
+         primaryEvent.slot.competition === CompetitionType.CL_QF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CL_SF ||
+         primaryEvent.slot.competition === CompetitionType.CL_SF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.EL_R1Q ||
+         primaryEvent.slot.competition === CompetitionType.EL_R1Q_RETURN)) {
+      setTargetJumpTime(null);
+      return;
+    }
 
-// 1. Obliczanie wyniku symulacji (Używamy aktualnych stanów z zewnątrz setterów)
-    // Guard: nie symuluj tej samej daty wielokrotnie (zabezpieczenie przed stale closure w advanceDay)
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. GUARD + SYMULACJA + FINANSE — wykonywane ZAWSZE, niezależnie od eventu dnia.
+    //    Dzięki temu pensje, squad review i inne zadania dnia nie są pomijane
+    //    gdy tego samego dnia jest losowanie (LE/LM/PP) lub mecz.
+    // ─────────────────────────────────────────────────────────────────────────
     const dateKey = dateToProcess.toDateString();
     if (lastProcessedLeagueDateRef.current === dateKey) {
       DebugLoggerService.log('GUARD', `ZABLOKOWANO advanceDay dla: ${dateKey} (stale closure)`);
@@ -1130,7 +1393,7 @@ setMessages([welcomeMail, fanMail]);
     DebugLoggerService.log('GUARD', `advanceDay PRZECHODZI dla: ${dateKey}`);
     lastProcessedLeagueDateRef.current = dateKey;
 
-    const simulation = BackgroundMatchProcessor.processLeagueEvent(dateToProcess, userTeamId, allFixtures, clubs, players, lineups, seasonNumber, coaches);
+    const simulation = BackgroundMatchProcessor.processLeagueEvent(dateToProcess, userTeamId, allFixtures, clubs, players, lineups, seasonNumber, coaches, sessionSeed);
     
     // 2. Obliczanie regeneracji kondycji i urazów
     const diffTime = Math.abs(dateToProcess.getTime() - lastRecoveryDate.getTime());
@@ -1142,11 +1405,116 @@ setMessages([welcomeMail, fanMail]);
     // 2 lipca: automatyczny przegląd składów AI na początku sezonu
     let postReviewPlayers = recoveredPlayers;
     let postReviewClubs = simulation.updatedClubs;
+    // 20 lipca: przedsprzedaż karnetów sezonowych (przed Kolejką 1 — 24 lipca)
+    if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 20) {
+      const seasonYear = dateToProcess.getFullYear();
+      const seasonLabel = `${seasonYear}/${String(seasonYear + 1).slice(2)}`;
+      postReviewClubs = postReviewClubs.map(club => {
+        const tier = parseInt(club.leagueId.split('_')[2] || '1');
+        const seasonTicketRevenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
+        const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
+        const newFinanceLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          date: dateToProcess.toISOString().split('T')[0],
+          amount: seasonTicketRevenue,
+          type: 'INCOME' as const,
+          description: `Przedsprzedaż karnetów: ${ticketsSold.toLocaleString('pl-PL')} szt.`,
+          previousBalance: club.budget
+        };
+        return {
+          ...club,
+          budget: club.budget + seasonTicketRevenue,
+          financeHistory: [newFinanceLog, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      });
+      // E-mail do gracza z raportem
+      if (userTeamId) {
+        const userClub = postReviewClubs.find(c => c.id === userTeamId);
+        if (userClub) {
+          const tier = parseInt(userClub.leagueId.split('_')[2] || '1');
+          const ticketMail = MailService.generateSeasonTicketMail(
+            { name: userClub.name, stadiumName: userClub.stadiumName, stadiumCapacity: userClub.stadiumCapacity, reputation: userClub.reputation },
+            tier,
+            seasonLabel,
+            dateToProcess
+          );
+          setMessages(prev => [ticketMail, ...prev]);
+        }
+      }
+    }
+
+    // 20 lipca: roczny wynajem stref VIP i lóż (Skybox)
+    // Warunek: tylko Ekstraklasa (tier 1) i pojemność stadionu > 15 000
+    if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 20) {
+      postReviewClubs = postReviewClubs.map(club => {
+        const tier = parseInt(club.leagueId.split('_')[2] || '1');
+        if (tier !== 1 || club.stadiumCapacity <= 15_000) return club;
+        const vipRevenue = FinanceService.calculateVIPBoxRevenue(club.stadiumCapacity, club.reputation);
+        const newFinanceLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          date: dateToProcess.toISOString().split('T')[0],
+          amount: vipRevenue,
+          type: 'INCOME' as const,
+          description: `Wynajem stref VIP i lóż (Skybox) — sezon`,
+          previousBalance: club.budget
+        };
+        return {
+          ...club,
+          budget: club.budget + vipRevenue,
+          financeHistory: [newFinanceLog, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      });
+    }
+
     if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 2) {
       const review = AiContractService.performSeasonSquadReview(postReviewClubs, postReviewPlayers, userTeamId);
       postReviewClubs = review.updatedClubs;
       postReviewPlayers = review.updatedPlayers;
       DebugLoggerService.log('SQUAD_REVIEW', `Przegląd składów AI (2 lipca) wykonany.`, true);
+      
+      // Wyplata pensji zawodników na start sezonu
+      postReviewClubs = postReviewClubs.map(club => {
+        const squad = postReviewPlayers[club.id] || [];
+        const totalSalaries = FinanceService.calculateTotalSalaries(squad);
+        
+        // Obliczanie wynagrodzenia trenera (1-3 * 2.5% budżetu rocznie)
+        const trainerSalaryFactor = (1 + Math.random() * 2) * 0.025; // 2.5% - 7.5%
+        const trainerSalary = Math.floor(club.budget * trainerSalaryFactor);
+        
+        const totalCost = totalSalaries + trainerSalary;
+        const newBudget = club.budget - totalCost;
+        
+        // Tworzymy wpisy do finansów
+        const financeLogsToAdd: any[] = [];
+        
+        if (totalSalaries > 0) {
+          financeLogsToAdd.push({
+            id: Math.random().toString(36).substr(2, 9),
+            date: dateToProcess.toISOString().split('T')[0],
+            amount: -totalSalaries,
+            type: 'EXPENSE' as const,
+            description: `Pensje zawodników za sezon`,
+            previousBalance: club.budget
+          });
+        }
+        
+        if (trainerSalary > 0) {
+          financeLogsToAdd.push({
+            id: Math.random().toString(36).substr(2, 9),
+            date: dateToProcess.toISOString().split('T')[0],
+            amount: -trainerSalary,
+            type: 'EXPENSE' as const,
+            description: `Wynagrodzenie sztabu trenera`,
+            previousBalance: club.budget - totalSalaries
+          });
+        }
+        
+        return {
+          ...club,
+          budget: newBudget,
+          financeHistory: [...financeLogsToAdd, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      });
     }
 
 const finalResult: SimulationOutput = {
@@ -1172,12 +1540,74 @@ const finalResult: SimulationOutput = {
       const clMap = new Map(clResult.updatedFixtures.map(f => [f.id, f]));
       return prev.map(f => {
         const clF = clMap.get(f.id);
-        if (clF && (clF.status !== f.status || clF.homeScore !== f.homeScore || clF.awayScore !== f.awayScore)) {
+        if (clF && (
+          clF.status !== f.status ||
+          clF.homeScore !== f.homeScore ||
+          clF.awayScore !== f.awayScore ||
+          clF.homePenaltyScore !== f.homePenaltyScore ||
+          clF.awayPenaltyScore !== f.awayPenaltyScore
+        )) {
           return clF;
         }
         return f;
       });
     });
+
+    // Przetwarzanie bonusów za Superpuchar Polski
+    const updatedClubsForSuperCup = finalResult.updatedClubs.map(club => {
+      const superCupFixture = clResult.updatedFixtures.find(f => f.leagueId === 'SUPER_CUP' && f.status === MatchStatus.FINISHED);
+      
+      if (superCupFixture && (club.id === superCupFixture.homeTeamId || club.id === superCupFixture.awayTeamId)) {
+        // Sprawdzenie czy bonus za Superpuchar był już kiedykolwiek przyznany (ignorujemy datę)
+        const bonusAlreadyApplied = club.financeHistory?.some(entry => 
+          entry.description === 'Nagroda za zwycięstwo w Superpucharze Polski' || 
+          entry.description === 'Nagroda za udział w Superpucharze Polski'
+        );
+        
+        if (bonusAlreadyApplied) {
+          return club;
+        }
+        
+        let isWinner = false;
+        
+        // Sprawdzenie czy klub wygrał w regulaminowym czasie
+        if (club.id === superCupFixture.homeTeamId && (superCupFixture.homeScore || 0) > (superCupFixture.awayScore || 0)) {
+          isWinner = true;
+        } else if (club.id === superCupFixture.awayTeamId && (superCupFixture.awayScore || 0) > (superCupFixture.homeScore || 0)) {
+          isWinner = true;
+        }
+        
+        // Sprawdzenie dla rzutów karnych w przypadku remisu
+        if (!isWinner && superCupFixture.homeScore === superCupFixture.awayScore && superCupFixture.homePenaltyScore !== undefined) {
+          if (club.id === superCupFixture.homeTeamId && (superCupFixture.homePenaltyScore || 0) > (superCupFixture.awayPenaltyScore || 0)) {
+            isWinner = true;
+          } else if (club.id === superCupFixture.awayTeamId && (superCupFixture.awayPenaltyScore || 0) > (superCupFixture.homePenaltyScore || 0)) {
+            isWinner = true;
+          }
+        }
+        
+        const bonusAmount = FinanceService.calculateSuperCupBonus(isWinner);
+        
+        const financeLog = {
+          id: Math.random().toString(36).substring(2, 9),
+          date: dateToProcess.toISOString().split('T')[0],
+          amount: bonusAmount,
+          type: 'INCOME' as const,
+          description: isWinner ? 'Nagroda za zwycięstwo w Superpucharze Polski' : 'Nagroda za udział w Superpucharze Polski',
+          previousBalance: club.budget
+        };
+        
+        return {
+          ...club,
+          budget: club.budget + bonusAmount,
+          financeHistory: [financeLog, ...(club.financeHistory || [])].slice(0, 50)
+        };
+      }
+      
+      return club;
+    });
+    
+    setClubs(updatedClubsForSuperCup);
 
     // 5. Integracja NOWYCH OFERT AI do stanu
 
@@ -1296,7 +1726,8 @@ const finalResult: SimulationOutput = {
         (typeof f.leagueId === 'string' && (
           f.leagueId.startsWith('L_PL_') ||
           f.leagueId === 'POLISH_CUP' ||
-          f.leagueId === 'SUPER_CUP'
+          f.leagueId === 'SUPER_CUP' ||
+          (f.leagueId.startsWith('CL_') && !f.leagueId.endsWith('_DRAW'))
         ))
       );
 
@@ -1313,11 +1744,26 @@ const finalResult: SimulationOutput = {
           const userLineup = lineups[userTeamId];
 
           if (opponentClub && opponentLineup && userLineup) {
+            const clLeagueNames: Record<string, string> = {
+              'CL_R1Q': 'LM - Kwalifikacje R1',
+              'CL_R1Q_RETURN': 'LM - Kwalifikacje R1 Rewanż',
+              'CL_R2Q': 'LM - Kwalifikacje R2',
+              'CL_R2Q_RETURN': 'LM - Kwalifikacje R2 Rewanż',
+              'CL_GROUP_STAGE': 'Liga Mistrzów - Faza Grupowa',
+              'CL_R16': 'Liga Mistrzów - 1/8 Finału',
+              'CL_R16_RETURN': 'LM - 1/8 Finału Rewanż',
+              'CL_QF': 'Liga Mistrzów - Ćwierćfinał',
+              'CL_QF_RETURN': 'LM - Ćwierćfinał Rewanż',
+              'CL_SF': 'Liga Mistrzów - Półfinał',
+              'CL_SF_RETURN': 'LM - Półfinał Rewanż',
+              'CL_FINAL': 'Liga Mistrzów - Finał',
+            };
             const leagueName = tomorrowFixture.leagueId === 'L_PL_1' ? 'Ekstraklasa'
               : tomorrowFixture.leagueId === 'L_PL_2' ? '1. Liga'
               : tomorrowFixture.leagueId === 'L_PL_3' ? '2. Liga'
               : tomorrowFixture.leagueId === 'POLISH_CUP' ? 'Puchar Polski'
-              : 'Superpuchar';
+              : tomorrowFixture.leagueId === 'SUPER_CUP' ? 'Superpuchar'
+              : clLeagueNames[tomorrowFixture.leagueId as string] ?? 'Liga Mistrzów';
             const opponentLeagueStandings = [...clubs]
               .filter(c => c.leagueId === opponentClub.leagueId)
               .sort((a, b) => b.stats.points - a.stats.points || b.stats.goalDifference - a.stats.goalDifference);
@@ -1343,6 +1789,14 @@ const finalResult: SimulationOutput = {
       }
     }
     // --- END SCOUT ASSISTANT ---
+
+    // Nie przesuwamy daty jeśli gracz musi jeszcze zagrać mecz lub potwierdzić akcję tego dnia
+    if (skipDayAdvance) {
+      // Resetuj GUARD ref — następne wywołanie advanceDay dla tej samej daty
+      // MUSI przejść i faktycznie przesunąć datę (slot będzie już w processedDrawIds)
+      lastProcessedLeagueDateRef.current = '';
+      return;
+    }
 
     setCurrentDate(nextDay);
     setLastRecoveryDate(new Date(dateToProcess));
@@ -1431,7 +1885,7 @@ const finalResult: SimulationOutput = {
         const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
     setCurrentDate(nextDay);
-        navigateTo(ViewState.CL_HISTORY);
+        navigateTo(ViewState.DASHBOARD);
   }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
 
   const confirmCLQFDraw = useCallback(() => {
@@ -1441,8 +1895,10 @@ const finalResult: SimulationOutput = {
     const fixtureYear = drawYear;
 
     const r16Winners = CLDrawService.getR16Winners(allFixtures);
+    const r16Pool = CLDrawService.getR16Participants(allFixtures);
+    const safeR16Winners = CLDrawService.guaranteeWinners(r16Winners, r16Pool, 8);
     const qfFixtures = CLDrawService.generateQFFixtures(
-      r16Winners, leg1Date, leg2Date, fixtureYear, sessionSeed,
+      safeR16Winners, leg1Date, leg2Date, fixtureYear, sessionSeed,
     );
     setGlobalFixtures(prev => [...prev, ...qfFixtures]);
 
@@ -1470,7 +1926,7 @@ const finalResult: SimulationOutput = {
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
     setCurrentDate(nextDay);
-    navigateTo(ViewState.CL_HISTORY);
+    navigateTo(ViewState.DASHBOARD);
   }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
 
   const confirmCLSFDraw = useCallback(() => {
@@ -1480,8 +1936,10 @@ const finalResult: SimulationOutput = {
     const fixtureYear = drawYear;
 
     const qfWinners = CLDrawService.getQFWinners(allFixtures);
+    const qfPool = CLDrawService.getQFParticipants(allFixtures);
+    const safeQFWinners = CLDrawService.guaranteeWinners(qfWinners, qfPool, 4);
     const sfFixtures = CLDrawService.generateSFFixtures(
-      qfWinners, leg1Date, leg2Date, fixtureYear, sessionSeed,
+      safeQFWinners, leg1Date, leg2Date, fixtureYear, sessionSeed,
     );
     setGlobalFixtures(prev => [...prev, ...sfFixtures]);
 
@@ -1509,7 +1967,7 @@ const finalResult: SimulationOutput = {
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
     setCurrentDate(nextDay);
-    navigateTo(ViewState.CL_HISTORY);
+    navigateTo(ViewState.DASHBOARD);
   }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
 
   const confirmSeasonEnd = useCallback(() => {
@@ -1648,6 +2106,65 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   };
 
+  // ── Liga Europy: potwierdzenie losowania R1Q ─────────────────────────────
+  const confirmELDraw = (pairs: Fixture[]) => {
+    if (!activeCupDraw) return;
+
+    // Zapisz pary (draw fixtures)
+    setGlobalFixtures(prev => [...prev, ...pairs]);
+
+    const year = currentDate.getFullYear();
+    const matchFixtures: Fixture[] = [];
+
+    pairs.forEach((pair, i) => {
+      const pairNum = i + 1;
+      matchFixtures.push({
+        id: `EL_R1Q_MATCH_${pairNum}_${year}`,
+        leagueId: CompetitionType.EL_R1Q,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        date: new Date(year, 6, 5),   // 5 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      matchFixtures.push({
+        id: `EL_R1Q_MATCH_${pairNum}_${year}_RETURN`,
+        leagueId: CompetitionType.EL_R1Q_RETURN,
+        homeTeamId: pair.awayTeamId,
+        awayTeamId: pair.homeTeamId,
+        date: new Date(year, 6, 10),  // 10 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    });
+    setGlobalFixtures(prev => [...prev, ...matchFixtures]);
+
+    setProcessedDrawIds(prev => [...prev, activeCupDraw.id]);
+    setActiveCupDraw(null);
+
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `EL_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Zakończono losowanie Ligi Europy — Runda 1',
+        body: 'Zakończono ceremonię losowania Rundy 1 Kwalifikacyjnej Ligi Europy UEFA. Zapraszamy do zapoznania się z wylosowanymi parami.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 82,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
   const markMessageRead = (id: string) => setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
   const deleteMessage = (id: string) => setMessages(prev => prev.filter(m => m.id !== id));
  const updatePlayer = (clubId: string, playerId: string, newData: Partial<Player>) => {
@@ -1679,7 +2196,20 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
     if (!playerToSign) return;
 
     // 1. Zabierz bonus z budżetu klubu
-    setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, budget: c.budget - bonus } : c));
+    setClubs(prev => prev.map(c => c.id === userTeamId ? { 
+      ...c, 
+      budget: c.budget - bonus,
+      financeHistory: [
+        {
+          id: Math.random().toString(36).substr(2, 9),
+          date: currentDate.toISOString().split('T')[0],
+          amount: -bonus,
+          type: 'EXPENSE' as const,
+          description: `Bonus za podpis: ${playerToSign.lastName}`
+        },
+        ...(c.financeHistory || [])
+      ].slice(0, 50)
+    } : c));
 
     // 2. Przygotuj dane piłkarza (nowy klub, pensja, data)
     const newEndDate = new Date(currentDate.getFullYear() + years, 5, 30).toISOString();
@@ -1780,8 +2310,8 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
-            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer,toggleTransferList
+            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, activeGroupDraw,
+    confirmCLGroupDraw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmSeasonEnd, clGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
     }}>
       {children}
     </GameContext.Provider>

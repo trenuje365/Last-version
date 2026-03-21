@@ -50,7 +50,7 @@ const getCountryCode = (clubId: string): string => {
 // ── Rundy LE ───────────────────────────────────────────────────────────────
 const EL_ROUNDS = [
   { key: 'R1Q', label: 'R1Q', sublabel: '1. Runda Kwalifikacyjna', accent: '#f97316' },
-  // Kolejne rundy będą tu dodawane
+  { key: 'R2Q', label: 'R2Q', sublabel: '2. Runda Kwalifikacyjna', accent: '#ea580c' },
 ] as const;
 
 const GLASS = 'bg-slate-950/40 backdrop-blur-2xl border border-white/8 rounded-[32px] relative overflow-hidden';
@@ -66,7 +66,9 @@ export const ELHistoryView: React.FC = () => {
       fixtures.filter(
         f =>
           f.leagueId === CompetitionType.EL_R1Q ||
-          f.leagueId === CompetitionType.EL_R1Q_RETURN,
+          f.leagueId === CompetitionType.EL_R1Q_RETURN ||
+          f.leagueId === CompetitionType.EL_R2Q ||
+          f.leagueId === CompetitionType.EL_R2Q_RETURN,
       ),
     [fixtures],
   );
@@ -74,6 +76,35 @@ export const ELHistoryView: React.FC = () => {
   // ── Pary R1Q ─────────────────────────────────────────────────────────────
   const r1qPairs = useMemo((): ELPair[] => {
     const firstLegs = elFixtures.filter(f => f.leagueId === CompetitionType.EL_R1Q);
+    return firstLegs.map(leg1 => {
+      const ret = elFixtures.find(f => f.id === leg1.id + '_RETURN');
+      return {
+        pairId: leg1.id,
+        teamAId: leg1.homeTeamId,
+        teamBId: leg1.awayTeamId,
+        leg1: {
+          homeScore: leg1.homeScore ?? null,
+          awayScore: leg1.awayScore ?? null,
+          date: leg1.date instanceof Date ? leg1.date : new Date(leg1.date),
+          status: leg1.status,
+        },
+        leg2: ret
+          ? {
+              homeScore: ret.homeScore ?? null,
+              awayScore: ret.awayScore ?? null,
+              homePenaltyScore: ret.homePenaltyScore,
+              awayPenaltyScore: ret.awayPenaltyScore,
+              date: ret.date instanceof Date ? ret.date : new Date(ret.date),
+              status: ret.status,
+            }
+          : undefined,
+      };
+    });
+  }, [elFixtures]);
+
+  // ── Pary R2Q ─────────────────────────────────────────────────────────────
+  const r2qPairs = useMemo((): ELPair[] => {
+    const firstLegs = elFixtures.filter(f => f.leagueId === CompetitionType.EL_R2Q);
     return firstLegs.map(leg1 => {
       const ret = elFixtures.find(f => f.id === leg1.id + '_RETURN');
       return {
@@ -124,7 +155,7 @@ export const ELHistoryView: React.FC = () => {
     return { aTotal, bTotal, winner };
   };
 
-  const pairsForRound = selectedRoundKey === 'R1Q' ? r1qPairs : [];
+  const pairsForRound = selectedRoundKey === 'R1Q' ? r1qPairs : selectedRoundKey === 'R2Q' ? r2qPairs : [];
 
   const formatDate = (d: Date) =>
     d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
