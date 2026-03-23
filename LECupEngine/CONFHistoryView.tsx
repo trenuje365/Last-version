@@ -47,16 +47,57 @@ const getCountryCode = (clubId: string): string => {
   return raw ? (COUNTRY_NAMES[raw.country] ?? raw.country) : '';
 };
 
+const hasClinched = (
+  position: number,
+  table: { pts: number; played: number }[],
+): boolean => {
+  if (position >= 2) return false;
+  const teamPts = table[position].pts;
+  for (let i = 2; i < table.length; i++) {
+    const rival = table[i];
+    const remaining = Math.max(0, 6 - rival.played);
+    if (rival.pts + 3 * remaining >= teamPts) return false;
+  }
+  return true;
+};
+
+const GROUP_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
 const CONF_ROUNDS = [
   { key: 'R1Q', label: 'R1Q', sublabel: '1. Runda Kwalifikacyjna', accent: '#10b981' },
   { key: 'R2Q', label: 'R2Q', sublabel: '2. Runda Kwalifikacyjna', accent: '#34d399' },
+  { key: 'GS',  label: 'GS',  sublabel: 'Faza Grupowa',            accent: '#34d399' },
 ] as const;
 
 type CONFRoundKey = typeof CONF_ROUNDS[number]['key'];
 
 export const CONFHistoryView: React.FC = () => {
-  const { fixtures, clubs, userTeamId, navigateTo } = useGame();
+  const { fixtures, clubs, userTeamId, navigateTo, confGroups } = useGame();
   const [activeRound, setActiveRound] = useState<CONFRoundKey>('R1Q');
+  const [selectedGroup, setSelectedGroup] = useState<number>(0);
+  const [gsMatchdayTab, setGsMatchdayTab] = useState<number>(1);
+
+  const computeGroupTable = (groupTeams: string[]) => {
+    const stats: Record<string, { played: number; w: number; d: number; l: number; gf: number; ga: number; pts: number }> = {};
+    groupTeams.forEach(id => { stats[id] = { played: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
+    fixtures.forEach(f => {
+      if (f.leagueId !== CompetitionType.CONF_GROUP_STAGE) return;
+      if (f.status !== MatchStatus.FINISHED) return;
+      if (!groupTeams.includes(f.homeTeamId) || !groupTeams.includes(f.awayTeamId)) return;
+      const h = stats[f.homeTeamId];
+      const a = stats[f.awayTeamId];
+      const hs = f.homeScore as number;
+      const as_ = f.awayScore as number;
+      h.played++; a.played++;
+      h.gf += hs; h.ga += as_; a.gf += as_; a.ga += hs;
+      if (hs > as_) { h.w++; h.pts += 3; a.l++; }
+      else if (hs < as_) { a.w++; a.pts += 3; h.l++; }
+      else { h.d++; a.d++; h.pts++; a.pts++; }
+    });
+    return groupTeams
+      .map(id => ({ id, ...stats[id] }))
+      .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
+  };
 
   // Filtruj mecze LK R1Q
   const r1qFixtures = useMemo(
@@ -76,7 +117,14 @@ export const CONFHistoryView: React.FC = () => {
     [fixtures],
   );
 
-  const allConfFixtures = useMemo(() => [...r1qFixtures, ...r2qFixtures], [r1qFixtures, r2qFixtures]);
+  const gsFixtures = useMemo(
+    () => fixtures.filter(f => f.leagueId === CompetitionType.CONF_GROUP_STAGE),
+    [fixtures],
+  );
+
+  const gsAvailable = !!confGroups && confGroups.length > 0;
+
+  const allConfFixtures = useMemo(() => [...r1qFixtures, ...r2qFixtures, ...gsFixtures], [r1qFixtures, r2qFixtures, gsFixtures]);
 
   // Buduj pary R1Q
   const r1qPairs = useMemo((): CONFPair[] => {
@@ -155,12 +203,18 @@ export const CONFHistoryView: React.FC = () => {
   const r1qDone = r1qPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
   const r2qDone = r2qPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
 
-  const activePairs = activeRound === 'R1Q' ? r1qPairs : r2qPairs;
-  const activeDone = activeRound === 'R1Q' ? r1qDone : r2qDone;
-  const activeRoundLabel = activeRound === 'R1Q' ? '1. Runda Kwalifikacyjna' : '2. Runda Kwalifikacyjna';
+  const activePairs = activeRound === 'R1Q' ? r1qPairs : activeRound === 'R2Q' ? r2qPairs : [];
+  const activeDone = activeRound === 'R1Q' ? r1qDone : activeRound === 'R2Q' ? r2qDone : 0;
+  const activeRoundLabel = activeRound === 'R1Q' ? '1. Runda Kwalifikacyjna' : activeRound === 'R2Q' ? '2. Runda Kwalifikacyjna' : 'Faza Grupowa';
 
-  const getPairsForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qPairs : r2qPairs;
-  const getDoneForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qDone : r2qDone;
+  const getPairsForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qPairs : key === 'R2Q' ? r2qPairs : [];
+  const getDoneForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qDone : key === 'R2Q' ? r2qDone : 0;
+  const getTotalForRound = (key: CONFRoundKey) => key === 'GS' ? (confGroups?.length ?? 0) : getPairsForRound(key).length;
+  const getProgressForRound = (key: CONFRoundKey) => {
+    if (key === 'GS') return gsAvailable ? 100 : 0;
+    const total = getPairsForRound(key).length;
+    return total > 0 ? (getDoneForRound(key) / total) * 100 : 0;
+  };
 
   return (
     <div className="h-screen w-full bg-slate-950 flex flex-col overflow-hidden relative">
@@ -214,9 +268,11 @@ export const CONFHistoryView: React.FC = () => {
             {CONF_ROUNDS.map(round => {
               const pairs = getPairsForRound(round.key);
               const done = getDoneForRound(round.key);
-              const total = pairs.length;
-              const progress = total > 0 ? (done / total) * 100 : 0;
-              const hasUser = pairs.some(isUserPair);
+              const total = getTotalForRound(round.key);
+              const progress = getProgressForRound(round.key);
+              const hasUser = round.key === 'GS'
+                ? (confGroups ?? []).some(g => g.includes(userTeamId ?? ''))
+                : pairs.some(isUserPair);
               const isActive = activeRound === round.key;
               return (
                 <button
@@ -264,21 +320,167 @@ export const CONFHistoryView: React.FC = () => {
             <div className="w-2 h-8 rounded-full bg-emerald-500" />
             <div>
               <h2 className="text-xl font-black italic uppercase tracking-tighter text-white leading-none">
-                {activeRoundLabel} — Dwumecze
+                {activeRoundLabel}{activeRound !== 'GS' ? ' — Dwumecze' : ''}
               </h2>
               <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
-                {activePairs.length > 0 ? `${activeDone}/${activePairs.length} par rozegranych` : 'Losowanie jeszcze nie odbyło się'}
+                {activeRound === 'GS'
+                  ? gsAvailable ? '8 grup • 32 drużyny' : 'Losowanie jeszcze nie odbyło się'
+                  : activePairs.length > 0 ? `${activeDone}/${activePairs.length} par rozegranych` : 'Losowanie jeszcze nie odbyło się'}
               </span>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {activePairs.length === 0 ? (
+
+            {/* ── FAZA GRUPOWA ─────────────────────────────────────────── */}
+            {activeRound === 'GS' && (
+              <div className="max-w-5xl mx-auto py-4 px-6">
+                {!gsAvailable ? (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4">
+                    <div className="text-5xl opacity-20">🟢</div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-600">Losowanie fazy grupowej nie zostało jeszcze przeprowadzone</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4 pb-8">
+                    {/* Selector grup */}
+                    <div className="flex gap-2 flex-wrap">
+                      {GROUP_LABELS.map((lbl, gi) => (
+                        <button key={gi} onClick={() => setSelectedGroup(gi)}
+                          className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all
+                            ${selectedGroup === gi ? 'bg-emerald-400/20 border-emerald-400/50 text-emerald-300' : 'border-white/10 text-slate-500 hover:text-white hover:border-white/20'}
+                            ${confGroups![gi]?.includes(userTeamId ?? '') ? 'ring-1 ring-amber-400/40' : ''}`}
+                        >
+                          Gr. {lbl}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tabela grupy */}
+                    {(() => {
+                      const group = confGroups![selectedGroup];
+                      const table = computeGroupTable(group);
+                      return (
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                          <div className="px-4 py-3 border-b border-white/10 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-400/20 border border-emerald-400/30 flex items-center justify-center text-sm font-black text-emerald-400">
+                              {GROUP_LABELS[selectedGroup]}
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Tabela — Grupa {GROUP_LABELS[selectedGroup]}</span>
+                          </div>
+                          <table className="w-full text-[11px]">
+                            <thead>
+                              <tr className="border-b border-white/5 text-slate-600 text-[8px] uppercase tracking-widest">
+                                <th className="px-4 py-2 text-left w-6">#</th>
+                                <th className="px-4 py-2 text-left">Drużyna</th>
+                                <th className="px-2 py-2 text-center w-8">M</th>
+                                <th className="px-2 py-2 text-center w-8">W</th>
+                                <th className="px-2 py-2 text-center w-8">R</th>
+                                <th className="px-2 py-2 text-center w-8">P</th>
+                                <th className="px-2 py-2 text-center w-12">Br.</th>
+                                <th className="px-2 py-2 text-center w-10 font-black text-emerald-400">Pkt</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {table.map((row, ri) => {
+                                const club = clubs.find(c => c.id === row.id);
+                                const isUser = row.id === userTeamId;
+                                const promotes = ri < 2;
+                                return (
+                                  <tr key={row.id} className={`border-b border-white/[0.04] transition-colors
+                                    ${isUser ? 'bg-amber-400/10' : promotes ? 'bg-emerald-600/5' : 'hover:bg-white/[0.02]'}`}>
+                                    <td className="px-4 py-2 text-center">
+                                      <span className={`text-[9px] font-black ${promotes ? 'text-emerald-400' : 'text-slate-600'}`}>{ri + 1}</span>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 rounded-md border border-white/10 flex flex-col overflow-hidden shrink-0">
+                                          <div className="flex-1" style={{ backgroundColor: club?.colorsHex?.[0] ?? '#333' }} />
+                                          <div className="flex-1" style={{ backgroundColor: club?.colorsHex?.[1] ?? '#555' }} />
+                                        </div>
+                                        <span className={`font-black uppercase italic text-[11px] truncate ${isUser ? 'text-amber-300' : promotes ? 'text-white' : 'text-slate-300'}`}>
+                                          {club?.name ?? row.id}
+                                        </span>
+                                        <span className="text-[7px] text-slate-600 uppercase">{getCountryCode(row.id)}</span>
+                                        {hasClinched(ri, table) && <span className="ml-1 text-[7px] font-black text-emerald-400 uppercase tracking-widest shrink-0">✓ AWANS</span>}
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-2 text-center text-slate-500">{row.played}</td>
+                                    <td className="px-2 py-2 text-center text-slate-400">{row.w}</td>
+                                    <td className="px-2 py-2 text-center text-slate-400">{row.d}</td>
+                                    <td className="px-2 py-2 text-center text-slate-400">{row.l}</td>
+                                    <td className="px-2 py-2 text-center text-slate-500">{row.gf}:{row.ga}</td>
+                                    <td className="px-2 py-2 text-center font-black text-white">{row.pts}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Selector kolejek */}
+                    <div className="flex gap-2">
+                      {[1,2,3,4,5,6].map(md => (
+                        <button key={md} onClick={() => setGsMatchdayTab(md)}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all
+                            ${gsMatchdayTab === md ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'border-white/10 text-slate-600 hover:text-white'}`}>
+                          K{md}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Mecze wybranej kolejki */}
+                    {(() => {
+                      const groupLetter = GROUP_LABELS[selectedGroup];
+                      const mdFixtures = fixtures.filter(f =>
+                        f.leagueId === CompetitionType.CONF_GROUP_STAGE &&
+                        f.id.includes(`CONF_GS_G${groupLetter}_MD${gsMatchdayTab}_`)
+                      );
+                      if (mdFixtures.length === 0) return (
+                        <div className="p-4 text-center text-slate-700 text-[10px] font-black uppercase tracking-widest">
+                          Brak meczów / kolejka jeszcze nie rozegrana
+                        </div>
+                      );
+                      return (
+                        <div className="flex flex-col gap-2">
+                          {mdFixtures.map(f => {
+                            const home = clubs.find(c => c.id === f.homeTeamId);
+                            const away = clubs.find(c => c.id === f.awayTeamId);
+                            const isUser = f.homeTeamId === userTeamId || f.awayTeamId === userTeamId;
+                            return (
+                              <div key={f.id} className={`flex items-center justify-between p-3 rounded-xl border
+                                ${isUser ? 'border-amber-400/40 bg-amber-400/10' : 'border-white/5 bg-white/[0.02]'}`}>
+                                <span className={`text-[12px] font-black uppercase italic flex-1 text-right truncate ${f.homeTeamId === userTeamId ? 'text-amber-300' : 'text-slate-200'}`}>
+                                  {home?.name ?? f.homeTeamId}
+                                </span>
+                                <div className="mx-4 text-center shrink-0">
+                                  {f.status === MatchStatus.FINISHED
+                                    ? <span className="text-[14px] font-black text-white tabular-nums">{f.homeScore} : {f.awayScore}</span>
+                                    : <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">vs</span>
+                                  }
+                                </div>
+                                <span className={`text-[12px] font-black uppercase italic flex-1 text-left truncate ${f.awayTeamId === userTeamId ? 'text-amber-300' : 'text-slate-200'}`}>
+                                  {away?.name ?? f.awayTeamId}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── RUNDY KWALIFIKACYJNE ──────────────────────────────────── */}
+            {activeRound !== 'GS' && activePairs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-600">
                 <span className="text-4xl">⏳</span>
                 <p className="text-sm font-black uppercase tracking-widest">Losowanie nie odbyło się jeszcze</p>
               </div>
-            ) : (
+            ) : activeRound !== 'GS' && (
               <div className="max-w-4xl mx-auto py-4 px-6 flex flex-col gap-2">
                 {activePairs.map(pair => {
                   const teamA = getClub(pair.teamAId);

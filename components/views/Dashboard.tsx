@@ -218,7 +218,8 @@ const boardConfidence = useMemo(() => {
                         ? '🟠 OGŁOSZENIE FINALISTÓW LE'
                         : todayEvent.slot.competition === CompetitionType.CONF_R1Q_DRAW
                           ? '🟢 LOSOWANIE LIGI KONFERENCJI'                          : todayEvent.slot.competition === CompetitionType.CONF_R2Q_DRAW
-                            ? '🟢 LOSOWANIE LK: RUNDA 2 PREELIMINACYJNA'                          : '⭐ LOSOWANIE LIGI MISTRZÓW',
+                            ? '🟢 LOSOWANIE LK: RUNDA 2 PREELIMINACYJNA'                          : todayEvent.slot.competition === CompetitionType.CONF_GROUP_DRAW
+                              ? '🟢 LOSOWANIE LK: FAZA GRUPOWA'                              : '⭐ LOSOWANIE LIGI MISTRZÓW',
             action: advanceDay,
             isMatch: false,
             disabled: isJumping,
@@ -302,7 +303,8 @@ const boardConfidence = useMemo(() => {
       if (todayEvent.slot.competition === CompetitionType.CONF_R1Q ||
           todayEvent.slot.competition === CompetitionType.CONF_R1Q_RETURN ||
           todayEvent.slot.competition === CompetitionType.CONF_R2Q ||
-          todayEvent.slot.competition === CompetitionType.CONF_R2Q_RETURN) {
+          todayEvent.slot.competition === CompetitionType.CONF_R2Q_RETURN ||
+          todayEvent.slot.competition === CompetitionType.CONF_GROUP_STAGE) {
         return {
           text: '🟢 LIGA KONFERENCJI – WYNIKI',
           action: () => { processCLMatchDay(); navigateTo(ViewState.CONF_HISTORY); },

@@ -309,4 +309,203 @@ export const CONFDrawService = {
     });
     return winners;
   },
+
+  // ── FAZA GRUPOWA: wyznacz 32 awansujących z R2Q ─────────────────────────
+  getGroupStagePool(allFixtures: Fixture[]): string[] {
+    const r2qWinners: string[] = [];
+
+    allFixtures.forEach(f => {
+      if (f.leagueId !== CompetitionType.CONF_R2Q_RETURN || f.status !== MatchStatus.FINISHED) return;
+      const firstLegId = f.id.replace('_RETURN', '');
+      const leg1 = allFixtures.find(x => x.id === firstLegId);
+      if (!leg1 || leg1.homeScore === null || leg1.awayScore === null) return;
+
+      const teamATotal = (leg1.homeScore as number) + (f.awayScore ?? 0);
+      const teamBTotal = (leg1.awayScore as number) + (f.homeScore ?? 0);
+
+      let winnerId: string;
+      if (teamATotal > teamBTotal) {
+        winnerId = leg1.homeTeamId;
+      } else if (teamBTotal > teamATotal) {
+        winnerId = leg1.awayTeamId;
+      } else if (f.homePenaltyScore != null && f.awayPenaltyScore != null) {
+        winnerId = f.homePenaltyScore > f.awayPenaltyScore ? leg1.awayTeamId : leg1.homeTeamId;
+      } else {
+        winnerId = leg1.homeTeamId;
+      }
+      r2qWinners.push(winnerId);
+    });
+
+    return r2qWinners;
+  },
+
+  // ── FAZA GRUPOWA: losowanie 8 grup po 4 drużyny (4 koszyki po 8) ─────────
+  drawGroupStage(
+    teamIds: string[],
+    rawClubs: { name: string; country: string; reputation: number }[],
+    clubs: Club[],
+    seed: number,
+  ): string[][] {
+    const getReputation = (id: string): number => {
+      const raw = rawClubs.find(c => generateCONFClubId(c.name) === id);
+      if (raw) return raw.reputation;
+      const club = clubs.find(c => c.id === id);
+      return club?.reputation ?? 5;
+    };
+
+    const seededShuffle = (arr: string[], s: number): string[] => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        s = (s * 1664525 + 1013904223) & 0xffffffff;
+        const j = Math.abs(s) % (i + 1);
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    const getCountry = (id: string): string => {
+      if (id.startsWith('PL_')) return 'POL';
+      const raw = rawClubs.find(c => generateCONFClubId(c.name) === id);
+      return raw?.country ?? '';
+    };
+
+    const assignPotToGroups = (
+      pot: string[],
+      currentGroups: string[][],
+      s: number,
+    ): string[] => {
+      const shuffled = seededShuffle([...pot], s);
+      const n = shuffled.length;
+      const result: string[] = new Array(n).fill('');
+      const used: boolean[] = new Array(n).fill(false);
+
+      const canPlace = (teamIdx: number, groupIdx: number): boolean => {
+        const teamCountry = getCountry(shuffled[teamIdx]);
+        if (!teamCountry) return true;
+        return !currentGroups[groupIdx].some(id => {
+          const c = getCountry(id);
+          return c && c === teamCountry;
+        });
+      };
+
+      const backtrack = (groupIdx: number): boolean => {
+        if (groupIdx === n) return true;
+        for (let i = 0; i < n; i++) {
+          if (used[i] || !canPlace(i, groupIdx)) continue;
+          used[i] = true;
+          result[groupIdx] = shuffled[i];
+          if (backtrack(groupIdx + 1)) return true;
+          used[i] = false;
+        }
+        return false;
+      };
+
+      if (backtrack(0)) return result;
+
+      const fbResult: string[] = new Array(n).fill('');
+      const fbUsed: boolean[] = new Array(n).fill(false);
+      let bestResult: string[] = [...shuffled];
+      let minConflicts = n + 1;
+
+      const btMinConflict = (groupIdx: number, conflicts: number): void => {
+        if (conflicts >= minConflicts) return;
+        if (groupIdx === n) {
+          if (conflicts < minConflicts) {
+            minConflicts = conflicts;
+            bestResult = [...fbResult];
+          }
+          return;
+        }
+        for (let i = 0; i < n; i++) {
+          if (fbUsed[i]) continue;
+          fbUsed[i] = true;
+          fbResult[groupIdx] = shuffled[i];
+          btMinConflict(groupIdx + 1, conflicts + (canPlace(i, groupIdx) ? 0 : 1));
+          fbUsed[i] = false;
+        }
+      };
+
+      btMinConflict(0, 0);
+      return bestResult;
+    };
+
+    let pool = [...teamIds];
+    if (pool.length < 32) {
+      const missing = rawClubs
+        .filter(c => !pool.includes(generateCONFClubId(c.name)))
+        .sort((a, b) => b.reputation - a.reputation)
+        .map(c => generateCONFClubId(c.name));
+      pool = [...pool, ...missing].slice(0, 32);
+    }
+    pool = pool.slice(0, 32);
+
+    const sorted = [...pool].sort((a, b) => getReputation(b) - getReputation(a));
+    const pot1 = seededShuffle(sorted.slice(0, 8), seed);
+    const pot2 = sorted.slice(8, 16);
+    const pot3 = sorted.slice(16, 24);
+    const pot4 = sorted.slice(24, 32);
+
+    const assignedPot1 = pot1;
+    const groupsAfterPot1: string[][] = Array.from({ length: 8 }, (_, i) => [assignedPot1[i]]);
+
+    const assignedPot2 = assignPotToGroups(pot2, groupsAfterPot1, seed ^ 0x44444444);
+    const groupsAfterPot2: string[][] = groupsAfterPot1.map((g, i) => [...g, assignedPot2[i]]);
+
+    const assignedPot3 = assignPotToGroups(pot3, groupsAfterPot2, seed ^ 0x55555555);
+    const groupsAfterPot3: string[][] = groupsAfterPot2.map((g, i) => [...g, assignedPot3[i]]);
+
+    const assignedPot4 = assignPotToGroups(pot4, groupsAfterPot3, seed ^ 0x66666666);
+
+    const groups: string[][] = Array.from({ length: 8 }, (_, i) => [
+      assignedPot1[i],
+      assignedPot2[i],
+      assignedPot3[i],
+      assignedPot4[i],
+    ]);
+
+    return groups;
+  },
+
+  // ── FAZA GRUPOWA: generuj fixtury dla 6 kolejek ───────────────────────────
+  generateGroupStageFixtures(
+    groups: string[][],
+    matchdayDates: Date[],
+    year: number,
+  ): Fixture[] {
+    const fixtures: Fixture[] = [];
+
+    const schedule = [
+      [[0,1],[2,3]],
+      [[0,2],[1,3]],
+      [[0,3],[1,2]],
+      [[1,0],[3,2]],
+      [[2,0],[3,1]],
+      [[3,0],[2,1]],
+    ];
+
+    groups.forEach((group, gi) => {
+      const groupLetter = 'ABCDEFGH'[gi];
+
+      schedule.forEach((pairs, mdi) => {
+        const matchDate = matchdayDates[mdi] ?? new Date(year, 8, 20);
+
+        pairs.forEach(([hIdx, aIdx]) => {
+          const homeId = group[hIdx];
+          const awayId = group[aIdx];
+          fixtures.push({
+            id: `CONF_GS_G${groupLetter}_MD${mdi + 1}_${hIdx}v${aIdx}_${year}`,
+            leagueId: CompetitionType.CONF_GROUP_STAGE,
+            homeTeamId: homeId,
+            awayTeamId: awayId,
+            date: new Date(matchDate),
+            status: MatchStatus.SCHEDULED,
+            homeScore: null,
+            awayScore: null,
+          });
+        });
+      });
+    });
+
+    return fixtures;
+  },
 };

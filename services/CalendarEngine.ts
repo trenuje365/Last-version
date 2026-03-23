@@ -745,6 +745,27 @@ export const CalendarEngine = {
         };
       }
 
+      // ── LK: LOSOWANIE FAZY GRUPOWEJ ───────────────────────────────────────
+      case CompetitionType.CONF_GROUP_DRAW: {
+        return { slot, kind: EventKind.CL_DRAW, participation: 'player', targetView: ViewState.CONF_GROUP_DRAW };
+      }
+
+      // ── LK: FAZA GRUPOWA ──────────────────────────────────────────────────
+      case CompetitionType.CONF_GROUP_STAGE: {
+        const hasAny = allFixtures.some(f =>
+          f.date.toDateString() === dateStr &&
+          f.leagueId === CompetitionType.CONF_GROUP_STAGE &&
+          f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAny) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
       // ── SPARING ────────────────────────────────────────────────────────────
       // Sparingi nie mają fixtures w systemie — traktowane jako dni informacyjne (auto-advance)
       case CompetitionType.FRIENDLY: {

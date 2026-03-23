@@ -140,7 +140,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
- //19 SIERPNIA - losowanie faz grupowych Ligi Konferencji DO ZAIMPLEMENTOWANIA ********************
+ { day: 19, month: 7, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_DRAW, label: "LOSOWANIE LK: FAZA GRUPOWA", priority: 87 },
 
 
   { day: 20, month: 7, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 5", priority: 10 },
@@ -173,7 +173,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
     // --- PUCHARY EUROPEJSKIE --- 19 września LIGA EUROPY ---- faza grupowa 1 kolejka
  { day: 19, month: 8, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 1", priority: 82 },
 
-      // 20 września LIGA KONFERENCJI ---- faza grupowa 1 kolejka DO ZAIMPLEMENTOWANIA *****************
+      { day: 20, month: 8, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_STAGE, label: "LK: Faza Grupowa - Kolejka 1", priority: 84 },
 
       { day: 22, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 9", priority: 10 },
 
@@ -204,7 +204,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  // --- PUCHARY EUROPEJSKIE --- 18 pazdziernika LIGA EUROPY ----faza grupowa 2 kolejka
  { day: 18, month: 9,  type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 2", priority: 82 },
 
-//19 pazdziernika LIGA KONFERENCJI ----faza grupowa 2 kolejka DO ZAIMPLEMENTOWANIA *****************
+ { day: 19, month: 9, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_STAGE, label: "LK: Faza Grupowa - Kolejka 2", priority: 84 },
 
 
  { day: 21,  month: 9, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 14", priority: 10 },
@@ -216,7 +216,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
      // --- PUCHARY EUROPEJSKIE --- 26 pazdziernika LIGA EUROPY ----faza grupowa 3 kolejka
  { day: 26, month: 9,  type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 3", priority: 82 },
 
-      // 27 pazdziernika LIGA KONFERENCJI ----faza grupowa 3 runda DO ZAIMPLEMENTOWANIA *****************
+      { day: 27, month: 9, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_STAGE, label: "LK: Faza Grupowa - Kolejka 3", priority: 84 },
 
   { day: 30, month: 9, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 15", priority: 10 },
 
@@ -255,7 +255,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   // --- PUCHARY EUROPEJSKIE --- 26 listopad LIGA EUROPY ----faza grupowa 4 kolejka
 { day: 26, month: 10, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 4", priority: 82 },
 
-    //  27 listopad LIGA KONFERENCJI ----faza grupowa 4 runda DO ZAIMPLEMENTOWANIA *****************
+    { day: 27, month: 10, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_STAGE, label: "LK: Faza Grupowa - Kolejka 4", priority: 84 },
   
 
 
@@ -274,7 +274,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   // --- PUCHARY EUROPEJSKIE --- 5 grudnia LIGA EUROPY ----faza grupowa 5 kolejka
 { day: 5,  month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 5", priority: 82 },
 
-    //  6 grudnia LIGA KONFERENCJI ----faza grupowa 5 runda DO ZAIMPLEMENTOWANIA *****************
+    { day: 6, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_STAGE, label: "LK: Faza Grupowa - Kolejka 5", priority: 84 },
 
 { day: 10, month: 11, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 18", priority: 10 },
 
@@ -286,7 +286,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 { day: 15, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.EL_GROUP_STAGE, label: "LE: Faza Grupowa - Kolejka 6", priority: 82 },
 
 
-    // --- PUCHARY EUROPEJSKIE --- 16 grudnia LIGA KONFERENCJI ----faza grupowa 6 runda DO ZAIMPLEMENTOWANIA *****************
+    { day: 16, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_GROUP_STAGE, label: "LK: Faza Grupowa - Kolejka 6", priority: 84 },
 
 
   { day: 17,  month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.BOARD, label: "Zimowa sesja Zarządu", priority: 80 },

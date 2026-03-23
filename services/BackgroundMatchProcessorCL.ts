@@ -144,7 +144,8 @@ export const BackgroundMatchProcessorCL = {
        f.leagueId === CompetitionType.EL_FINAL ||
        // ── Liga Konferencji ───────────────────────────────────────────────────
        f.leagueId === CompetitionType.CONF_R1Q || f.leagueId === CompetitionType.CONF_R1Q_RETURN ||
-       f.leagueId === CompetitionType.CONF_R2Q || f.leagueId === CompetitionType.CONF_R2Q_RETURN) &&
+       f.leagueId === CompetitionType.CONF_R2Q || f.leagueId === CompetitionType.CONF_R2Q_RETURN ||
+       f.leagueId === CompetitionType.CONF_GROUP_STAGE) &&
       (f.leagueId === CompetitionType.CL_FINAL || (f.homeTeamId !== userTeamId && f.awayTeamId !== userTeamId))
     );
 

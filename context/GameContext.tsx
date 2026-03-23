@@ -86,6 +86,8 @@ interface GameContextType {
   clGroups: string[][] | null;
   activeELGroupDraw: { id: string, label: string, date: Date, groups: string[][] } | null;
   elGroups: string[][] | null;
+  activeConfGroupDraw: { id: string, label: string, date: Date, groups: string[][] } | null;
+  confGroups: string[][] | null;
   supercupWinners: { season: string; winner: string; year: number; }[];
   addSupercupWinner: (season: string, winner: string, year: number) => void;
 
@@ -130,6 +132,7 @@ interface GameContextType {
   confirmELFinalDraw: () => void;
   confirmCONFDraw: (pairs: Fixture[]) => void;
   confirmCONFR2QDraw: (pairs: Fixture[]) => void;
+  confirmCONFGroupDraw: () => void;
   confirmSeasonEnd: () => void;
   elHistoryInitialRound: string | null;
   setElHistoryInitialRound: (round: string | null) => void;
@@ -187,6 +190,8 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [clGroups, setClGroups] = useState<string[][] | null>(null);
   const [activeELGroupDraw, setActiveELGroupDraw] = useState<{ id: string, label: string, date: Date, groups: string[][] } | null>(null);
   const [elGroups, setElGroups] = useState<string[][] | null>(null);
+  const [activeConfGroupDraw, setActiveConfGroupDraw] = useState<{ id: string, label: string, date: Date, groups: string[][] } | null>(null);
+  const [confGroups, setConfGroups] = useState<string[][] | null>(null);
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
   const [elHistoryInitialRound, setElHistoryInitialRound] = useState<string | null>(null);
@@ -707,6 +712,8 @@ if (userTeamId) {
     setRoundResults({});
     sentMailIdsRef.current = new Set();
     lastProcessedLeagueDateRef.current = null;
+    setConfGroups(null);
+    setActiveConfGroupDraw(null);
   }, [clubs, players, userTeamId, allFixtures]);
 
   const saveManagerProfile = (profile: ManagerProfile) => {
@@ -924,7 +931,7 @@ setMessages([welcomeMail, fanMail]);
   };
 
   const advanceDay = useCallback(() => {
-    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW || viewState === ViewState.CONF_DRAW || viewState === ViewState.CONF_R2Q_DRAW) return;
+    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW || viewState === ViewState.CONF_DRAW || viewState === ViewState.CONF_R2Q_DRAW || viewState === ViewState.CONF_GROUP_DRAW) return;
 
     const dateToProcess = new Date(currentDate);
     // Czy to automatyczny skok (jumpToDate/jumpToNextEvent) — NIE ręczny klik gracza?
@@ -1114,6 +1121,28 @@ setMessages([welcomeMail, fanMail]);
           if (!alreadyPlayedCONFR2Q) {
             processCLMatchDay();
           }
+          break;
+        }
+
+        // ── LK: Losowanie Fazy Grupowej ─────────────────────────────────────
+        case CompetitionType.CONF_GROUP_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const confR2QWinners = CONFDrawService.getGroupStagePool(allFixtures);
+          const confGroupsResult = CONFDrawService.drawGroupStage(confR2QWinners, RAW_CONFERENCE_LEAGUE_CLUBS, clubs, sessionSeed);
+          setActiveConfGroupDraw({ id: slot.id, label: slot.label, date: dateToProcess, groups: confGroupsResult });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_GROUP_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: Faza Grupowa (auto-symulacja) ──────────────────────────────
+        case CompetitionType.CONF_GROUP_STAGE: {
+          const alreadyPlayedCONFGS = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            f.leagueId === CompetitionType.CONF_GROUP_STAGE &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedCONFGS) { processCLMatchDay(); }
           break;
         }
 
@@ -1647,6 +1676,7 @@ setMessages([welcomeMail, fanMail]);
          primaryEvent.slot.competition === CompetitionType.EL_R2Q ||
          primaryEvent.slot.competition === CompetitionType.EL_R2Q_RETURN ||
          primaryEvent.slot.competition === CompetitionType.EL_GROUP_STAGE ||
+         primaryEvent.slot.competition === CompetitionType.CONF_GROUP_STAGE ||
          primaryEvent.slot.competition === CompetitionType.EL_R16 ||
          primaryEvent.slot.competition === CompetitionType.EL_R16_RETURN ||
          primaryEvent.slot.competition === CompetitionType.EL_QF ||
@@ -2164,6 +2194,42 @@ const finalResult: SimulationOutput = {
     const nextDayEL = new Date(currentDate);
     nextDayEL.setDate(nextDayEL.getDate() + 1);
     setCurrentDate(nextDayEL);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
+  const confirmCONFGroupDraw = () => {
+    if (!activeConfGroupDraw) return;
+    setConfGroups(activeConfGroupDraw.groups);
+    const year = activeConfGroupDraw.date.getFullYear();
+    const matchdayDates = [
+      new Date(year, 8,  20),
+      new Date(year, 9,  19),
+      new Date(year, 9,  27),
+      new Date(year, 10, 27),
+      new Date(year, 11,  6),
+      new Date(year, 11, 16),
+    ];
+    const groupFixtures = CONFDrawService.generateGroupStageFixtures(activeConfGroupDraw.groups, matchdayDates, year);
+    setGlobalFixtures(prev => [...prev, ...groupFixtures]);
+    setProcessedDrawIds(prev => [...prev, activeConfGroupDraw.id]);
+    setActiveConfGroupDraw(null);
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `CONF_GROUP_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie Fazy Grupowej Ligi Konferencji',
+        body: `Zakończono ceremonię losowania fazy grupowej Ligi Konferencji UEFA. Sprawdź skład swojej grupy.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 84
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
     navigateTo(ViewState.DASHBOARD);
   };
 
@@ -2966,7 +3032,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
+    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
     }}>
       {children}
     </GameContext.Provider>
