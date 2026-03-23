@@ -11,6 +11,7 @@ PlayerPosition, EuropeanStatus
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from '../resources/static_db/clubs/ChampionsLeagueTeams';
 import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../resources/static_db/clubs/EuropeLeagueTeams';
 import { ELDrawService } from '../LECupEngine/ELDrawService';
+import { CONFDrawService } from '../LECupEngine/CONFDrawService';
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../resources/static_db/clubs/ConferenceLeagueTeams';
 import { STATIC_CLUBS, STATIC_LEAGUES, STATIC_CL_CLUBS, STATIC_EL_CLUBS, STATIC_CONF_CLUBS, START_DATE } from '../constants';
 import { SeasonTemplateGenerator } from '../services/SeasonTemplateGenerator';
@@ -127,7 +128,11 @@ interface GameContextType {
   confirmELQFDraw: () => void;
   confirmELSFDraw: () => void;
   confirmELFinalDraw: () => void;
+  confirmCONFDraw: (pairs: Fixture[]) => void;
+  confirmCONFR2QDraw: (pairs: Fixture[]) => void;
   confirmSeasonEnd: () => void;
+  elHistoryInitialRound: string | null;
+  setElHistoryInitialRound: (round: string | null) => void;
 
   processBackgroundCupMatches: () => void;
     processCLMatchDay: () => void;
@@ -184,8 +189,11 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [elGroups, setElGroups] = useState<string[][] | null>(null);
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
+  const [elHistoryInitialRound, setElHistoryInitialRound] = useState<string | null>(null);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
  const [currentPolishCupWinnerId, setCurrentPolishCupWinnerId] = useState<string>('PL_LEGIA_WARSZAWA');
+ // Polskie drużyny do CONF R2Q: sezon 1 = Jagiellonia + Raków, kolejne sezony = 2. i 3. miejsce Ekstraklasy z zabezpieczeniem PP
+ const [confR2QPolishTeamIds, setConfR2QPolishTeamIds] = useState<string[]>(['PL_JAGIELLONIA_BIALYSTOK', 'PL_RAKOW_CZESTOCHOWA']);
  const [supercupWinners, setSupercupWinners] = useState<{ season: string; winner: string; year: number; }[]>(() => {
     // Załaduj z localStorage przy inicjalizacji
     try {
@@ -603,6 +611,35 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
       setCurrentPolishCupWinnerId(polishCupR2QId);
     }
 
+    // Ustal 2 polskie drużyny do CONF R2Q: 2. i 3. miejsce Ekstraklasy
+    // Jeśli drużyna z 2. lub 3. miejsca wygrała PP (gra w LE), zastępujemy ją 4. miejscem
+    {
+      const lePolishTeamId = cupWinnerId
+        ? ((cupWinnerId === champion?.id && cupLoserId) ? cupLoserId : cupWinnerId)
+        : null;
+
+      const candidates: string[] = [];
+      let replacementIndex = 3; // index 3 = 4. miejsce (0-based)
+
+      for (let i = 1; i < standingsL1.length && candidates.length < 2; i++) {
+        const candidateId = standingsL1[i].id;
+        if (candidateId === lePolishTeamId) {
+          // Ta drużyna idzie do LE — pomijamy, bierzemy następną z listy
+          const replacement = standingsL1[replacementIndex];
+          if (replacement && !candidates.includes(replacement.id) && replacement.id !== lePolishTeamId) {
+            candidates.push(replacement.id);
+            replacementIndex++;
+          }
+        } else {
+          candidates.push(candidateId);
+        }
+      }
+
+      if (candidates.length > 0) {
+        setConfR2QPolishTeamIds(candidates.slice(0, 2));
+      }
+    }
+
 
         const seasonEndDate = new Date(newYear - 1, 5, 30); // 30 czerwca kończącego się sezonu
     const transitionResult = SeasonTransitionService.processSquadTransition(players, updatedClubs, seasonEndDate, userTeamId);
@@ -887,7 +924,7 @@ setMessages([welcomeMail, fanMail]);
   };
 
   const advanceDay = useCallback(() => {
-    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW) return;
+    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW || viewState === ViewState.CONF_DRAW || viewState === ViewState.CONF_R2Q_DRAW) return;
 
     const dateToProcess = new Date(currentDate);
     // Czy to automatyczny skok (jumpToDate/jumpToNextEvent) — NIE ręczny klik gracza?
@@ -1028,6 +1065,56 @@ setMessages([welcomeMail, fanMail]);
           setProcessedDrawIds(prev => [...prev, slot.id]);
           navigateTo(ViewState.EL_DRAW);
           skipDayAdvance = true; break;
+        }
+
+        // ── LK: Losowanie Rundy 1 Preeliminacyjnej ──────────────────────────
+        case CompetitionType.CONF_R1Q_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const confTeamIds = CONFDrawService.getEligibleTeams(RAW_CONFERENCE_LEAGUE_CLUBS, sessionSeed);
+          const confPairs = CONFDrawService.drawPairs(confTeamIds, RAW_CONFERENCE_LEAGUE_CLUBS, clubs, dateToProcess, sessionSeed);
+          setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: confPairs });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: Mecze Rundy 1 (gracz nie uczestniczy — auto-symulacja) ──────
+        case CompetitionType.CONF_R1Q:
+        case CompetitionType.CONF_R1Q_RETURN: {
+          const alreadyPlayedCONF = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.CONF_R1Q || f.leagueId === CompetitionType.CONF_R1Q_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedCONF) {
+            processCLMatchDay();
+          }
+          break;
+        }
+
+        // ── LK: Losowanie Rundy 2 Preeliminacyjnej ──────────────────────────
+        case CompetitionType.CONF_R2Q_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const confR2QPool = CONFDrawService.getR2QPool(RAW_CONFERENCE_LEAGUE_CLUBS, allFixtures, confR2QPolishTeamIds, sessionSeed);
+          const confR2QPairs = CONFDrawService.drawR2QPairs(confR2QPool, RAW_CONFERENCE_LEAGUE_CLUBS, clubs, dateToProcess, sessionSeed);
+          setActiveCupDraw({ id: slot.id, label: slot.label, date: dateToProcess, pairs: confR2QPairs });
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_R2Q_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: Mecze Rundy 2 (gracz nie uczestniczy — auto-symulacja) ──────
+        case CompetitionType.CONF_R2Q:
+        case CompetitionType.CONF_R2Q_RETURN: {
+          const alreadyPlayedCONFR2Q = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.CONF_R2Q || f.leagueId === CompetitionType.CONF_R2Q_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedCONFR2Q) {
+            processCLMatchDay();
+          }
+          break;
         }
 
         // ── LE: Losowanie Rundy 2 Preeliminacyjnej ──────────────────────────
@@ -2559,9 +2646,125 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   };
 
+  // ── Liga Konferencji: potwierdzenie losowania R1Q ────────────────────────
+  const confirmCONFDraw = (pairs: Fixture[]) => {
+    if (!activeCupDraw) return;
+
+    // Zapisz pary (draw fixtures)
+    setGlobalFixtures(prev => [...prev, ...pairs]);
+
+    const year = currentDate.getFullYear();
+    const matchFixtures: Fixture[] = [];
+
+    pairs.forEach((pair, i) => {
+      const pairNum = i + 1;
+      matchFixtures.push({
+        id: `CONF_R1Q_MATCH_${pairNum}_${year}`,
+        leagueId: CompetitionType.CONF_R1Q,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        date: new Date(year, 6, 14),   // 14 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      matchFixtures.push({
+        id: `CONF_R1Q_MATCH_${pairNum}_${year}_RETURN`,
+        leagueId: CompetitionType.CONF_R1Q_RETURN,
+        homeTeamId: pair.awayTeamId,
+        awayTeamId: pair.homeTeamId,
+        date: new Date(year, 6, 17),  // 17 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    });
+    setGlobalFixtures(prev => [...prev, ...matchFixtures]);
+
+    setProcessedDrawIds(prev => [...prev, activeCupDraw.id]);
+    setActiveCupDraw(null);
+
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `CONF_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Zakończono losowanie Ligi Konferencji — Runda 1',
+        body: 'Zakończono ceremonię losowania Rundy 1 Kwalifikacyjnej Ligi Konferencji UEFA. Zapraszamy do zapoznania się z wylosowanymi parami.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 87,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
+  // ── Liga Konferencji: potwierdzenie losowania R2Q ───────────────────────
+  const confirmCONFR2QDraw = (pairs: Fixture[]) => {
+    if (!activeCupDraw) return;
+
+    setGlobalFixtures(prev => [...prev, ...pairs]);
+
+    const year = currentDate.getFullYear();
+    const matchFixtures: Fixture[] = [];
+
+    pairs.forEach((pair, i) => {
+      const pairNum = i + 1;
+      matchFixtures.push({
+        id: `CONF_R2Q_MATCH_${pairNum}_${year}`,
+        leagueId: CompetitionType.CONF_R2Q,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        date: new Date(year, 6, 28),   // 28 lipca
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      matchFixtures.push({
+        id: `CONF_R2Q_MATCH_${pairNum}_${year}_RETURN`,
+        leagueId: CompetitionType.CONF_R2Q_RETURN,
+        homeTeamId: pair.awayTeamId,
+        awayTeamId: pair.homeTeamId,
+        date: new Date(year, 7, 16),  // 16 sierpnia
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    });
+    setGlobalFixtures(prev => [...prev, ...matchFixtures]);
+
+    setProcessedDrawIds(prev => [...prev, activeCupDraw.id]);
+    setActiveCupDraw(null);
+
+    if (userTeamId) {
+      const mail: MailMessage = {
+        id: `CONF_R2Q_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Zakończono losowanie Ligi Konferencji — Runda 2',
+        body: 'Zakończono ceremonię losowania Rundy 2 Kwalifikacyjnej Ligi Konferencji UEFA. Zapraszamy do zapoznania się z wylosowanymi parami.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 87,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  };
+
   // ── Liga Europy: potwierdzenie losowania R2Q ─────────────────────────────
   const confirmELR2QDraw = (pairs: Fixture[]) => {
-    if (!activeCupDraw) return;
 
     setGlobalFixtures(prev => [...prev, ...pairs]);
 
@@ -2762,8 +2965,8 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
-            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner
+            markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
+    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
     }}>
       {children}
     </GameContext.Provider>

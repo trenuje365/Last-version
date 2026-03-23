@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from '../../resources/static_db/clubs/ChampionsLeagueTeams';
+import LigaMistrzowBg from '../../Graphic/themes/cl_theme.png';
 
 export const CLDrawView: React.FC = () => {
   const { activeCupDraw, confirmCLDraw, clubs } = useGame();
@@ -25,10 +26,19 @@ export const CLDrawView: React.FC = () => {
     <div className="h-screen w-full bg-slate-950 flex flex-col animate-fade-in overflow-hidden relative">
 
       {/* Tło - kolory CL (granat + złoty) */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[200px] opacity-10 bg-blue-800" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-10 bg-yellow-500" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${LigaMistrzowBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+            filter: 'brightness(0.4)',
+          }}
+        />
+        <div className="absolute inset-0 bg-slate-950/60" />
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[200px] opacity-[0.12] bg-blue-800" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-[0.1] bg-yellow-500" />
       </div>
 
       {/* Header */}

@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { CompetitionType, MatchStatus, ViewState } from '../types';
 import { ChampionshipHistoryService } from '../data/championship_history';
@@ -81,9 +81,15 @@ const EL_ROUNDS = [
 const GROUP_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 export const ELHistoryView: React.FC = () => {
-  const { fixtures, clubs, navigateTo, elGroups, userTeamId } = useGame();
+  const { fixtures, clubs, navigateTo, elGroups, userTeamId, elHistoryInitialRound, setElHistoryInitialRound } = useGame();
   const [activeTab, setActiveTab] = useState<'bracket' | 'history'>('bracket');
-  const [selectedRoundKey, setSelectedRoundKey] = useState<string>('R1Q');
+  const [selectedRoundKey, setSelectedRoundKey] = useState<string>(elHistoryInitialRound ?? 'R1Q');
+  useEffect(() => {
+    if (elHistoryInitialRound) {
+      setSelectedRoundKey(elHistoryInitialRound);
+      setElHistoryInitialRound(null);
+    }
+  }, [elHistoryInitialRound]);
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
   const [gsMatchdayTab, setGsMatchdayTab] = useState<number>(1);
 
@@ -266,12 +272,12 @@ export const ELHistoryView: React.FC = () => {
             backgroundImage: `url(${LigaEuropaBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center top',
-            filter: 'brightness(0.2)',
+            filter: 'brightness(0.4)',
           }}
         />
-        <div className="absolute inset-0 bg-slate-950/85" />
-        <div className="absolute top-[-15%] left-[-5%] w-[60%] h-[60%] rounded-full blur-[200px] opacity-[0.07] bg-orange-600" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full blur-[160px] opacity-[0.05] bg-orange-500" />
+        <div className="absolute inset-0 bg-slate-950/60" />
+        <div className="absolute top-[-15%] left-[-5%] w-[60%] h-[60%] rounded-full blur-[200px] opacity-[0.12] bg-orange-600" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full blur-[160px] opacity-[0.1] bg-orange-500" />
       </div>
 
       {/* HEADER */}

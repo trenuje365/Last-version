@@ -50,6 +50,9 @@ import { EuropeanClubsView } from './components/views/EuropeanClubsView';
 import { ELDrawView } from './LECupEngine/ELDrawView';
 import { ELR2QDrawView } from './LECupEngine/ELR2QDrawView';
 import { ELHistoryView } from './LECupEngine/ELHistoryView';
+import { CONFDrawView } from './LECupEngine/CONFDrawView';
+import { CONFR2QDrawView } from './LECupEngine/CONFR2QDrawView';
+import { CONFHistoryView } from './LECupEngine/CONFHistoryView';
 import { ELGroupDrawView } from './components/views/ELGroupDrawView';
 import { ELR16DrawView } from './components/views/ELR16DrawView';
 import { ELQFDrawView } from './components/views/ELQFDrawView';
@@ -71,6 +74,12 @@ case ViewState.EL_R2Q_DRAW:
   return <ELR2QDrawView />;
 case ViewState.EL_HISTORY:
   return <ELHistoryView />;
+case ViewState.CONF_DRAW:
+  return <CONFDrawView />;
+case ViewState.CONF_R2Q_DRAW:
+  return <CONFR2QDrawView />;
+case ViewState.CONF_HISTORY:
+  return <CONFHistoryView />;
 case ViewState.EL_GROUP_DRAW:
   return <ELGroupDrawView />;
 case ViewState.EL_R16_DRAW:

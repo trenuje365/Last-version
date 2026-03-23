@@ -689,7 +689,61 @@ export const CalendarEngine = {
         };
       }
 
+      // ── LK: LOSOWANIE R1Q ─────────────────────────────────────────────────
+      case CompetitionType.CONF_R1Q_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.CONF_DRAW,
+        };
+      }
 
+      // ── LK: MECZE PREELIMINACYJNE R1Q ────────────────────────────────────
+      case CompetitionType.CONF_R1Q:
+      case CompetitionType.CONF_R1Q_RETURN: {
+        const hasAnyScheduledCONF = allFixtures.some(
+          f =>
+            f.date.toDateString() === dateStr &&
+            (f.leagueId === CompetitionType.CONF_R1Q || f.leagueId === CompetitionType.CONF_R1Q_RETURN) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAnyScheduledCONF) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
+      // ── LK: LOSOWANIE R2Q ─────────────────────────────────────────────────
+      case CompetitionType.CONF_R2Q_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.CONF_R2Q_DRAW,
+        };
+      }
+
+      // ── LK: MECZE PREELIMINACYJNE R2Q ────────────────────────────────────
+      case CompetitionType.CONF_R2Q:
+      case CompetitionType.CONF_R2Q_RETURN: {
+        const hasAnyScheduledCONFR2Q = allFixtures.some(
+          f =>
+            f.date.toDateString() === dateStr &&
+            (f.leagueId === CompetitionType.CONF_R2Q || f.leagueId === CompetitionType.CONF_R2Q_RETURN) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAnyScheduledCONFR2Q) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
 
       // ── SPARING ────────────────────────────────────────────────────────────
       // Sparingi nie mają fixtures w systemie — traktowane jako dni informacyjne (auto-advance)

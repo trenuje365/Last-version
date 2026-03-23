@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
+import PucharPolskiBg from '../../Graphic/themes/PucharPolski.png';
 
 export const CupDrawView: React.FC = () => {
   const { activeCupDraw, confirmCupDraw, clubs, userTeamId } = useGame();
@@ -19,11 +20,18 @@ export const CupDrawView: React.FC = () => {
   return (
     <div className="h-screen w-full bg-slate-950 flex flex-col animate-fade-in overflow-hidden relative selection:bg-rose-500 selection:text-white">
       
-      {/* Cinematic Background Atmosphere */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[200px] opacity-10 bg-rose-600" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-10 bg-slate-400" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      {/* Background for Puchar Polski */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute inset-0" 
+          style={{ 
+            backgroundImage: `url(${PucharPolskiBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.35)'
+          }} 
+        />
+        <div className="absolute inset-0 bg-slate-950/60" />
       </div>
 
       {/* Header */}

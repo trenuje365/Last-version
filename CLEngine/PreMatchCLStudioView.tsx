@@ -77,7 +77,9 @@ const isR16 = todayPairs.length > 0 &&
 
   const handleSimulate = () => {
     processCLMatchDay();
-    if (isELDay) {
+    if (isELFinal) {
+      navigateTo(ViewState.POST_MATCH_CL_STUDIO);
+    } else if (isELDay) {
       navigateTo(ViewState.EL_HISTORY);
     } else {
       navigateTo(ViewState.POST_MATCH_CL_STUDIO);

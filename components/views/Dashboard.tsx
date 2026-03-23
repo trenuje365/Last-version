@@ -36,6 +36,7 @@ export const Dashboard: React.FC = () => {
    viewCoachDetails,
     fixtures,
     confirmSeasonEnd,
+    setElHistoryInitialRound,
   } = useGame();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -182,7 +183,10 @@ const boardConfidence = useMemo(() => {
                            todayEvent.slot.competition === CompetitionType.EL_FINAL;
           return {
             text: isCLFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : isELFinal ? '🟠 FINAŁ LIGI EUROPY' : isELComp ? '🟠 LIGA EUROPY' : 'LIGA MISTRZÓW ⭐',
-            action: () => navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_FINAL : ViewState.PRE_MATCH_CL_STUDIO),
+            action: () => {
+              if (isELFinal) { processCLMatchDay(); navigateTo(ViewState.POST_MATCH_CL_STUDIO); }
+              else { navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_FINAL : ViewState.PRE_MATCH_CL_STUDIO); }
+            },
             isMatch: true,
             disabled: isJumping,
           };
@@ -212,7 +216,9 @@ const boardConfidence = useMemo(() => {
                       ? '🟠 LOSOWANIE LE: 1/2 FINAŁU'
                       : todayEvent.slot.competition === CompetitionType.EL_FINAL_DRAW
                         ? '🟠 OGŁOSZENIE FINALISTÓW LE'
-                        : '⭐ LOSOWANIE LIGI MISTRZÓW',
+                        : todayEvent.slot.competition === CompetitionType.CONF_R1Q_DRAW
+                          ? '🟢 LOSOWANIE LIGI KONFERENCJI'                          : todayEvent.slot.competition === CompetitionType.CONF_R2Q_DRAW
+                            ? '🟢 LOSOWANIE LK: RUNDA 2 PREELIMINACYJNA'                          : '⭐ LOSOWANIE LIGI MISTRZÓW',
             action: advanceDay,
             isMatch: false,
             disabled: isJumping,
@@ -274,12 +280,35 @@ const boardConfidence = useMemo(() => {
           todayEvent.slot.competition === CompetitionType.EL_SF ||
           todayEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
           todayEvent.slot.competition === CompetitionType.EL_FINAL) {
+        const elRoundKey =
+          todayEvent.slot.competition === CompetitionType.EL_R1Q || todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ? 'R1Q' :
+          todayEvent.slot.competition === CompetitionType.EL_R2Q || todayEvent.slot.competition === CompetitionType.EL_R2Q_RETURN ? 'R2Q' :
+          todayEvent.slot.competition === CompetitionType.EL_GROUP_STAGE ? 'GS' :
+          todayEvent.slot.competition === CompetitionType.EL_R16 || todayEvent.slot.competition === CompetitionType.EL_R16_RETURN ? 'R16' :
+          todayEvent.slot.competition === CompetitionType.EL_QF || todayEvent.slot.competition === CompetitionType.EL_QF_RETURN ? 'QF' :
+          todayEvent.slot.competition === CompetitionType.EL_SF || todayEvent.slot.competition === CompetitionType.EL_SF_RETURN ? 'SF' :
+          todayEvent.slot.competition === CompetitionType.EL_FINAL ? 'FINAL' : 'R1Q';
         return {
           text: '🟠 LIGA EUROPY – WYNIKI',
-          action: () => { processCLMatchDay(); navigateTo(ViewState.EL_HISTORY); },
+          action: elRoundKey === 'FINAL'
+            ? () => { processCLMatchDay(); navigateTo(ViewState.POST_MATCH_CL_STUDIO); }
+            : () => { processCLMatchDay(); setElHistoryInitialRound(elRoundKey); navigateTo(ViewState.EL_HISTORY); },
           isMatch: false,
           disabled: isJumping,
           info: 'Wyniki meczów Ligi Europy',
+        };
+      }
+      // ── Liga Konferencji — mecze (gracz nie uczestniczy) ─────────────────
+      if (todayEvent.slot.competition === CompetitionType.CONF_R1Q ||
+          todayEvent.slot.competition === CompetitionType.CONF_R1Q_RETURN ||
+          todayEvent.slot.competition === CompetitionType.CONF_R2Q ||
+          todayEvent.slot.competition === CompetitionType.CONF_R2Q_RETURN) {
+        return {
+          text: '🟢 LIGA KONFERENCJI – WYNIKI',
+          action: () => { processCLMatchDay(); navigateTo(ViewState.CONF_HISTORY); },
+          isMatch: false,
+          disabled: isJumping,
+          info: 'Wyniki meczów Ligi Konferencji',
         };
       }
     }

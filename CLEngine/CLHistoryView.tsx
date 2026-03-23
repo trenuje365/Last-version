@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { CompetitionType, MatchStatus, ViewState } from '../types';
 import { ChampionshipHistoryService } from '../data/championship_history';
-import LigaMistrzowBg from '../Graphic/themes/liga_mistrzow.png';
+import LigaMistrzowBg from '../Graphic/themes/cl_theme.png';
 
 // ── Rundy — na razie tylko R1Q. Kolejne dodaj tutaj. ──────────────────────
 const CL_ROUNDS = [
@@ -419,20 +419,38 @@ const clFixtures = useMemo(
   // ── Empty state ──────────────────────────────────────────────────────────
   if (pairs.length === 0) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white animate-fade-in">
-        <div className="text-7xl mb-6 opacity-30">⭐</div>
-        <h2 className="text-xl font-black uppercase tracking-[0.3em] text-slate-500 mb-3">
-          Liga Mistrzów
-        </h2>
-        <p className="text-slate-700 text-[11px] font-black uppercase tracking-widest">
-          Losowanie jeszcze nie zostało przeprowadzone
-        </p>
-        <button
-          onClick={() => navigateTo(ViewState.LEAGUE_TABLES)}
-          className="mt-12 px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95"
-        >
-          &larr; Powrót
-        </button>
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white animate-fade-in relative overflow-hidden">
+        {/* BACKGROUND */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(${LigaMistrzowBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center top',
+              filter: 'brightness(0.4)',
+            }}
+          />
+          <div className="absolute inset-0 bg-slate-950/60" />
+          <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full blur-[220px] opacity-[0.12] bg-blue-800" />
+          <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full blur-[160px] opacity-[0.10] bg-indigo-600" />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="text-7xl mb-6 opacity-30">⭐</div>
+          <h2 className="text-xl font-black uppercase tracking-[0.3em] text-slate-500 mb-3">
+            Liga Mistrzów
+          </h2>
+          <p className="text-slate-700 text-[11px] font-black uppercase tracking-widest">
+            Losowanie jeszcze nie zostało przeprowadzone
+          </p>
+          <button
+            onClick={() => navigateTo(ViewState.LEAGUE_TABLES)}
+            className="mt-12 px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95 shadow-2xl"
+          >
+            &larr; Powrót
+          </button>
+        </div>
       </div>
     );
   }
@@ -448,20 +466,12 @@ const clFixtures = useMemo(
             backgroundImage: `url(${LigaMistrzowBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center top',
-            filter: 'brightness(0.2)',
+            filter: 'brightness(0.4)',
           }}
         />
-        <div className="absolute inset-0 bg-slate-950/89" />
-        <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full blur-[220px] opacity-[0.18] bg-blue-800" />
+        <div className="absolute inset-0 bg-slate-950/60" />
+        <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full blur-[220px] opacity-[0.12] bg-blue-800" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full blur-[160px] opacity-[0.10] bg-indigo-600" />
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
       </div>
 
       {/* HEADER */}

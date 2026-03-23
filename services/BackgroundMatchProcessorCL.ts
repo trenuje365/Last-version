@@ -141,7 +141,10 @@ export const BackgroundMatchProcessorCL = {
        f.leagueId === CompetitionType.EL_R16 || f.leagueId === CompetitionType.EL_R16_RETURN ||
        f.leagueId === CompetitionType.EL_QF || f.leagueId === CompetitionType.EL_QF_RETURN ||
        f.leagueId === CompetitionType.EL_SF || f.leagueId === CompetitionType.EL_SF_RETURN ||
-       f.leagueId === CompetitionType.EL_FINAL) &&
+       f.leagueId === CompetitionType.EL_FINAL ||
+       // ── Liga Konferencji ───────────────────────────────────────────────────
+       f.leagueId === CompetitionType.CONF_R1Q || f.leagueId === CompetitionType.CONF_R1Q_RETURN ||
+       f.leagueId === CompetitionType.CONF_R2Q || f.leagueId === CompetitionType.CONF_R2Q_RETURN) &&
       (f.leagueId === CompetitionType.CL_FINAL || (f.homeTeamId !== userTeamId && f.awayTeamId !== userTeamId))
     );
 
@@ -173,7 +176,8 @@ export const BackgroundMatchProcessorCL = {
                        || fixture.leagueId === CompetitionType.EL_R2Q_RETURN
                        || fixture.leagueId === CompetitionType.EL_R16_RETURN
                        || fixture.leagueId === CompetitionType.EL_QF_RETURN
-                       || fixture.leagueId === CompetitionType.EL_SF_RETURN;
+                       || fixture.leagueId === CompetitionType.EL_SF_RETURN
+                       || fixture.leagueId === CompetitionType.CONF_R1Q_RETURN;
 
       // ── KROK 1: Symulacja 90 minut (zawsze bez dogrywki) ──────────────────
       const { homeScore, awayScore, next } = simulate90min(homeRep, awayRep, seed);

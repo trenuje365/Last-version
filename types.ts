@@ -54,6 +54,9 @@ export enum ViewState {
   CL_BRACKET = 'CL_BRACKET',
   CL_HISTORY = 'CL_HISTORY',
   EL_DRAW = 'EL_DRAW',
+  CONF_DRAW = 'CONF_DRAW',
+  CONF_R2Q_DRAW = 'CONF_R2Q_DRAW',
+  CONF_HISTORY = 'CONF_HISTORY',
   EL_R2Q_DRAW = 'EL_R2Q_DRAW',
   EL_GROUP_DRAW = 'EL_GROUP_DRAW',
   EL_R16_DRAW = 'EL_R16_DRAW',
@@ -231,6 +234,14 @@ export enum CompetitionType {
   EL_SF_RETURN = 'EL_SF_RETURN',
   EL_FINAL_DRAW = 'EL_FINAL_DRAW',
   EL_FINAL = 'EL_FINAL',
+
+  // ── Liga Pucharu Konferencji UEFA ─────────────────────────────────────────
+  CONF_R1Q_DRAW = 'CONF_R1Q_DRAW',
+  CONF_R1Q = 'CONF_R1Q',
+  CONF_R1Q_RETURN = 'CONF_R1Q_RETURN',
+  CONF_R2Q_DRAW = 'CONF_R2Q_DRAW',
+  CONF_R2Q = 'CONF_R2Q',
+  CONF_R2Q_RETURN = 'CONF_R2Q_RETURN',
 }
 
 export enum SlotType {

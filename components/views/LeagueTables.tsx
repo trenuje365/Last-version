@@ -85,6 +85,13 @@ export const LeagueTables: React.FC = () => {
   Liga Europy
 </button>
 
+<button 
+  onClick={() => navigateTo(ViewState.CONF_HISTORY)}
+  className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
+>
+  Liga Konferencji
+</button>
+
 
 <button 
   onClick={() => navigateTo(ViewState.POLISH_CUP_BRACKET)}

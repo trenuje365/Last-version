@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../resources/static_db/clubs/EuropeLeagueTeams';
 import { ViewState } from '../types';
+import LigaEuropaBg from '../Graphic/themes/LigaEuropa.png';
 
 const COUNTRY_NAMES: Record<string, string> = {
   ALB: 'Albania', ARM: 'Armenia', AUT: 'Austria', AZE: 'Azerbejdżan',
@@ -43,21 +44,17 @@ export const ELDrawView: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-950 flex flex-col animate-fade-in overflow-hidden relative">
+    <div className="h-screen w-full flex flex-col animate-fade-in overflow-hidden relative">
 
-      {/* Tło – kolory LE (pomarańcz + granat) */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[200px] opacity-10 bg-orange-600" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-8 bg-orange-500" />
-        <div className="absolute top-[40%] left-[40%] w-[40%] h-[40%] rounded-full blur-[180px] opacity-5 bg-amber-400" />
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(249,115,22,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.15) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
+      {/* Tło – Liga Europa */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <img 
+          src={LigaEuropaBg} 
+          alt="" 
+          className="w-full h-full object-cover"
+          style={{ filter: 'brightness(0.5)' }}
         />
+        <div className="absolute inset-0 bg-slate-950/60" />
       </div>
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
@@ -71,7 +68,7 @@ export const ELDrawView: React.FC = () => {
               UEFA Europa League
             </p>
             <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-none">
-              Runda 1 Kwalifikacyjna
+              {activeCupDraw.label.includes('2') ? 'Runda 2 Kwalifikacyjna' : 'Runda 1 Kwalifikacyjna'}
             </h1>
             <div className="flex items-center gap-3 mt-2">
               <span className="text-orange-400/70 text-[10px] font-black uppercase tracking-[0.4em]">

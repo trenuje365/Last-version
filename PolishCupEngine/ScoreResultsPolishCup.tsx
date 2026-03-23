@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../types';
+import PucharPolskiBg from '../Graphic/themes/PucharPolski.png';
 
 export const ScoreResultsPolishCup: React.FC = () => {
   const { fixtures, clubs, currentDate, navigateTo, advanceDay, userTeamId, setActiveMatchState: setMatchState } = useGame();
@@ -39,12 +40,17 @@ export const ScoreResultsPolishCup: React.FC = () => {
     <div className="h-screen w-full bg-slate-950 flex flex-col p-6 animate-fade-in overflow-hidden relative selection:bg-rose-500">
       
       {/* Background Decor */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[200px] opacity-10 bg-rose-600" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <img 
+          src={PucharPolskiBg} 
+          alt="" 
+          className="w-full h-full object-cover" 
+          style={{ filter: 'brightness(0.35)' }}
+        />
+        <div className="absolute inset-0 bg-slate-950/60" />
       </div>
 
-      <header className="bg-slate-900/60 border border-white/10 p-6 rounded-[35px] backdrop-blur-3xl shrink-0 flex items-center justify-between shadow-2xl mb-6">
+      <header className="bg-slate-900/40 border border-white/10 p-6 rounded-[35px] shrink-0 flex items-center justify-between shadow-2xl mb-6 relative z-10">
          <div className="flex items-center gap-6">
             <div className="w-12 h-12 rounded-2xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-2xl shadow-inner">
                📡
@@ -65,7 +71,7 @@ export const ScoreResultsPolishCup: React.FC = () => {
          </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/20 rounded-[40px] border border-white/5 backdrop-blur-md">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/20 rounded-[40px] border border-white/5 relative z-10">
          <div className="flex flex-col max-w-4xl mx-auto py-6">
             {cupResults.length > 0 ? (
               cupResults.map((result, idx) => {

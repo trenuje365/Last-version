@@ -56,6 +56,7 @@ export const BackgroundMatchProcessor = {
       CompetitionType.EL_QF_DRAW, CompetitionType.EL_QF, CompetitionType.EL_QF_RETURN,
       CompetitionType.EL_SF_DRAW, CompetitionType.EL_SF, CompetitionType.EL_SF_RETURN,
       CompetitionType.EL_FINAL_DRAW, CompetitionType.EL_FINAL,
+      CompetitionType.CONF_R1Q_DRAW, CompetitionType.CONF_R1Q, CompetitionType.CONF_R1Q_RETURN,
     ]);
     const todayFixtures = fixtures.filter(f =>
       f.date.toDateString() === dateStr &&
