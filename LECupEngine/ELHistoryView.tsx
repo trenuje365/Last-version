@@ -733,7 +733,7 @@ export const ELHistoryView: React.FC = () => {
                             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-600">Finał Ligi Europy</span>
                             {finalDoneFlag && finalFixture!.homeScore !== null && (
                               <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">
-                                Zwycięzca: {finalFixture!.homeScore! > finalFixture!.awayScore! ? (clubA?.name ?? finalFixture!.homeTeamId) : finalFixture!.awayScore! > finalFixture!.homeScore! ? (clubB?.name ?? finalFixture!.awayTeamId) : '–'}
+                                Zwycięzca: {finalFixture!.homeScore! > finalFixture!.awayScore! ? (clubA?.name ?? finalFixture!.homeTeamId) : finalFixture!.awayScore! > finalFixture!.homeScore! ? (clubB?.name ?? finalFixture!.awayTeamId) : (finalFixture!.homePenaltyScore ?? 0) > (finalFixture!.awayPenaltyScore ?? 0) ? (clubA?.name ?? finalFixture!.homeTeamId) : (clubB?.name ?? finalFixture!.awayTeamId)}
                               </span>
                             )}
                           </div>

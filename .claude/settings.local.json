@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep -l \"ZWYCIĘZCA\\\\|Zwycięzca\\\\|zwycięzca\" c:UsersJack CaveDocumentsFM google studioLast version/**/*.tsx)"
     ]
   }
 }
