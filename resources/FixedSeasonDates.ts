@@ -304,6 +304,9 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 { day: 20, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R16_DRAW, label: "LOSOWANIE LE: 1/8 FINAŁU", priority: 88 },
 
 
+// 21 grudzen LIGA KONFERENCJI ----losowanie 1/8 finału 
+{ day: 21, month: 11, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_R16_DRAW, label: "LOSOWANIE LK: 1/8 FINAŁU", priority: 87 },
+
   // --- STYCZEŃ ---------------------------------------------------------------------------------------------------------------------------------------
   
   { day: 7, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
@@ -320,8 +323,9 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-      //  21 styczen LIGA KONFERENCJI ----1/8 finału DO ZAIMPLEMENTOWANIA *****************
- 
+      //  21 styczen LIGA KONFERENCJI ---- 1 mecz - 1/8 finału 
+{ day: 21, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_R16, label: "LK: 1/8 Finału - 1. mecz", priority: 84 },
+
   { day: 23, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
 
 { day: 24,  month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Otwarcie zimowego okna transferowego", priority: 60 },
@@ -334,7 +338,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-      // 27 styczen LIGA KONFERENCJI ----1.8 finału/rewanże DO ZAIMPLEMENTOWANIA *****************
+
  
 
 
@@ -346,14 +350,20 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 // ---- 28 styczeń LOSOWANIE 1/4 FINAŁU LIGI EUROPY
 { day: 28, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.EL_QF_DRAW, label: "LOSOWANIE LE: 1/4 FINAŁU", priority: 88 },
 
+      // 29 styczen LIGA KONFERENCJI ----1.8 finału/rewanż 
+{ day: 29, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_R16_RETURN, label: "LK: 1/8 Finału - Rewanż", priority: 84 },
 
 
+
+{ day: 30, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_QF_DRAW, label: "LOSOWANIE LK: 1/4 FINAŁU", priority: 86 },
 
 { day: 31,  month: 0, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 19", priority: 10 },
 
 
   // --- LUTY ------------------------------------------------------------------------------------------------------------------------------------------
   
+
+
   { day: 7, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 20", priority: 10 },
 { day: 12, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 21", priority: 10 },
 
@@ -368,7 +378,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-    // --- PUCHARY EUROPEJSKIE --- 18 LUTY LIGA KONFERENCJI ----cwierfinaly 1 mecz 1/4 DO ZAIMPLEMENTOWANIA *****************
+{ day: 18, month: 1, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_QF, label: "LK: 1/4 Finału - 1. mecz", priority: 83 },
 
 
 
@@ -401,7 +411,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   
   
   
-   // --- PUCHARY EUROPEJSKIE --- 4 MARZEC LIGA KONFERENCJI ----cwierfinaly/rewanże DO ZAIMPLEMENTOWANIA *****************
+{ day: 4, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_QF_RETURN, label: "LK: 1/4 Finału - Rewanż", priority: 83 },
  
  
 //=== 6 MARZEC LOSOWANIE PÓŁFINAŁÓW LIGI MISTRZÓW
@@ -422,7 +432,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
  { day: 10, month: 2, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 24", priority: 10 },
 
-
+{ day: 11, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_SF_DRAW, label: "LOSOWANIE LK: 1/2 FINAŁU", priority: 88 },
 
 
   // --- REPREZENTAcjA ---
@@ -446,7 +456,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   
   
   
-     // --- PUCHARY EUROPEJSKIE --- 28 MARZEC LIGA KONFERENCJI ----polfinaly 1 mecz 1/2 DO ZAIMPLEMENTOWANIA *****************
+     { day: 28, month: 2, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_SF, label: "LK: 1/2 Finału - 1. mecz", priority: 83 },
 
 
 
@@ -481,7 +491,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  
  
  
-     // --- PUCHARY EUROPEJSKIE --- 17 Kwiecien LIGA KONFERENCJI ----polfinaly/rewanże 1/2 DO ZAIMPLEMENTOWANIA *****************
+     { day: 17, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_SF_RETURN, label: "LK: 1/2 Finału - Rewanż", priority: 83 },
 
 // --- 18 kwietnia ogloszenienie finalistow ligii mistrzów 
 { day: 18, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.CL_FINAL_DRAW, label: "OGŁOSZENIE FINALISTÓW LM", priority: 90 },
@@ -489,7 +499,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 // 19 kwietnia ogłoszenie finalistów ligi europy
 { day: 19, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.EL_FINAL_DRAW, label: "OGŁOSZENIE FINALISTÓW LE", priority: 88 },
 
-
+//20 kwietnia ogłoszenie finalistów ligi konferencji DO ZAIMPLEMENTOWANIA *****************
 
 
 { day: 21,  month: 3, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 29", priority: 10 },
@@ -517,7 +527,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-  // --- FINAL PUCHARY EUROPEJSKIE --- 27 Maj LIGA KONFERENCJI ---- DO ZAIMPLEMENTOWANIA *****************
+  // ---  27 Maj FINAL  LIGA KONFERENCJI ---- DO ZAIMPLEMENTOWANIA *****************
   
    // --- FINAL PUCHARY EUROPEJSKIE --- 30 Maj LIGA MISTRZÓW----
   { day: 30, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CL_FINAL, label: "LM: Finał", priority: 100 },

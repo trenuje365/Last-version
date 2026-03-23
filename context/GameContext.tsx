@@ -133,6 +133,9 @@ interface GameContextType {
   confirmCONFDraw: (pairs: Fixture[]) => void;
   confirmCONFR2QDraw: (pairs: Fixture[]) => void;
   confirmCONFGroupDraw: () => void;
+  confirmCONFR16Draw: () => void;
+  confirmCONFQFDraw: () => void;
+  confirmCONFSFDraw: () => void;
   confirmSeasonEnd: () => void;
   elHistoryInitialRound: string | null;
   setElHistoryInitialRound: (round: string | null) => void;
@@ -931,7 +934,7 @@ setMessages([welcomeMail, fanMail]);
   };
 
   const advanceDay = useCallback(() => {
-    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW || viewState === ViewState.CONF_DRAW || viewState === ViewState.CONF_R2Q_DRAW || viewState === ViewState.CONF_GROUP_DRAW) return;
+    if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW || viewState === ViewState.CONF_DRAW || viewState === ViewState.CONF_R2Q_DRAW || viewState === ViewState.CONF_GROUP_DRAW || viewState === ViewState.CONF_R16_DRAW || viewState === ViewState.CONF_QF_DRAW || viewState === ViewState.CONF_SF_DRAW) return;
 
     const dateToProcess = new Date(currentDate);
     // Czy to automatyczny skok (jumpToDate/jumpToNextEvent) — NIE ręczny klik gracza?
@@ -1143,6 +1146,73 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayedCONFGS) { processCLMatchDay(); }
+          break;
+        }
+
+        // ── LK: Losowanie 1/8 Finału ────────────────────────────────────────
+        case CompetitionType.CONF_R16_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          if (!confGroups) break; // faza grupowa jeszcze nie zakończona
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_R16_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: 1/8 Finału (mecze — auto-symulacja) ─────────────────────────
+        case CompetitionType.CONF_R16:
+        case CompetitionType.CONF_R16_RETURN: {
+          const alreadyPlayedCONFR16 = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.CONF_R16 || f.leagueId === CompetitionType.CONF_R16_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedCONFR16) {
+            processCLMatchDay();
+          }
+          break;
+        }
+
+        // ── LK: Losowanie 1/4 Finału ────────────────────────────────────────
+        case CompetitionType.CONF_QF_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_QF_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: 1/4 Finału (mecze — auto-symulacja) ─────────────────────────
+        case CompetitionType.CONF_QF:
+        case CompetitionType.CONF_QF_RETURN: {
+          const alreadyPlayedCONFQF = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.CONF_QF || f.leagueId === CompetitionType.CONF_QF_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedCONFQF) {
+            processCLMatchDay();
+          }
+          break;
+        }
+
+        // ── LK: Losowanie 1/2 Finału ─────────────────────────────────────────
+        case CompetitionType.CONF_SF_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_SF_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: 1/2 Finału (mecze — auto-symulacja) ──────────────────────────
+        case CompetitionType.CONF_SF:
+        case CompetitionType.CONF_SF_RETURN: {
+          const alreadyPlayedCONFSF = allFixtures.some(f =>
+            f.date.toDateString() === dateToProcess.toDateString() &&
+            (f.leagueId === CompetitionType.CONF_SF || f.leagueId === CompetitionType.CONF_SF_RETURN) &&
+            f.status === MatchStatus.FINISHED
+          );
+          if (!alreadyPlayedCONFSF) {
+            processCLMatchDay();
+          }
           break;
         }
 
@@ -1683,7 +1753,13 @@ setMessages([welcomeMail, fanMail]);
          primaryEvent.slot.competition === CompetitionType.EL_QF_RETURN ||
          primaryEvent.slot.competition === CompetitionType.EL_SF ||
          primaryEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
-         primaryEvent.slot.competition === CompetitionType.EL_FINAL)) {
+         primaryEvent.slot.competition === CompetitionType.EL_FINAL ||
+         primaryEvent.slot.competition === CompetitionType.CONF_R16 ||
+         primaryEvent.slot.competition === CompetitionType.CONF_R16_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CONF_QF ||
+         primaryEvent.slot.competition === CompetitionType.CONF_QF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CONF_SF ||
+         primaryEvent.slot.competition === CompetitionType.CONF_SF_RETURN)) {
       setTargetJumpTime(null);
       return;
     }
@@ -2233,6 +2309,126 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   };
 
+  const confirmCONFR16Draw = useCallback(() => {
+    if (!confGroups) return;
+    const drawYear = currentDate.getFullYear();
+    const leg1Date = new Date(drawYear + 1, 0, 21); // 21 stycznia
+    const leg2Date = new Date(drawYear + 1, 0, 29); // 29 stycznia
+    const fixtureYear = drawYear + 1;
+
+    const r16Fixtures = CONFDrawService.generateCONFR16Fixtures(
+      confGroups, allFixtures, leg1Date, leg2Date, fixtureYear,
+    );
+    setGlobalFixtures(prev => [...prev, ...r16Fixtures]);
+
+    if (userTeamId) {
+      const isUserIn = r16Fixtures.some(
+        f => f.leagueId === CompetitionType.CONF_R16 &&
+             (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId)
+      );
+      const mail: MailMessage = {
+        id: `CONF_R16_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie 1/8 Finału Ligi Konferencji',
+        body: isUserIn
+          ? 'Twój klub awansował do 1/8 finału Ligi Konferencji! Sprawdź swojego rywala w historii LK.'
+          : 'Przeprowadzono losowanie 1/8 finału Ligi Konferencji. Sprawdź pary w historii LK.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 87,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [confGroups, allFixtures, currentDate, userTeamId, navigateTo]);
+
+  const confirmCONFQFDraw = useCallback(() => {
+    const drawYear = currentDate.getFullYear();
+    const leg1Date = new Date(drawYear, 1, 18); // 18 lutego
+    const leg2Date = new Date(drawYear, 2, 4);  // 4 marca
+    const fixtureYear = drawYear;
+
+    const r16Winners = CONFDrawService.getR16Winners(allFixtures);
+    const r16Pool = CONFDrawService.getR16Participants(allFixtures);
+    const safeR16Winners = CONFDrawService.guaranteeWinners(r16Winners, r16Pool, 8);
+    const qfFixtures = CONFDrawService.generateCONFQFFixtures(
+      safeR16Winners, leg1Date, leg2Date, fixtureYear, sessionSeed,
+    );
+    setGlobalFixtures(prev => [...prev, ...qfFixtures]);
+
+    if (userTeamId) {
+      const isUserIn = qfFixtures.some(
+        f => f.leagueId === CompetitionType.CONF_QF &&
+             (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId)
+      );
+      const mail: MailMessage = {
+        id: `CONF_QF_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie 1/4 Finału Ligi Konferencji',
+        body: isUserIn
+          ? 'Twój klub awansował do 1/4 finału Ligi Konferencji! Sprawdź swojego rywala w historii LK.'
+          : 'Przeprowadzono losowanie 1/4 finału Ligi Konferencji. Sprawdź pary w historii LK.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 86,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
+
+  const confirmCONFSFDraw = useCallback(() => {
+    const drawYear = currentDate.getFullYear();
+    const leg1Date = new Date(drawYear, 2, 28); // 28 marca
+    const leg2Date = new Date(drawYear, 3, 17); // 17 kwietnia
+    const fixtureYear = drawYear;
+
+    const qfWinners = CONFDrawService.getQFWinners(allFixtures);
+    const qfPool = CONFDrawService.getQFParticipants(allFixtures);
+    const safeQFWinners = CONFDrawService.guaranteeWinners(qfWinners, qfPool, 4);
+    const sfFixtures = CONFDrawService.generateCONFSFFixtures(
+      safeQFWinners, leg1Date, leg2Date, fixtureYear, sessionSeed,
+    );
+    setGlobalFixtures(prev => [...prev, ...sfFixtures]);
+
+    if (userTeamId) {
+      const isUserIn = sfFixtures.some(
+        f => f.leagueId === CompetitionType.CONF_SF &&
+             (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId)
+      );
+      const mail: MailMessage = {
+        id: `CONF_SF_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Losowanie 1/2 Finału Ligi Konferencji',
+        body: isUserIn
+          ? 'Twój klub awansował do 1/2 finału Ligi Konferencji! Sprawdź swojego rywala w historii LK.'
+          : 'Przeprowadzono losowanie 1/2 finału Ligi Konferencji. Sprawdź pary w historii LK.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 88,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, userTeamId, sessionSeed, navigateTo]);
 
   const confirmELR16Draw = useCallback(() => {
     if (!elGroups) return;
@@ -3032,7 +3228,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
+    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
     }}>
       {children}
     </GameContext.Provider>

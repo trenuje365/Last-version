@@ -766,6 +766,87 @@ export const CalendarEngine = {
         };
       }
 
+      // ── LK: LOSOWANIE 1/8 FINAŁU ─────────────────────────────────────────
+      case CompetitionType.CONF_R16_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.CONF_R16_DRAW,
+        };
+      }
+
+      // ── LK: 1/8 FINAŁU ───────────────────────────────────────────────────
+      case CompetitionType.CONF_R16:
+      case CompetitionType.CONF_R16_RETURN: {
+        const hasAnyScheduledCONFR16 = allFixtures.some(f =>
+          f.date.toDateString() === dateStr &&
+          (f.leagueId === CompetitionType.CONF_R16 || f.leagueId === CompetitionType.CONF_R16_RETURN) &&
+          f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAnyScheduledCONFR16) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
+      // ── LK: LOSOWANIE 1/4 FINAŁU ─────────────────────────────────────────
+      case CompetitionType.CONF_QF_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.CONF_QF_DRAW,
+        };
+      }
+
+      // ── LK: 1/4 FINAŁU ───────────────────────────────────────────────────
+      case CompetitionType.CONF_QF:
+      case CompetitionType.CONF_QF_RETURN: {
+        const hasAnyScheduledCONFQF = allFixtures.some(f =>
+          f.date.toDateString() === dateStr &&
+          (f.leagueId === CompetitionType.CONF_QF || f.leagueId === CompetitionType.CONF_QF_RETURN) &&
+          f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAnyScheduledCONFQF) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
+      // ── LK: LOSOWANIE 1/2 FINAŁU ─────────────────────────────────────────
+      case CompetitionType.CONF_SF_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.CONF_SF_DRAW,
+        };
+      }
+
+      // ── LK: 1/2 FINAŁU ───────────────────────────────────────────────────
+      case CompetitionType.CONF_SF:
+      case CompetitionType.CONF_SF_RETURN: {
+        const hasAnyScheduledCONFSF = allFixtures.some(f =>
+          f.date.toDateString() === dateStr &&
+          (f.leagueId === CompetitionType.CONF_SF || f.leagueId === CompetitionType.CONF_SF_RETURN) &&
+          f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasAnyScheduledCONFSF) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
       // ── SPARING ────────────────────────────────────────────────────────────
       // Sparingi nie mają fixtures w systemie — traktowane jako dni informacyjne (auto-advance)
       case CompetitionType.FRIENDLY: {

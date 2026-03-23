@@ -508,4 +508,286 @@ export const CONFDrawService = {
 
     return fixtures;
   },
+
+  // ── 1/8 FINAŁU: Oblicz pary wg stałego matriksa LK ────────────────────────
+  // Grupy: 0=A, 1=B, 2=C, 3=D, 4=E, 5=F, 6=G, 7=H
+  // Matrix: 1A-2C, 1B-2D, 1C-2A, 1D-2B, 1E-2G, 1F-2H, 1G-2E, 1H-2F
+  computeCONFR16Pairs(
+    confGroups: string[][],
+    allFixtures: Fixture[],
+  ): { winnerId: string; runnerId: string }[] {
+    const getGroupRanking = (groupTeams: string[]): string[] => {
+      const stats: Record<string, { pts: number; gf: number; ga: number }> = {};
+      groupTeams.forEach(id => { stats[id] = { pts: 0, gf: 0, ga: 0 }; });
+
+      allFixtures.forEach(f => {
+        if (f.leagueId !== CompetitionType.CONF_GROUP_STAGE) return;
+        if (f.homeScore === null || f.awayScore === null) return;
+        if (!groupTeams.includes(f.homeTeamId) || !groupTeams.includes(f.awayTeamId)) return;
+        const hs = f.homeScore as number;
+        const as_ = f.awayScore as number;
+        stats[f.homeTeamId].gf += hs; stats[f.homeTeamId].ga += as_;
+        stats[f.awayTeamId].gf += as_; stats[f.awayTeamId].ga += hs;
+        if (hs > as_) stats[f.homeTeamId].pts += 3;
+        else if (hs < as_) stats[f.awayTeamId].pts += 3;
+        else { stats[f.homeTeamId].pts++; stats[f.awayTeamId].pts++; }
+      });
+
+      return [...groupTeams].sort((a, b) => {
+        const sa = stats[a]; const sb = stats[b];
+        return sb.pts - sa.pts ||
+               (sb.gf - sb.ga) - (sa.gf - sa.ga) ||
+               sb.gf - sa.gf;
+      });
+    };
+
+    const ranked = confGroups.map(g => getGroupRanking(g));
+    const winner = (g: number) => ranked[g]?.[0] ?? confGroups[g]?.[0];
+    const runner = (g: number) => ranked[g]?.[1] ?? confGroups[g]?.[1];
+
+    return [
+      { winnerId: winner(0), runnerId: runner(2) }, // 1A vs 2C
+      { winnerId: winner(1), runnerId: runner(3) }, // 1B vs 2D
+      { winnerId: winner(2), runnerId: runner(0) }, // 1C vs 2A
+      { winnerId: winner(3), runnerId: runner(1) }, // 1D vs 2B
+      { winnerId: winner(4), runnerId: runner(6) }, // 1E vs 2G
+      { winnerId: winner(5), runnerId: runner(7) }, // 1F vs 2H
+      { winnerId: winner(6), runnerId: runner(4) }, // 1G vs 2E
+      { winnerId: winner(7), runnerId: runner(5) }, // 1H vs 2F
+    ];
+  },
+
+  // ── 1/8 FINAŁU: Generuj fixtury obu meczów ──────────────────────────────
+  generateCONFR16Fixtures(
+    confGroups: string[][],
+    allFixtures: Fixture[],
+    leg1Date: Date,
+    leg2Date: Date,
+    year: number,
+  ): Fixture[] {
+    const pairs = CONFDrawService.computeCONFR16Pairs(confGroups, allFixtures);
+    const fixtures: Fixture[] = [];
+
+    pairs.forEach((pair, i) => {
+      const pairId = `CONF_R16_PAIR_${i + 1}_${year}`;
+      // 1. mecz: runner-up gra GOSPODARZEM
+      fixtures.push({
+        id: pairId,
+        leagueId: CompetitionType.CONF_R16,
+        homeTeamId: pair.runnerId,
+        awayTeamId: pair.winnerId,
+        date: new Date(leg1Date),
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      // Rewanż: winner gra GOSPODARZEM
+      fixtures.push({
+        id: `${pairId}_RETURN`,
+        leagueId: CompetitionType.CONF_R16_RETURN,
+        homeTeamId: pair.winnerId,
+        awayTeamId: pair.runnerId,
+        date: new Date(leg2Date),
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    });
+
+    return fixtures;
+  },
+
+  // ── 1/8 FINAŁU: Wyznacz zwycięzców ─────────────────────────────────────
+  getR16Winners(allFixtures: Fixture[]): string[] {
+    const winners: string[] = [];
+    allFixtures.forEach(f => {
+      if (f.leagueId !== CompetitionType.CONF_R16_RETURN || f.status !== MatchStatus.FINISHED) return;
+      const firstLegId = f.id.replace('_RETURN', '');
+      const leg1 = allFixtures.find(x => x.id === firstLegId);
+      if (!leg1 || leg1.homeScore === null || leg1.awayScore === null) return;
+
+      const teamATotal = (leg1.homeScore as number) + (f.awayScore ?? 0);
+      const teamBTotal = (leg1.awayScore as number) + (f.homeScore ?? 0);
+
+      let winnerId: string;
+      if (teamATotal > teamBTotal) {
+        winnerId = leg1.homeTeamId;
+      } else if (teamBTotal > teamATotal) {
+        winnerId = leg1.awayTeamId;
+      } else if (f.homePenaltyScore != null && f.awayPenaltyScore != null) {
+        winnerId = f.homePenaltyScore > f.awayPenaltyScore ? leg1.awayTeamId : leg1.homeTeamId;
+      } else {
+        winnerId = leg1.homeTeamId;
+      }
+      winners.push(winnerId);
+    });
+    return winners;
+  },
+
+  // ── ZABEZPIECZENIE SLOTÓW ────────────────────────────────────────────────
+  getR16Participants(allFixtures: Fixture[]): string[] {
+    const ids = new Set<string>();
+    allFixtures.forEach(f => {
+      if (f.leagueId === CompetitionType.CONF_R16) { ids.add(f.homeTeamId); ids.add(f.awayTeamId); }
+    });
+    return [...ids];
+  },
+
+  // ── 1/4 FINAŁU: Generuj fixtury (swobodne losowanie) ────────────────────
+  generateCONFQFFixtures(
+    r16WinnerIds: string[],
+    leg1Date: Date,
+    leg2Date: Date,
+    year: number,
+    seed: number,
+  ): Fixture[] {
+    const shuffled = [...r16WinnerIds];
+    let s = seed;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      s = (s * 1664525 + 1013904223) & 0xffffffff;
+      const j = Math.abs(s) % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const fixtures: Fixture[] = [];
+    for (let i = 0; i < shuffled.length - 1; i += 2) {
+      const teamA = shuffled[i];
+      const teamB = shuffled[i + 1];
+      if (!teamA || !teamB) continue;
+      const pairId = `CONF_QF_PAIR_${i / 2 + 1}_${year}`;
+      fixtures.push({
+        id: pairId,
+        leagueId: CompetitionType.CONF_QF,
+        homeTeamId: teamA,
+        awayTeamId: teamB,
+        date: new Date(leg1Date),
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      fixtures.push({
+        id: `${pairId}_RETURN`,
+        leagueId: CompetitionType.CONF_QF_RETURN,
+        homeTeamId: teamB,
+        awayTeamId: teamA,
+        date: new Date(leg2Date),
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    }
+    return fixtures;
+  },
+
+  // ── 1/4 FINAŁU: Zwycięzcy ───────────────────────────────────────────────
+  getQFWinners(allFixtures: Fixture[]): string[] {
+    const winners: string[] = [];
+    allFixtures.forEach(f => {
+      if (f.leagueId !== CompetitionType.CONF_QF_RETURN || f.status !== MatchStatus.FINISHED) return;
+      const firstLegId = f.id.replace('_RETURN', '');
+      const leg1 = allFixtures.find(x => x.id === firstLegId);
+      if (!leg1 || leg1.homeScore === null || leg1.awayScore === null) return;
+      const teamATotal = (leg1.homeScore as number) + (f.awayScore ?? 0);
+      const teamBTotal = (leg1.awayScore as number) + (f.homeScore ?? 0);
+      let winnerId: string;
+      if (teamATotal > teamBTotal) winnerId = leg1.homeTeamId;
+      else if (teamBTotal > teamATotal) winnerId = leg1.awayTeamId;
+      else if (f.homePenaltyScore != null && f.awayPenaltyScore != null)
+        winnerId = f.homePenaltyScore > f.awayPenaltyScore ? leg1.awayTeamId : leg1.homeTeamId;
+      else winnerId = leg1.homeTeamId;
+      winners.push(winnerId);
+    });
+    return winners;
+  },
+
+  getQFParticipants(allFixtures: Fixture[]): string[] {
+    const ids = new Set<string>();
+    allFixtures.forEach(f => {
+      if (f.leagueId === CompetitionType.CONF_QF) { ids.add(f.homeTeamId); ids.add(f.awayTeamId); }
+    });
+    return [...ids];
+  },
+
+  // ── 1/2 FINAŁU: Generuj fixtury ─────────────────────────────────────────
+  generateCONFSFFixtures(
+    qfWinnerIds: string[],
+    leg1Date: Date,
+    leg2Date: Date,
+    year: number,
+    seed: number,
+  ): Fixture[] {
+    const shuffled = [...qfWinnerIds];
+    let s = seed ^ 0xfedcba98;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      s = (s * 1664525 + 1013904223) & 0xffffffff;
+      const j = Math.abs(s) % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const fixtures: Fixture[] = [];
+    for (let i = 0; i < shuffled.length - 1; i += 2) {
+      const teamA = shuffled[i];
+      const teamB = shuffled[i + 1];
+      if (!teamA || !teamB) continue;
+      const pairId = `CONF_SF_PAIR_${i / 2 + 1}_${year}`;
+      fixtures.push({
+        id: pairId,
+        leagueId: CompetitionType.CONF_SF,
+        homeTeamId: teamA,
+        awayTeamId: teamB,
+        date: new Date(leg1Date),
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+      fixtures.push({
+        id: `${pairId}_RETURN`,
+        leagueId: CompetitionType.CONF_SF_RETURN,
+        homeTeamId: teamB,
+        awayTeamId: teamA,
+        date: new Date(leg2Date),
+        status: MatchStatus.SCHEDULED,
+        homeScore: null,
+        awayScore: null,
+      });
+    }
+    return fixtures;
+  },
+
+  // ── 1/2 FINAŁU: Zwycięzcy ────────────────────────────────────────────────
+  getSFWinners(allFixtures: Fixture[]): string[] {
+    const winners: string[] = [];
+    allFixtures.forEach(f => {
+      if (f.leagueId !== CompetitionType.CONF_SF_RETURN || f.status !== MatchStatus.FINISHED) return;
+      const firstLegId = f.id.replace('_RETURN', '');
+      const leg1 = allFixtures.find(x => x.id === firstLegId);
+      if (!leg1 || leg1.homeScore === null || leg1.awayScore === null) return;
+      const teamATotal = (leg1.homeScore as number) + (f.awayScore ?? 0);
+      const teamBTotal = (leg1.awayScore as number) + (f.homeScore ?? 0);
+      let winnerId: string;
+      if (teamATotal > teamBTotal) winnerId = leg1.homeTeamId;
+      else if (teamBTotal > teamATotal) winnerId = leg1.awayTeamId;
+      else if (f.homePenaltyScore != null && f.awayPenaltyScore != null)
+        winnerId = f.homePenaltyScore > f.awayPenaltyScore ? leg1.awayTeamId : leg1.homeTeamId;
+      else winnerId = leg1.homeTeamId;
+      winners.push(winnerId);
+    });
+    return winners;
+  },
+
+  getSFParticipants(allFixtures: Fixture[]): string[] {
+    const ids = new Set<string>();
+    allFixtures.forEach(f => {
+      if (f.leagueId === CompetitionType.CONF_SF) { ids.add(f.homeTeamId); ids.add(f.awayTeamId); }
+    });
+    return [...ids];
+  },
+
+  guaranteeWinners(winners: string[], fallbackPool: string[], expectedCount: number): string[] {
+    if (winners.length >= expectedCount) return winners.slice(0, expectedCount);
+    const result = [...winners];
+    for (const id of fallbackPool) {
+      if (result.length >= expectedCount) break;
+      if (!result.includes(id)) result.push(id);
+    }
+    return result;
+  },
 };

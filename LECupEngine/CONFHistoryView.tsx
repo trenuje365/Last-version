@@ -2,6 +2,7 @@
 import { useGame } from '../context/GameContext';
 import { CompetitionType, MatchStatus, ViewState } from '../types';
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../resources/static_db/clubs/ConferenceLeagueTeams';
+import { CONFDrawService } from './CONFDrawService';
 import LigaKonferencjiBg from '../Graphic/themes/Liga_konferencji.png';
 
 interface CONFPair {
@@ -67,7 +68,12 @@ const CONF_ROUNDS = [
   { key: 'R1Q', label: 'R1Q', sublabel: '1. Runda Kwalifikacyjna', accent: '#10b981' },
   { key: 'R2Q', label: 'R2Q', sublabel: '2. Runda Kwalifikacyjna', accent: '#34d399' },
   { key: 'GS',  label: 'GS',  sublabel: 'Faza Grupowa',            accent: '#34d399' },
+  { key: 'R16', label: '1/8', sublabel: '1/8 Finału',              accent: '#06b6d4' },
+  { key: 'QF',  label: '1/4', sublabel: '1/4 Finału',              accent: '#10b981' },
+  { key: 'SF',  label: '1/2', sublabel: '1/2 Finału',              accent: '#10b981' },
 ] as const;
+
+const R16_PAIR_LABELS = ['1A–2C','1B–2D','1C–2A','1D–2B','1E–2G','1F–2H','1G–2E','1H–2F'];
 
 type CONFRoundKey = typeof CONF_ROUNDS[number]['key'];
 
@@ -122,9 +128,114 @@ export const CONFHistoryView: React.FC = () => {
     [fixtures],
   );
 
+  const r16Fixtures = useMemo(
+    () => fixtures.filter(f =>
+      f.leagueId === CompetitionType.CONF_R16 ||
+      f.leagueId === CompetitionType.CONF_R16_RETURN,
+    ),
+    [fixtures],
+  );
+
   const gsAvailable = !!confGroups && confGroups.length > 0;
 
-  const allConfFixtures = useMemo(() => [...r1qFixtures, ...r2qFixtures, ...gsFixtures], [r1qFixtures, r2qFixtures, gsFixtures]);
+  const r16Pairs = useMemo((): CONFPair[] => {
+    return r16Fixtures.filter(f => f.leagueId === CompetitionType.CONF_R16).map(leg1 => {
+      const ret = r16Fixtures.find(f => f.id === leg1.id + '_RETURN');
+      return {
+        pairId: leg1.id,
+        teamAId: leg1.homeTeamId,
+        teamBId: leg1.awayTeamId,
+        leg1: {
+          homeScore: leg1.homeScore ?? null,
+          awayScore: leg1.awayScore ?? null,
+          date: leg1.date instanceof Date ? leg1.date : new Date(leg1.date),
+          status: leg1.status,
+        },
+        leg2: ret ? {
+          homeScore: ret.homeScore ?? null,
+          awayScore: ret.awayScore ?? null,
+          homePenaltyScore: ret.homePenaltyScore,
+          awayPenaltyScore: ret.awayPenaltyScore,
+          date: ret.date instanceof Date ? ret.date : new Date(ret.date),
+          status: ret.status,
+        } : undefined,
+      };
+    });
+  }, [r16Fixtures]);
+
+  const r16Available = r16Pairs.length > 0;
+
+  const qfFixtures = useMemo(
+    () => fixtures.filter(f =>
+      f.leagueId === CompetitionType.CONF_QF ||
+      f.leagueId === CompetitionType.CONF_QF_RETURN,
+    ),
+    [fixtures],
+  );
+
+  const qfPairs = useMemo((): CONFPair[] => {
+    return qfFixtures.filter(f => f.leagueId === CompetitionType.CONF_QF).map(leg1 => {
+      const ret = qfFixtures.find(f => f.id === leg1.id + '_RETURN');
+      return {
+        pairId: leg1.id,
+        teamAId: leg1.homeTeamId,
+        teamBId: leg1.awayTeamId,
+        leg1: {
+          homeScore: leg1.homeScore ?? null,
+          awayScore: leg1.awayScore ?? null,
+          date: leg1.date instanceof Date ? leg1.date : new Date(leg1.date),
+          status: leg1.status,
+        },
+        leg2: ret ? {
+          homeScore: ret.homeScore ?? null,
+          awayScore: ret.awayScore ?? null,
+          homePenaltyScore: ret.homePenaltyScore,
+          awayPenaltyScore: ret.awayPenaltyScore,
+          date: ret.date instanceof Date ? ret.date : new Date(ret.date),
+          status: ret.status,
+        } : undefined,
+      };
+    });
+  }, [qfFixtures]);
+
+  const qfAvailable = qfPairs.length > 0;
+
+  const sfFixtures = useMemo(
+    () => fixtures.filter(f =>
+      f.leagueId === CompetitionType.CONF_SF ||
+      f.leagueId === CompetitionType.CONF_SF_RETURN,
+    ),
+    [fixtures],
+  );
+
+  const sfPairs = useMemo((): CONFPair[] => {
+    return sfFixtures.filter(f => f.leagueId === CompetitionType.CONF_SF).map(leg1 => {
+      const ret = sfFixtures.find(f => f.id === leg1.id + '_RETURN');
+      return {
+        pairId: leg1.id,
+        teamAId: leg1.homeTeamId,
+        teamBId: leg1.awayTeamId,
+        leg1: {
+          homeScore: leg1.homeScore ?? null,
+          awayScore: leg1.awayScore ?? null,
+          date: leg1.date instanceof Date ? leg1.date : new Date(leg1.date),
+          status: leg1.status,
+        },
+        leg2: ret ? {
+          homeScore: ret.homeScore ?? null,
+          awayScore: ret.awayScore ?? null,
+          homePenaltyScore: ret.homePenaltyScore,
+          awayPenaltyScore: ret.awayPenaltyScore,
+          date: ret.date instanceof Date ? ret.date : new Date(ret.date),
+          status: ret.status,
+        } : undefined,
+      };
+    });
+  }, [sfFixtures]);
+
+  const sfAvailable = sfPairs.length > 0;
+
+  const allConfFixtures = useMemo(() => [...r1qFixtures, ...r2qFixtures, ...gsFixtures, ...r16Fixtures, ...qfFixtures, ...sfFixtures], [r1qFixtures, r2qFixtures, gsFixtures, r16Fixtures, qfFixtures, sfFixtures]);
 
   // Buduj pary R1Q
   const r1qPairs = useMemo((): CONFPair[] => {
@@ -202,16 +313,20 @@ export const CONFHistoryView: React.FC = () => {
 
   const r1qDone = r1qPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
   const r2qDone = r2qPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
+  const r16Done = r16Pairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
+  const qfDone = qfPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
+  const sfDone = sfPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
 
-  const activePairs = activeRound === 'R1Q' ? r1qPairs : activeRound === 'R2Q' ? r2qPairs : [];
-  const activeDone = activeRound === 'R1Q' ? r1qDone : activeRound === 'R2Q' ? r2qDone : 0;
-  const activeRoundLabel = activeRound === 'R1Q' ? '1. Runda Kwalifikacyjna' : activeRound === 'R2Q' ? '2. Runda Kwalifikacyjna' : 'Faza Grupowa';
+  const activePairs = activeRound === 'R1Q' ? r1qPairs : activeRound === 'R2Q' ? r2qPairs : activeRound === 'R16' ? r16Pairs : activeRound === 'QF' ? qfPairs : activeRound === 'SF' ? sfPairs : [];
+  const activeDone = activeRound === 'R1Q' ? r1qDone : activeRound === 'R2Q' ? r2qDone : activeRound === 'R16' ? r16Done : activeRound === 'QF' ? qfDone : activeRound === 'SF' ? sfDone : 0;
+  const activeRoundLabel = activeRound === 'R1Q' ? '1. Runda Kwalifikacyjna' : activeRound === 'R2Q' ? '2. Runda Kwalifikacyjna' : activeRound === 'R16' ? '1/8 Finału' : activeRound === 'QF' ? '1/4 Finału' : activeRound === 'SF' ? '1/2 Finału' : 'Faza Grupowa';
 
-  const getPairsForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qPairs : key === 'R2Q' ? r2qPairs : [];
-  const getDoneForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qDone : key === 'R2Q' ? r2qDone : 0;
+  const getPairsForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qPairs : key === 'R2Q' ? r2qPairs : key === 'R16' ? r16Pairs : key === 'QF' ? qfPairs : key === 'SF' ? sfPairs : [];
+  const getDoneForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qDone : key === 'R2Q' ? r2qDone : key === 'R16' ? r16Done : key === 'QF' ? qfDone : key === 'SF' ? sfDone : 0;
   const getTotalForRound = (key: CONFRoundKey) => key === 'GS' ? (confGroups?.length ?? 0) : getPairsForRound(key).length;
   const getProgressForRound = (key: CONFRoundKey) => {
     if (key === 'GS') return gsAvailable ? 100 : 0;
+    if (key === 'SF') return sfAvailable ? (sfDone / sfPairs.length) * 100 : 0;
     const total = getPairsForRound(key).length;
     return total > 0 ? (getDoneForRound(key) / total) * 100 : 0;
   };
@@ -325,6 +440,10 @@ export const CONFHistoryView: React.FC = () => {
               <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
                 {activeRound === 'GS'
                   ? gsAvailable ? '8 grup • 32 drużyny' : 'Losowanie jeszcze nie odbyło się'
+                  : activeRound === 'R16'
+                  ? (r16Available ? `${r16Done}/${r16Pairs.length} par rozegranych` : 'Losowanie jeszcze nie odbyło się')
+                  : activeRound === 'QF'
+                  ? (qfAvailable ? `${qfDone}/${qfPairs.length} par rozegranych` : 'Losowanie jeszcze nie odbyło się')
                   : activePairs.length > 0 ? `${activeDone}/${activePairs.length} par rozegranych` : 'Losowanie jeszcze nie odbyło się'}
               </span>
             </div>
@@ -474,13 +593,184 @@ export const CONFHistoryView: React.FC = () => {
               </div>
             )}
 
+            {/* ── 1/8 FINAŁU ───────────────────────────────────────────── */}
+            {activeRound === 'R16' && (
+              <div className="max-w-3xl mx-auto py-4 px-6">
+                {!r16Available ? (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4">
+                    <div className="text-5xl opacity-20">🟢</div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-600">Losowanie 1/8 Finału jeszcze nie zostało przeprowadzone</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 pb-8">
+                    <div className="flex flex-wrap gap-2 justify-center mb-2">
+                      {R16_PAIR_LABELS.map((lbl, i) => (
+                        <span key={i} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">
+                          {lbl}
+                        </span>
+                      ))}
+                    </div>
+                    {r16Pairs.map((pair, i) => {
+                      const clubA = clubs.find(c => c.id === pair.teamAId);
+                      const clubB = clubs.find(c => c.id === pair.teamBId);
+                      const agg = getAggregate(pair);
+                      const isUser = isUserPair(pair);
+                      const leg1Done = pair.leg1?.status === MatchStatus.FINISHED;
+                      const leg2Done = pair.leg2?.status === MatchStatus.FINISHED;
+                      return (
+                        <div key={pair.pairId} className={`flex items-center px-6 py-4 rounded-3xl border transition-colors
+                          ${isUser ? 'bg-amber-400/10 border-amber-400/30' : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'}`}>
+                          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-600 w-28 shrink-0">
+                            {R16_PAIR_LABELS[i] ?? `Para ${i + 1}`}
+                          </span>
+                          {/* TEAM A */}
+                          <div className="flex items-center gap-2 flex-1 justify-end">
+                            {agg?.winnerId === pair.teamAId && (
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/80 text-[7px] font-black uppercase tracking-widest text-white border border-emerald-400/40">AWANS</span>
+                            )}
+                            <span className={`text-xs font-black uppercase italic tracking-tight text-right truncate max-w-[150px]
+                              ${pair.teamAId === userTeamId ? 'text-amber-300' : agg ? agg.winnerId === pair.teamAId ? 'text-white' : 'text-slate-500' : 'text-slate-300'}`}>
+                              {clubA?.name ?? pair.teamAId}
+                            </span>
+                            <div className="w-3 h-8 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: clubA?.colorsHex?.[0] ?? '#555' }} />
+                          </div>
+                          {/* WYNIKI */}
+                          <div className="w-40 flex flex-col items-center gap-0.5 shrink-0 mx-2">
+                            <div className="flex items-center gap-2">
+                              {leg1Done
+                                ? <span className="text-[12px] font-black tabular-nums text-slate-300">{pair.leg1!.homeScore} : {pair.leg1!.awayScore}</span>
+                                : <span className="text-[9px] font-black text-slate-700 uppercase">vs</span>}
+                              <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">1M</span>
+                            </div>
+                            {pair.leg2 && (
+                              <div className="flex items-center gap-2">
+                                {leg2Done ? (
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[12px] font-black tabular-nums text-slate-300">{pair.leg2.awayScore} : {pair.leg2.homeScore}</span>
+                                    {pair.leg2.homePenaltyScore != null && pair.leg2.awayPenaltyScore != null && (
+                                      <span className="text-[7px] font-black uppercase tracking-widest text-rose-500 -mt-0.5">
+                                        k. {pair.leg2.awayPenaltyScore}:{pair.leg2.homePenaltyScore}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-[9px] font-black text-slate-700 uppercase">vs</span>
+                                )}
+                                <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">REW</span>
+                              </div>
+                            )}
+                            {agg && leg2Done && (
+                              <span className="text-[9px] font-black text-slate-500 tabular-nums">{agg.teamATotal} — {agg.teamBTotal}</span>
+                            )}
+                          </div>
+                          {/* TEAM B */}
+                          <div className="flex items-center gap-2 flex-1 justify-start">
+                            <div className="w-3 h-8 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: clubB?.colorsHex?.[0] ?? '#555' }} />
+                            <span className={`text-xs font-black uppercase italic tracking-tight truncate max-w-[150px]
+                              ${pair.teamBId === userTeamId ? 'text-amber-300' : agg ? agg.winnerId === pair.teamBId ? 'text-white' : 'text-slate-500' : 'text-slate-300'}`}>
+                              {clubB?.name ?? pair.teamBId}
+                            </span>
+                            {agg?.winnerId === pair.teamBId && (
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/80 text-[7px] font-black uppercase tracking-widest text-white border border-emerald-400/40">AWANS</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── 1/4 FINAŁU ───────────────────────────────────────────── */}
+            {activeRound === 'QF' && (
+              <div className="max-w-3xl mx-auto py-4 px-6">
+                {!qfAvailable ? (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4">
+                    <div className="text-5xl opacity-20">🟢</div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-600">Losowanie 1/4 Finału jeszcze nie zostało przeprowadzone</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 pb-8">
+                    {qfPairs.map((pair, i) => {
+                      const clubA = clubs.find(c => c.id === pair.teamAId);
+                      const clubB = clubs.find(c => c.id === pair.teamBId);
+                      const agg = getAggregate(pair);
+                      const isUser = isUserPair(pair);
+                      const leg1Done = pair.leg1?.status === MatchStatus.FINISHED;
+                      const leg2Done = pair.leg2?.status === MatchStatus.FINISHED;
+                      return (
+                        <div key={pair.pairId} className={`flex items-center px-6 py-4 rounded-3xl border transition-colors
+                          ${isUser ? 'bg-amber-400/10 border-amber-400/30' : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'}`}>
+                          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-600 w-28 shrink-0">
+                            {`Para ${i + 1}`}
+                          </span>
+                          {/* TEAM A */}
+                          <div className="flex items-center gap-2 flex-1 justify-end">
+                            {agg?.winnerId === pair.teamAId && (
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/80 text-[7px] font-black uppercase tracking-widest text-white border border-emerald-400/40">AWANS</span>
+                            )}
+                            <span className={`text-xs font-black uppercase italic tracking-tight text-right truncate max-w-[150px]
+                              ${pair.teamAId === userTeamId ? 'text-amber-300' : agg ? agg.winnerId === pair.teamAId ? 'text-white' : 'text-slate-500' : 'text-slate-300'}`}>
+                              {clubA?.name ?? pair.teamAId}
+                            </span>
+                            <div className="w-3 h-8 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: clubA?.colorsHex?.[0] ?? '#555' }} />
+                          </div>
+                          {/* WYNIKI */}
+                          <div className="w-40 flex flex-col items-center gap-0.5 shrink-0 mx-2">
+                            <div className="flex items-center gap-2">
+                              {leg1Done
+                                ? <span className="text-[12px] font-black tabular-nums text-slate-300">{pair.leg1!.homeScore} : {pair.leg1!.awayScore}</span>
+                                : <span className="text-[9px] font-black text-slate-700 uppercase">vs</span>}
+                              <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">1M</span>
+                            </div>
+                            {pair.leg2 && (
+                              <div className="flex items-center gap-2">
+                                {leg2Done ? (
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[12px] font-black tabular-nums text-slate-300">{pair.leg2.awayScore} : {pair.leg2.homeScore}</span>
+                                    {pair.leg2.homePenaltyScore != null && pair.leg2.awayPenaltyScore != null && (
+                                      <span className="text-[7px] font-black uppercase tracking-widest text-rose-500 -mt-0.5">
+                                        k. {pair.leg2.awayPenaltyScore}:{pair.leg2.homePenaltyScore}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-[9px] font-black text-slate-700 uppercase">vs</span>
+                                )}
+                                <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">REW</span>
+                              </div>
+                            )}
+                            {agg && leg2Done && (
+                              <span className="text-[9px] font-black text-slate-500 tabular-nums">{agg.teamATotal} — {agg.teamBTotal}</span>
+                            )}
+                          </div>
+                          {/* TEAM B */}
+                          <div className="flex items-center gap-2 flex-1 justify-start">
+                            <div className="w-3 h-8 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: clubB?.colorsHex?.[0] ?? '#555' }} />
+                            <span className={`text-xs font-black uppercase italic tracking-tight truncate max-w-[150px]
+                              ${pair.teamBId === userTeamId ? 'text-amber-300' : agg ? agg.winnerId === pair.teamBId ? 'text-white' : 'text-slate-500' : 'text-slate-300'}`}>
+                              {clubB?.name ?? pair.teamBId}
+                            </span>
+                            {agg?.winnerId === pair.teamBId && (
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/80 text-[7px] font-black uppercase tracking-widest text-white border border-emerald-400/40">AWANS</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ── RUNDY KWALIFIKACYJNE ──────────────────────────────────── */}
-            {activeRound !== 'GS' && activePairs.length === 0 ? (
+            {activeRound !== 'GS' && activeRound !== 'R16' && activeRound !== 'QF' && activePairs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-600">
                 <span className="text-4xl">⏳</span>
                 <p className="text-sm font-black uppercase tracking-widest">Losowanie nie odbyło się jeszcze</p>
               </div>
-            ) : activeRound !== 'GS' && (
+            ) : activeRound !== 'GS' && activeRound !== 'R16' && activeRound !== 'QF' && (
               <div className="max-w-4xl mx-auto py-4 px-6 flex flex-col gap-2">
                 {activePairs.map(pair => {
                   const teamA = getClub(pair.teamAId);
