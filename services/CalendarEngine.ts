@@ -847,6 +847,32 @@ export const CalendarEngine = {
         };
       }
 
+      // ── LK: OGŁOSZENIE FINALISTÓW ─────────────────────────────────────────
+      case CompetitionType.CONF_FINAL_DRAW: {
+        return {
+          slot,
+          kind: EventKind.CL_DRAW,
+          participation: 'player',
+          targetView: ViewState.CONF_FINAL_DRAW,
+        };
+      }
+
+      // ── LK: FINAŁ ─────────────────────────────────────────────────────────
+      case CompetitionType.CONF_FINAL: {
+        const hasCONFFinalScheduled = allFixtures.some(f =>
+          f.date.toDateString() === dateStr &&
+          f.leagueId === CompetitionType.CONF_FINAL &&
+          f.status === MatchStatus.SCHEDULED,
+        );
+        if (!hasCONFFinalScheduled) return null;
+        return {
+          slot,
+          kind: EventKind.MATCH_EURO,
+          participation: 'background',
+          targetView: ViewState.DASHBOARD,
+        };
+      }
+
       // ── SPARING ────────────────────────────────────────────────────────────
       // Sparingi nie mają fixtures w systemie — traktowane jako dni informacyjne (auto-advance)
       case CompetitionType.FRIENDLY: {

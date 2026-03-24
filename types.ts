@@ -67,6 +67,7 @@ export enum ViewState {
   EL_QF_DRAW = 'EL_QF_DRAW',
   EL_SF_DRAW = 'EL_SF_DRAW',
   EL_FINAL_DRAW = 'EL_FINAL_DRAW',
+  CONF_FINAL_DRAW = 'CONF_FINAL_DRAW',
   EL_HISTORY = 'EL_HISTORY',
   CL_R16_DRAW = 'CL_R16_DRAW',
   CL_QF_DRAW = 'CL_QF_DRAW',
@@ -257,6 +258,8 @@ export enum CompetitionType {
   CONF_SF_DRAW = 'CONF_SF_DRAW',
   CONF_SF = 'CONF_SF',
   CONF_SF_RETURN = 'CONF_SF_RETURN',
+  CONF_FINAL_DRAW = 'CONF_FINAL_DRAW',
+  CONF_FINAL = 'CONF_FINAL',
 }
 
 export enum SlotType {

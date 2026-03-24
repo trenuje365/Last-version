@@ -208,7 +208,9 @@ const boardConfidence = useMemo(() => {
               ? '🟠 LOSOWANIE LIGI EUROPY'
               : todayEvent.slot.competition === CompetitionType.EL_R2Q_DRAW
                 ? '🟠 LOSOWANIE LE: RUNDA 2 PREELIMINACYJNA'
-                : todayEvent.slot.competition === CompetitionType.EL_R16_DRAW
+                : todayEvent.slot.competition === CompetitionType.EL_GROUP_DRAW
+                  ? '🟠 LOSOWANIE LE: FAZA GRUPOWA'
+                  : todayEvent.slot.competition === CompetitionType.EL_R16_DRAW
                   ? '🟠 LOSOWANIE LE: 1/8 FINAŁU'
                   : todayEvent.slot.competition === CompetitionType.EL_QF_DRAW
                     ? '🟠 LOSOWANIE LE: 1/4 FINAŁU'
@@ -223,7 +225,10 @@ const boardConfidence = useMemo(() => {
                                 ? '🟢 LOSOWANIE LK: 1/8 FINAŁU'                                : todayEvent.slot.competition === CompetitionType.CONF_QF_DRAW
                                   ? '🟢 LOSOWANIE LK: 1/4 FINAŁU'
                                   : todayEvent.slot.competition === CompetitionType.CONF_SF_DRAW
-                                    ? '🟢 LOSOWANIE LK: 1/2 FINAŁU'                                    : '⭐ LOSOWANIE LIGI MISTRZÓW',
+                                    ? '🟢 LOSOWANIE LK: 1/2 FINAŁU'
+                                    : todayEvent.slot.competition === CompetitionType.CONF_FINAL_DRAW
+                                      ? '🟢 OGŁOSZENIE FINALISTÓW LK'
+                                      : '⭐ LOSOWANIE LIGI MISTRZÓW',
             action: advanceDay,
             isMatch: false,
             disabled: isJumping,
@@ -314,11 +319,13 @@ const boardConfidence = useMemo(() => {
           todayEvent.slot.competition === CompetitionType.CONF_QF ||
           todayEvent.slot.competition === CompetitionType.CONF_QF_RETURN ||
           todayEvent.slot.competition === CompetitionType.CONF_SF ||
-          todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN) {
+          todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN ||
+          todayEvent.slot.competition === CompetitionType.CONF_FINAL) {
         const confRoundLabel =
           todayEvent.slot.competition === CompetitionType.CONF_R16 || todayEvent.slot.competition === CompetitionType.CONF_R16_RETURN ? '1/8 FINAŁU' :
           todayEvent.slot.competition === CompetitionType.CONF_QF || todayEvent.slot.competition === CompetitionType.CONF_QF_RETURN ? '1/4 FINAŁU' :
-          todayEvent.slot.competition === CompetitionType.CONF_SF || todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN ? '1/2 FINAŁU' : '';
+          todayEvent.slot.competition === CompetitionType.CONF_SF || todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN ? '1/2 FINAŁU' :
+          todayEvent.slot.competition === CompetitionType.CONF_FINAL ? 'FINAŁ' : '';
         return {
           text: confRoundLabel ? `🟢 LK ${confRoundLabel} – WYNIKI` : '🟢 LIGA KONFERENCJI – WYNIKI',
           action: () => { processCLMatchDay(); navigateTo(ViewState.CONF_HISTORY); },

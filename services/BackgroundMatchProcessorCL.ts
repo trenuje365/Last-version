@@ -148,8 +148,9 @@ export const BackgroundMatchProcessorCL = {
        f.leagueId === CompetitionType.CONF_GROUP_STAGE ||
        f.leagueId === CompetitionType.CONF_R16 || f.leagueId === CompetitionType.CONF_R16_RETURN ||
        f.leagueId === CompetitionType.CONF_QF || f.leagueId === CompetitionType.CONF_QF_RETURN ||
-       f.leagueId === CompetitionType.CONF_SF || f.leagueId === CompetitionType.CONF_SF_RETURN) &&
-      (f.leagueId === CompetitionType.CL_FINAL || (f.homeTeamId !== userTeamId && f.awayTeamId !== userTeamId))
+       f.leagueId === CompetitionType.CONF_SF || f.leagueId === CompetitionType.CONF_SF_RETURN ||
+       f.leagueId === CompetitionType.CONF_FINAL) &&
+      (f.leagueId === CompetitionType.CL_FINAL || f.leagueId === CompetitionType.CONF_FINAL || (f.homeTeamId !== userTeamId && f.awayTeamId !== userTeamId))
     );
 
 

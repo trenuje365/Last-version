@@ -71,6 +71,7 @@ const CONF_ROUNDS = [
   { key: 'R16', label: '1/8', sublabel: '1/8 Finału',              accent: '#06b6d4' },
   { key: 'QF',  label: '1/4', sublabel: '1/4 Finału',              accent: '#10b981' },
   { key: 'SF',  label: '1/2', sublabel: '1/2 Finału',              accent: '#10b981' },
+  { key: 'FINAL', label: 'FINAŁ', sublabel: 'Finał Ligi Konferencji', accent: '#10b981' },
 ] as const;
 
 const R16_PAIR_LABELS = ['1A–2C','1B–2D','1C–2A','1D–2B','1E–2G','1F–2H','1G–2E','1H–2F'];
@@ -235,7 +236,15 @@ export const CONFHistoryView: React.FC = () => {
 
   const sfAvailable = sfPairs.length > 0;
 
-  const allConfFixtures = useMemo(() => [...r1qFixtures, ...r2qFixtures, ...gsFixtures, ...r16Fixtures, ...qfFixtures, ...sfFixtures], [r1qFixtures, r2qFixtures, gsFixtures, r16Fixtures, qfFixtures, sfFixtures]);
+  const finalFixture = useMemo(
+    () => fixtures.find(f => f.leagueId === CompetitionType.CONF_FINAL) ?? null,
+    [fixtures],
+  );
+
+  const finalAvailable = !!finalFixture;
+  const finalDone = finalFixture?.status === MatchStatus.FINISHED ? 1 : 0;
+
+  const allConfFixtures = useMemo(() => [...r1qFixtures, ...r2qFixtures, ...gsFixtures, ...r16Fixtures, ...qfFixtures, ...sfFixtures, ...(finalFixture ? [finalFixture] : [])], [r1qFixtures, r2qFixtures, gsFixtures, r16Fixtures, qfFixtures, sfFixtures, finalFixture]);
 
   // Buduj pary R1Q
   const r1qPairs = useMemo((): CONFPair[] => {
@@ -318,15 +327,16 @@ export const CONFHistoryView: React.FC = () => {
   const sfDone = sfPairs.filter(p => p.leg2?.status === MatchStatus.FINISHED).length;
 
   const activePairs = activeRound === 'R1Q' ? r1qPairs : activeRound === 'R2Q' ? r2qPairs : activeRound === 'R16' ? r16Pairs : activeRound === 'QF' ? qfPairs : activeRound === 'SF' ? sfPairs : [];
-  const activeDone = activeRound === 'R1Q' ? r1qDone : activeRound === 'R2Q' ? r2qDone : activeRound === 'R16' ? r16Done : activeRound === 'QF' ? qfDone : activeRound === 'SF' ? sfDone : 0;
-  const activeRoundLabel = activeRound === 'R1Q' ? '1. Runda Kwalifikacyjna' : activeRound === 'R2Q' ? '2. Runda Kwalifikacyjna' : activeRound === 'R16' ? '1/8 Finału' : activeRound === 'QF' ? '1/4 Finału' : activeRound === 'SF' ? '1/2 Finału' : 'Faza Grupowa';
+  const activeDone = activeRound === 'R1Q' ? r1qDone : activeRound === 'R2Q' ? r2qDone : activeRound === 'R16' ? r16Done : activeRound === 'QF' ? qfDone : activeRound === 'SF' ? sfDone : activeRound === 'FINAL' ? finalDone : 0;
+  const activeRoundLabel = activeRound === 'R1Q' ? '1. Runda Kwalifikacyjna' : activeRound === 'R2Q' ? '2. Runda Kwalifikacyjna' : activeRound === 'R16' ? '1/8 Finału' : activeRound === 'QF' ? '1/4 Finału' : activeRound === 'SF' ? '1/2 Finału' : activeRound === 'FINAL' ? 'Finał Ligi Konferencji' : 'Faza Grupowa';
 
   const getPairsForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qPairs : key === 'R2Q' ? r2qPairs : key === 'R16' ? r16Pairs : key === 'QF' ? qfPairs : key === 'SF' ? sfPairs : [];
-  const getDoneForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qDone : key === 'R2Q' ? r2qDone : key === 'R16' ? r16Done : key === 'QF' ? qfDone : key === 'SF' ? sfDone : 0;
-  const getTotalForRound = (key: CONFRoundKey) => key === 'GS' ? (confGroups?.length ?? 0) : getPairsForRound(key).length;
+  const getDoneForRound = (key: CONFRoundKey) => key === 'R1Q' ? r1qDone : key === 'R2Q' ? r2qDone : key === 'R16' ? r16Done : key === 'QF' ? qfDone : key === 'SF' ? sfDone : key === 'FINAL' ? finalDone : 0;
+  const getTotalForRound = (key: CONFRoundKey) => key === 'GS' ? (confGroups?.length ?? 0) : key === 'FINAL' ? (finalFixture ? 1 : 0) : getPairsForRound(key).length;
   const getProgressForRound = (key: CONFRoundKey) => {
     if (key === 'GS') return gsAvailable ? 100 : 0;
     if (key === 'SF') return sfAvailable ? (sfDone / sfPairs.length) * 100 : 0;
+    if (key === 'FINAL') return finalAvailable ? (finalDone > 0 ? 100 : 0) : 0;
     const total = getPairsForRound(key).length;
     return total > 0 ? (getDoneForRound(key) / total) * 100 : 0;
   };
@@ -387,6 +397,8 @@ export const CONFHistoryView: React.FC = () => {
               const progress = getProgressForRound(round.key);
               const hasUser = round.key === 'GS'
                 ? (confGroups ?? []).some(g => g.includes(userTeamId ?? ''))
+                : round.key === 'FINAL'
+                ? !!(finalFixture && (finalFixture.homeTeamId === userTeamId || finalFixture.awayTeamId === userTeamId))
                 : pairs.some(isUserPair);
               const isActive = activeRound === round.key;
               return (
@@ -435,11 +447,13 @@ export const CONFHistoryView: React.FC = () => {
             <div className="w-2 h-8 rounded-full bg-emerald-500" />
             <div>
               <h2 className="text-xl font-black italic uppercase tracking-tighter text-white leading-none">
-                {activeRoundLabel}{activeRound !== 'GS' ? ' — Dwumecze' : ''}
+                {activeRoundLabel}{activeRound !== 'GS' && activeRound !== 'FINAL' ? ' — Dwumecze' : ''}
               </h2>
               <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
                 {activeRound === 'GS'
                   ? gsAvailable ? '8 grup • 32 drużyny' : 'Losowanie jeszcze nie odbyło się'
+                  : activeRound === 'FINAL'
+                  ? (finalAvailable ? (finalDone > 0 ? 'Mecz rozegrany' : 'Mecz jeszcze nie rozegrany') : 'Finał nie został jeszcze ogłoszony')
                   : activeRound === 'R16'
                   ? (r16Available ? `${r16Done}/${r16Pairs.length} par rozegranych` : 'Losowanie jeszcze nie odbyło się')
                   : activeRound === 'QF'
@@ -764,13 +778,65 @@ export const CONFHistoryView: React.FC = () => {
               </div>
             )}
 
+            {/* ── FINAŁ ────────────────────────────────────────────────── */}
+            {activeRound === 'FINAL' && (() => {
+              if (!finalFixture) {
+                return (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4">
+                    <div className="text-5xl opacity-20">🟢</div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-600">Finał nie został jeszcze ogłoszony</p>
+                  </div>
+                );
+              }
+              const clubA = clubs.find(c => c.id === finalFixture.homeTeamId);
+              const clubB = clubs.find(c => c.id === finalFixture.awayTeamId);
+              const finalDoneFlag = finalFixture.status === MatchStatus.FINISHED;
+              const isUserInFinal = finalFixture.homeTeamId === userTeamId || finalFixture.awayTeamId === userTeamId;
+              return (
+                <div className="flex flex-col gap-3 pb-8 max-w-2xl mx-auto py-4 px-6">
+                  <div className={`rounded-2xl border p-6 transition-colors
+                    ${isUserInFinal ? 'border-amber-400/30 bg-amber-400/5' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-600">Finał Ligi Konferencji</span>
+                      {finalDoneFlag && finalFixture.homeScore !== null && (
+                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">
+                          Zwycięzca: {finalFixture.homeScore! > finalFixture.awayScore! ? (clubA?.name ?? finalFixture.homeTeamId) : finalFixture.awayScore! > finalFixture.homeScore! ? (clubB?.name ?? finalFixture.awayTeamId) : (finalFixture.homePenaltyScore ?? 0) > (finalFixture.awayPenaltyScore ?? 0) ? (clubA?.name ?? finalFixture.homeTeamId) : (clubB?.name ?? finalFixture.awayTeamId)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 justify-center">
+                      <span className={`text-[14px] font-black uppercase italic flex-1 text-right truncate
+                        ${finalFixture.homeTeamId === userTeamId ? 'text-amber-300' : 'text-slate-300'}`}>
+                        {clubA?.name ?? finalFixture.homeTeamId}
+                      </span>
+                      <div className="w-24 text-center shrink-0">
+                        {finalDoneFlag && finalFixture.homeScore !== null
+                          ? <span className="text-[20px] font-black text-white tabular-nums">{finalFixture.homeScore} : {finalFixture.awayScore}</span>
+                          : <span className="text-[14px] font-black text-slate-600 uppercase tracking-widest">VS</span>
+                        }
+                        {finalDoneFlag && finalFixture.homePenaltyScore != null && finalFixture.awayPenaltyScore != null && (
+                          <div className="text-[8px] font-black text-rose-400 uppercase tracking-widest mt-0.5">
+                            k. {finalFixture.homePenaltyScore}:{finalFixture.awayPenaltyScore}
+                          </div>
+                        )}
+                      </div>
+                      <span className={`text-[14px] font-black uppercase italic flex-1 text-left truncate
+                        ${finalFixture.awayTeamId === userTeamId ? 'text-amber-300' : 'text-slate-300'}`}>
+                        {clubB?.name ?? finalFixture.awayTeamId}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ── RUNDY KWALIFIKACYJNE ──────────────────────────────────── */}
-            {activeRound !== 'GS' && activeRound !== 'R16' && activeRound !== 'QF' && activePairs.length === 0 ? (
+            {activeRound !== 'GS' && activeRound !== 'R16' && activeRound !== 'QF' && activeRound !== 'FINAL' && activePairs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-600">
                 <span className="text-4xl">⏳</span>
                 <p className="text-sm font-black uppercase tracking-widest">Losowanie nie odbyło się jeszcze</p>
               </div>
-            ) : activeRound !== 'GS' && activeRound !== 'R16' && activeRound !== 'QF' && (
+            ) : activeRound !== 'GS' && activeRound !== 'R16' && activeRound !== 'QF' && activeRound !== 'FINAL' && (
               <div className="max-w-4xl mx-auto py-4 px-6 flex flex-col gap-2">
                 {activePairs.map(pair => {
                   const teamA = getClub(pair.teamAId);

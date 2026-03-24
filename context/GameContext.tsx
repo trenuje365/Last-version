@@ -136,6 +136,7 @@ interface GameContextType {
   confirmCONFR16Draw: () => void;
   confirmCONFQFDraw: () => void;
   confirmCONFSFDraw: () => void;
+  confirmCONFFinalDraw: () => void;
   confirmSeasonEnd: () => void;
   elHistoryInitialRound: string | null;
   setElHistoryInitialRound: (round: string | null) => void;
@@ -1216,6 +1217,64 @@ setMessages([welcomeMail, fanMail]);
           break;
         }
 
+        // ── LK: Ogłoszenie Finalistów ─────────────────────────────────────
+        case CompetitionType.CONF_FINAL_DRAW: {
+          if (processedDrawIds.includes(slot.id)) break;
+          const confFinalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.CONF_FINAL);
+          if (!confFinalAlreadyExists) {
+            const sfWinnersCONF = CONFDrawService.getSFWinners(allFixtures);
+            const sfPoolCONF = CONFDrawService.getSFParticipants(allFixtures);
+            const safeSFWinnersCONF = CONFDrawService.guaranteeWinners(sfWinnersCONF, sfPoolCONF, 2);
+            if (safeSFWinnersCONF.length === 2) {
+              const finalDate = new Date(currentDate.getFullYear(), 4, 27);
+              const finalFixtureCONF = CONFDrawService.generateFinalFixture(
+                safeSFWinnersCONF[0], safeSFWinnersCONF[1], finalDate, finalDate.getFullYear()
+              );
+              setGlobalFixtures(prev => [...prev, finalFixtureCONF]);
+            }
+          }
+          setProcessedDrawIds(prev => [...prev, slot.id]);
+          navigateTo(ViewState.CONF_FINAL_DRAW);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LK: FINAŁ ─────────────────────────────────────────────────────
+        case CompetitionType.CONF_FINAL: {
+          const confFinalFixture = allFixtures.find(f => f.leagueId === CompetitionType.CONF_FINAL);
+          if (!confFinalFixture) break;
+          const alreadyPlayedCONFFinal = confFinalFixture.status === MatchStatus.FINISHED;
+          if (!alreadyPlayedCONFFinal) {
+            processCLMatchDay();
+          }
+          if (alreadyPlayedCONFFinal) {
+            const mailKey = `CONF_FINAL_RESULT_${confFinalFixture.date.getFullYear()}`;
+            if (!sentMailIdsRef.current.has(mailKey)) {
+              sentMailIdsRef.current.add(mailKey);
+              const h = confFinalFixture.homeScore ?? 0;
+              const a = confFinalFixture.awayScore ?? 0;
+              let winnerId: string;
+              if (h > a) winnerId = confFinalFixture.homeTeamId;
+              else if (a > h) winnerId = confFinalFixture.awayTeamId;
+              else winnerId = (confFinalFixture.homePenaltyScore ?? 0) >= (confFinalFixture.awayPenaltyScore ?? 0)
+                ? confFinalFixture.homeTeamId : confFinalFixture.awayTeamId;
+              const winner = clubs.find(c => c.id === winnerId);
+              const mail: MailMessage = {
+                id: mailKey,
+                sender: 'UEFA',
+                role: 'Biuro Rozgrywek UEFA',
+                subject: `Zdobywca Ligi Konferencji ${confFinalFixture.date.getFullYear()}`,
+                body: `Finał Ligi Konferencji zakończony. Zdobywcą Ligi Konferencji ${confFinalFixture.date.getFullYear()} został ${winner?.name ?? winnerId}.`,
+                date: new Date(currentDate),
+                isRead: false,
+                type: MailType.SYSTEM,
+                priority: 100,
+              };
+              setMessages(prev => [mail, ...prev]);
+            }
+          }
+          break;
+        }
+
         // ── LE: Losowanie Rundy 2 Preeliminacyjnej ──────────────────────────
         case CompetitionType.EL_R2Q_DRAW: {
           if (processedDrawIds.includes(slot.id)) break;
@@ -1759,7 +1818,8 @@ setMessages([welcomeMail, fanMail]);
          primaryEvent.slot.competition === CompetitionType.CONF_QF ||
          primaryEvent.slot.competition === CompetitionType.CONF_QF_RETURN ||
          primaryEvent.slot.competition === CompetitionType.CONF_SF ||
-         primaryEvent.slot.competition === CompetitionType.CONF_SF_RETURN)) {
+         primaryEvent.slot.competition === CompetitionType.CONF_SF_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CONF_FINAL)) {
       setTargetJumpTime(null);
       return;
     }
@@ -2713,6 +2773,44 @@ const finalResult: SimulationOutput = {
     navigateTo(ViewState.DASHBOARD);
   }, [allFixtures, currentDate, userTeamId, navigateTo]);
 
+  const confirmCONFFinalDraw = useCallback(() => {
+    const finalAlreadyExists = allFixtures.some(f => f.leagueId === CompetitionType.CONF_FINAL);
+    if (!finalAlreadyExists) {
+      const sfWinners = CONFDrawService.getSFWinners(allFixtures);
+      const sfPool = CONFDrawService.getSFParticipants(allFixtures);
+      const safeSFWinners = CONFDrawService.guaranteeWinners(sfWinners, sfPool, 2);
+      if (safeSFWinners.length === 2) {
+        const finalDate = new Date(currentDate.getFullYear(), 4, 27);
+        const finalFixture = CONFDrawService.generateFinalFixture(
+          safeSFWinners[0], safeSFWinners[1], finalDate, finalDate.getFullYear()
+        );
+        setGlobalFixtures(prev => [...prev, finalFixture]);
+      }
+    }
+    if (userTeamId) {
+      const sfWinners = CONFDrawService.getSFWinners(allFixtures);
+      const isUserIn = sfWinners.includes(userTeamId);
+      const mail: MailMessage = {
+        id: `CONF_FINAL_DRAW_${Date.now()}`,
+        sender: 'UEFA',
+        role: 'Biuro Rozgrywek UEFA',
+        subject: 'Ogłoszenie Finalistów Ligi Konferencji',
+        body: isUserIn
+          ? 'Twój klub awansował do Finału Ligi Konferencji! Sprawdź szczegóły w historii LK.'
+          : 'Ogłoszono finalistów Ligi Konferencji. Sprawdź parę finałową w historii LK.',
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 90,
+      };
+      setMessages(prev => [mail, ...prev]);
+    }
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCurrentDate(nextDay);
+    navigateTo(ViewState.DASHBOARD);
+  }, [allFixtures, currentDate, userTeamId, navigateTo]);
+
   const confirmSeasonEnd = useCallback(() => {
     const nextSeasonYear = currentDate.getFullYear() + 1;
     // Uruchom nowy sezon i przesuń datę na 1 lipca
@@ -3228,7 +3326,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
+    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmCONFFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound
     }}>
       {children}
     </GameContext.Provider>

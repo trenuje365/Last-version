@@ -790,4 +790,17 @@ export const CONFDrawService = {
     }
     return result;
   },
+
+  generateFinalFixture(teamAId: string, teamBId: string, date: Date, year: number): Fixture {
+    return {
+      id: `CONF_FINAL_${year}`,
+      leagueId: CompetitionType.CONF_FINAL,
+      homeTeamId: teamAId,
+      awayTeamId: teamBId,
+      date: new Date(date),
+      status: MatchStatus.SCHEDULED,
+      homeScore: null,
+      awayScore: null,
+    };
+  },
 };

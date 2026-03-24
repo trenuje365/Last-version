@@ -499,7 +499,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 // 19 kwietnia ogłoszenie finalistów ligi europy
 { day: 19, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.EL_FINAL_DRAW, label: "OGŁOSZENIE FINALISTÓW LE", priority: 88 },
 
-//20 kwietnia ogłoszenie finalistów ligi konferencji DO ZAIMPLEMENTOWANIA *****************
+{ day: 20, month: 3, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_FINAL_DRAW, label: "OGŁOSZENIE FINALISTÓW LK", priority: 88 },
 
 
 { day: 21,  month: 3, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 29", priority: 10 },
@@ -527,7 +527,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-  // ---  27 Maj FINAL  LIGA KONFERENCJI ---- DO ZAIMPLEMENTOWANIA *****************
+  { day: 27, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_FINAL, label: "LK: Finał", priority: 100 },
   
    // --- FINAL PUCHARY EUROPEJSKIE --- 30 Maj LIGA MISTRZÓW----
   { day: 30, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CL_FINAL, label: "LM: Finał", priority: 100 },

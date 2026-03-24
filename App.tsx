@@ -58,6 +58,7 @@ import { CONFGroupDrawView } from './LECupEngine/CONFGroupDrawView';
 import { CONFR16DrawView } from './LECupEngine/CONFR16DrawView';
 import { CONFQFDrawView } from './LECupEngine/CONFQFDrawView';
 import { CONFSFDrawView } from './LECupEngine/CONFSFDrawView';
+import { CONFFinalDrawView } from './LECupEngine/CONFFinalDrawView';
 import { ELR16DrawView } from './components/views/ELR16DrawView';
 import { ELQFDrawView } from './components/views/ELQFDrawView';
 import { ELSFDrawView } from './components/views/ELSFDrawView';
@@ -92,6 +93,8 @@ case ViewState.CONF_QF_DRAW:
   return <CONFQFDrawView />;
 case ViewState.CONF_SF_DRAW:
   return <CONFSFDrawView />;
+case ViewState.CONF_FINAL_DRAW:
+  return <CONFFinalDrawView />;
 case ViewState.EL_GROUP_DRAW:
   return <ELGroupDrawView />;
 case ViewState.EL_R16_DRAW:
