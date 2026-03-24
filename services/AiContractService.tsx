@@ -155,6 +155,118 @@ processAiRecruitment: (
     return { updatedClubs, updatedPlayers: updatedPlayersMap, newOffers };
   },
 
+/**
+   * Miesięczny przegląd wydajności zawodników AI-klubów.
+   * Wywoływany 1. dnia każdego miesiąca.
+   *
+   * Zawodnik trafia na listę transferową jeśli spełni JEDNO z kryteriów:
+   *   A) Wydajnościowe — słabe statystyki sezonowe (min. 6 meczów):
+   *      - FWD: goals/gp < 0.08
+   *      - MID: (goals+assists)/gp < 0.07
+   *      - DEF/GK: średnia ratingHistory (ostatnie 5) < 5.5
+   *   B) Brak gry — mniej niż 35% oczekiwanych meczów i nie kontuzjowany
+   *
+   * Zabezpieczenia (anty-chaos):
+   *   - isUntouchable → nigdy nie wystawiony
+   *   - Minimalna głębokość składu: GK≥2, DEF≥4, MID≥4, FWD≥2
+   *   - Losowość 30–50% per zawodnik per miesiąc (seed deterministyczny)
+   *   - Max 2 zawodników wystawionych per klub per miesiąc
+   */
+  processMonthlyPlayerReview: (
+    clubs: Club[],
+    playersMap: Record<string, Player[]>,
+    currentDate: Date,
+    userTeamId: string | null
+  ): { updatedPlayers: Record<string, Player[]> } => {
+    const updatedPlayersMap = { ...playersMap };
+
+    // Miesiące od startu sezonu (sezon startuje lipiec = miesiąc 6)
+    const currentMonth = currentDate.getMonth();
+    const monthsIntoSeason = currentMonth >= 6
+      ? currentMonth - 6
+      : currentMonth + 6; // styczeń–czerwiec = 6–11 miesięcy
+
+    // Za mało danych — nie oceniamy przez pierwsze 2 miesiące sezonu
+    if (monthsIntoSeason < 2) return { updatedPlayers: updatedPlayersMap };
+
+    // Oczekiwana liczba meczów ligowych na ten moment sezonu (~2 mecze/miesiąc)
+    const expectedMatches = monthsIntoSeason * 2;
+
+    for (const club of clubs) {
+      if (club.id === userTeamId) continue;
+      const squad = updatedPlayersMap[club.id];
+      if (!squad || squad.length === 0) continue;
+
+      // Liczniki głębokości składu (ochrona minimalna)
+      const counts = {
+        GK:  squad.filter(p => p.position === 'GK').length,
+        DEF: squad.filter(p => p.position === 'DEF').length,
+        MID: squad.filter(p => p.position === 'MID').length,
+        FWD: squad.filter(p => p.position === 'FWD').length,
+      };
+      const minCounts = { GK: 2, DEF: 4, MID: 4, FWD: 2 };
+
+      let listedThisMonth = 0;
+      const updatedSquad = squad.map(player => {
+        // Nie listujemy więcej niż 2 w miesiącu
+        if (listedThisMonth >= 2) return player;
+
+        // Pomijamy zawodników już na liście lub nietykalnych
+        if (player.isOnTransferList || player.isUntouchable) return player;
+
+        // Minimalna głębokość — jeśli wystawienie zejdzie poniżej minimum, pomijamy
+        const posKey = player.position as keyof typeof counts;
+        if (counts[posKey] <= minCounts[posKey]) return player;
+
+        const gp = player.stats.matchesPlayed;
+
+        // Kryterium B: brak gry (nie licząc kontuzjowanych)
+        const playRatio = gp / Math.max(1, expectedMatches);
+        const isRarelyPlaying = playRatio < 0.35 && player.health.status !== 'INJURED';
+
+        // Kryterium A: słaba wydajność (min. 6 meczów)
+        let isPoorPerformer = false;
+        if (gp >= 6) {
+          if (player.position === 'FWD') {
+            isPoorPerformer = (player.stats.goals / gp) < 0.08;
+          } else if (player.position === 'MID') {
+            isPoorPerformer = ((player.stats.goals + player.stats.assists) / gp) < 0.07;
+          } else {
+            // DEF / GK — średnia ratingHistory
+            const hist = player.stats.ratingHistory || [];
+            if (hist.length >= 5) {
+              const avgRating = hist.slice(-5).reduce((s, r) => s + r, 0) / 5;
+              isPoorPerformer = avgRating < 5.5;
+            }
+          }
+        }
+
+        if (!isRarelyPlaying && !isPoorPerformer) return player;
+
+        // Losowość 30–50% — nie wszystkie kluby reagują w tym samym miesiącu
+        const monthKey = currentDate.getFullYear() * 100 + (currentDate.getMonth() + 1);
+        const seed = Math.abs(
+          (monthKey * 31337) ^
+          player.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) ^
+          club.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+        );
+        const rand = (Math.sin(seed) * 10000);
+        const chance = rand - Math.floor(rand);
+        const listingChance = 0.30 + (club.reputation / 100) * 0.20; // 30–50%
+        if (chance > listingChance) return player;
+
+        // Wystawiamy na listę transferową
+        counts[posKey]--;
+        listedThisMonth++;
+        return { ...player, isOnTransferList: true };
+      });
+
+      updatedPlayersMap[club.id] = updatedSquad;
+    }
+
+    return { updatedPlayers: updatedPlayersMap };
+  },
+
 performSeasonSquadReview: (
     clubs: Club[],
     playersMap: Record<string, Player[]>,

@@ -11,6 +11,25 @@ import { EN_MALE_FIRSTNAMES, EN_MALE_LASTNAMES } from '../resources/static_db/na
 import { DE_MALE_FIRSTNAMES, DE_MALE_LASTNAMES } from '../resources/static_db/names/de_data';
 import { IT_MALE_FIRSTNAMES, IT_MALE_LASTNAMES } from '../resources/static_db/names/it_data';
 import { FR_MALE_FIRSTNAMES, FR_MALE_LASTNAMES } from '../resources/static_db/names/fr_data';
+import { JAPANESE_MALE_FIRSTNAMES, JAPANESE_MALE_SURNAMES } from '../resources/static_db/names/Japanese_data';
+import { KOREAN_MALE_FIRSTNAMES, KOREAN_MALE_SURNAMES } from '../resources/static_db/names/korean_data';
+import { ARGENTINIAN_MALE_FIRSTNAMES, ARGENTINIAN_MALE_LASTNAMES } from '../resources/static_db/names/argentinian_data';
+import { BRAZILIAN_MALE_FIRSTNAMES, BRAZILIAN_MALE_LASTNAMES } from '../resources/static_db/names/brazilian_data';
+import { TURKISH_MALE_FIRSTNAMES, TURKISH_MALE_LASTNAMES } from '../resources/static_db/names/turkish_data';
+import { ARABIC_MALE_FIRSTNAMES, ARABIC_MALE_LASTNAMES } from '../resources/static_db/names/arabic_data';
+import { FINNISH_MALE_FIRSTNAMES, FINNISH_MALE_LASTNAMES } from '../resources/static_db/names/finnish_data';
+import { GEORGIAN_MALE_FIRSTNAMES, GEORGIAN_MALE_LASTNAMES } from '../resources/static_db/names/georgian_data';
+import { ARMENIAN_MALE_FIRSTNAMES, ARMENIAN_MALE_LASTNAMES } from '../resources/static_db/names/armenian_data';
+import { ALBANIAN_MALE_FIRSTNAMES, ALBANIAN_MALE_LASTNAMES } from '../resources/static_db/names/albanian_data';
+import { ROMANIAN_MALE_FIRSTNAMES, ROMANIAN_MALE_LASTNAMES } from '../resources/static_db/names/romanian_data';
+import { BALTIC_MALE_FIRSTNAMES, BALTIC_MALE_LASTNAMES } from '../resources/static_db/names/baltic_data';
+import { BENELUX_MALE_FIRSTNAMES, BENELUX_MALE_LASTNAMES } from '../resources/static_db/names/benelux_data';
+import { HUNGARIAN_MALE_FIRSTNAMES, HUNGARIAN_MALE_LASTNAMES } from '../resources/static_db/names/hungarian_data';
+import { MALTESE_MALE_FIRSTNAMES, MALTESE_MALE_LASTNAMES } from '../resources/static_db/names/maltese_data';
+import { ISRAELI_MALE_FIRSTNAMES, ISRAELI_MALE_LASTNAMES } from '../resources/static_db/names/israeli_data';
+import { GREEK_MALE_FIRSTNAMES, GREEK_MALE_LASTNAMES } from '../resources/static_db/names/greek_data';
+import { AZERBAIJANI_MALE_FIRSTNAMES, AZERBAIJANI_MALE_LASTNAMES } from '../resources/static_db/names/azerbaijani_data';
+import { KAZAKH_MALE_FIRSTNAMES, KAZAKH_MALE_LASTNAMES } from '../resources/static_db/names/kazakh_data';
 interface NamePair {
   firstName: string;
   lastName: string;
@@ -68,6 +87,44 @@ export const NameGeneratorService = {
         return { firstName: getRandomElement(IT_MALE_FIRSTNAMES), lastName: getRandomElement(IT_MALE_LASTNAMES) };
       case Region.FRANCE:
         return { firstName: getRandomElement(FR_MALE_FIRSTNAMES), lastName: getRandomElement(FR_MALE_LASTNAMES) };
+      case Region.JAPAN:
+        return { firstName: getRandomElement(JAPANESE_MALE_FIRSTNAMES), lastName: getRandomElement(JAPANESE_MALE_SURNAMES) };
+      case Region.KOREA:
+        return { firstName: getRandomElement(KOREAN_MALE_FIRSTNAMES), lastName: getRandomElement(KOREAN_MALE_SURNAMES) };
+      case Region.ARGENTINA:
+        return { firstName: getRandomElement(ARGENTINIAN_MALE_FIRSTNAMES), lastName: getRandomElement(ARGENTINIAN_MALE_LASTNAMES) };
+      case Region.BRAZIL:
+        return { firstName: getRandomElement(BRAZILIAN_MALE_FIRSTNAMES), lastName: getRandomElement(BRAZILIAN_MALE_LASTNAMES) };
+      case Region.TURKEY:
+        return { firstName: getRandomElement(TURKISH_MALE_FIRSTNAMES), lastName: getRandomElement(TURKISH_MALE_LASTNAMES) };
+      case Region.ARABIA:
+        return { firstName: getRandomElement(ARABIC_MALE_FIRSTNAMES), lastName: getRandomElement(ARABIC_MALE_LASTNAMES) };
+      case Region.FINLAND:
+        return { firstName: getRandomElement(FINNISH_MALE_FIRSTNAMES), lastName: getRandomElement(FINNISH_MALE_LASTNAMES) };
+      case Region.GEORGIA:
+        return { firstName: getRandomElement(GEORGIAN_MALE_FIRSTNAMES), lastName: getRandomElement(GEORGIAN_MALE_LASTNAMES) };
+      case Region.ARMENIA:
+        return { firstName: getRandomElement(ARMENIAN_MALE_FIRSTNAMES), lastName: getRandomElement(ARMENIAN_MALE_LASTNAMES) };
+      case Region.ALBANIA:
+        return { firstName: getRandomElement(ALBANIAN_MALE_FIRSTNAMES), lastName: getRandomElement(ALBANIAN_MALE_LASTNAMES) };
+      case Region.ROMANIA:
+        return { firstName: getRandomElement(ROMANIAN_MALE_FIRSTNAMES), lastName: getRandomElement(ROMANIAN_MALE_LASTNAMES) };
+      case Region.BALTIC:
+        return { firstName: getRandomElement(BALTIC_MALE_FIRSTNAMES), lastName: getRandomElement(BALTIC_MALE_LASTNAMES) };
+      case Region.BENELUX:
+        return { firstName: getRandomElement(BENELUX_MALE_FIRSTNAMES), lastName: getRandomElement(BENELUX_MALE_LASTNAMES) };
+      case Region.HUNGARIAN:
+        return { firstName: getRandomElement(HUNGARIAN_MALE_FIRSTNAMES), lastName: getRandomElement(HUNGARIAN_MALE_LASTNAMES) };
+      case Region.MALTESE:
+        return { firstName: getRandomElement(MALTESE_MALE_FIRSTNAMES), lastName: getRandomElement(MALTESE_MALE_LASTNAMES) };
+      case Region.ISRAELI:
+        return { firstName: getRandomElement(ISRAELI_MALE_FIRSTNAMES), lastName: getRandomElement(ISRAELI_MALE_LASTNAMES) };
+      case Region.GREEK:
+        return { firstName: getRandomElement(GREEK_MALE_FIRSTNAMES), lastName: getRandomElement(GREEK_MALE_LASTNAMES) };
+      case Region.AZERBAIJANI:
+        return { firstName: getRandomElement(AZERBAIJANI_MALE_FIRSTNAMES), lastName: getRandomElement(AZERBAIJANI_MALE_LASTNAMES) };
+      case Region.KAZAKH:
+        return { firstName: getRandomElement(KAZAKH_MALE_FIRSTNAMES), lastName: getRandomElement(KAZAKH_MALE_LASTNAMES) };
       default:
       
       
@@ -92,6 +149,25 @@ export const NameGeneratorService = {
       Region.GERMANY,
       Region.ITALY,
       Region.FRANCE,
+      Region.JAPAN,
+      Region.KOREA,
+      Region.ARGENTINA,
+      Region.BRAZIL,
+      Region.TURKEY,
+      Region.ARABIA,
+      Region.FINLAND,
+      Region.GEORGIA,
+      Region.ARMENIA,
+      Region.ALBANIA,
+      Region.ROMANIA,
+      Region.BALTIC,
+      Region.BENELUX,
+      Region.HUNGARIAN,
+      Region.MALTESE,
+      Region.ISRAELI,
+      Region.GREEK,
+      Region.AZERBAIJANI,
+      Region.KAZAKH,
     ];
     return foreignRegions[Math.floor(Math.random() * foreignRegions.length)];
   }

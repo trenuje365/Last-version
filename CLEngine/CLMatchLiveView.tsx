@@ -1642,7 +1642,7 @@ return {
 
     const updatedFixtures = simResult.updatedFixtures.map(f => f.id === ctx.fixture.id ? { ...f, status: 'FINISHED' as any, homeScore: matchState.homeScore, awayScore: matchState.awayScore, ...(matchState.homePenaltyScore !== undefined && { homePenaltyScore: matchState.homePenaltyScore, awayPenaltyScore: matchState.awayPenaltyScore }) } : f);
 
-    const clBgResult = BackgroundMatchProcessorCL.processChampionsLeagueEvent(currentDate, userTeamId, updatedFixtures, clubs, sessionSeed);
+    const clBgResult = BackgroundMatchProcessorCL.processChampionsLeagueEvent(currentDate, userTeamId, updatedFixtures, clubs, players, lineups, seasonNumber, sessionSeed);
 
     const timeline: MatchSummaryEvent[] = [];
     let hCounter = 0, aCounter = 0;

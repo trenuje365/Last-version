@@ -54,11 +54,11 @@ const OVR_WEIGHTS: Record<PlayerPosition, Partial<Record<keyof PlayerAttributes,
 
 export const PlayerAttributesGenerator = {
   
-   generateAttributes: (position: PlayerPosition, leagueTier: number, clubReputation: number, age: number, isEuropean: boolean = false): { attributes: PlayerAttributes, overall: number } => {
-    
+   generateAttributes: (position: PlayerPosition, leagueTier: number, clubReputation: number, age: number, isEuropean: boolean = false, talentConfig?: { minBase: number; maxBase: number; hardCap: number }): { attributes: PlayerAttributes, overall: number } => {
+
     // 1. Determine Base Level based on Tier
     const configTable = isEuropean ? EUROPEAN_TIER_CONFIG : TIER_CONFIG;
-    const config = configTable[leagueTier] || configTable[4];
+    const config = talentConfig ?? (configTable[leagueTier] || configTable[4]);
     
 
 

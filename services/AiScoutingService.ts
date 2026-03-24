@@ -167,6 +167,8 @@ export const AiScoutingService = {
     }
 
     // --- KROK 3: Dla każdego AI-klubu wygeneruj listę obserwowanych zawodników ---
+    const tier4ClubIds = new Set(clubs.filter(c => c.leagueId === 'L_PL_4').map(c => c.id));
+
     for (const club of clubs) {
       // Pomijamy drużynę gracza — gracz sam zarządza swoimi transferami
       if (club.id === userTeamId) continue;
@@ -212,7 +214,12 @@ export const AiScoutingService = {
       const youngTalents = AiScoutingService._youngTalentScouting(club, allPlayers, clubs, coachSeed);
       candidates.push(...youngTalents);
 
-      // G) Sortuj kandydatów po score (malejąco), usuń duplikaty, ogranicz do maxInterests
+      // G) Scouting gemów z tier 4 — zawodnik zbyt dobry na swoją ligę.
+      //    Losowość: nie każdy klub odkryje go w danym miesiącu.
+      const tier4Gems = AiScoutingService._tier4GemScouting(club, allPlayers, tier4ClubIds, clubs, coachSeed, currentDate);
+      candidates.push(...tier4Gems);
+
+      // H) Sortuj kandydatów po score (malejąco), usuń duplikaty, ogranicz do maxInterests
       const seen = new Set<string>();
       const topCandidates = candidates
         .sort((a, b) => b.score - a.score)
@@ -579,6 +586,85 @@ export const AiScoutingService = {
 
       return { player, score };
     });
+  },
+
+  /**
+   * Scouting gemów tier 4 — wykrywa zawodników zbyt dobrych na swoją ligę.
+   * Wywoływany miesięcznie dla każdego AI-klubu wyższego niż tier 4.
+   *
+   * Kwalifikacja gema:
+   *   - Gra w klubie leagueId='L_PL_4'
+   *   - OVR ≥ clubIdealOvr + 12 (zdecydowanie powyżej normy swojego klubu)
+   *   - OVR ≥ observingIdealOvr − 25 (nie za słaby dla obserwującego klubu)
+   *
+   * Scoring (0–70 + mnożnik wydajności):
+   *   - Baza: 30 pkt
+   *   - OVR gap bonus: min(20, gap × 1.2)
+   *   - ratingHistory avg (ostatnie 5): ≥8.0→+20, ≥7.0→+12, ≥6.0→+5, <5.0→−10
+   *   - Mnożnik: _evaluatePlayerPerformance
+   *
+   * Losowość: 12–30% szansy odkrycia per gem per klub per miesiąc.
+   * Limit: max 2 gemy per klub per miesiąc z tego kanału.
+   */
+  _tier4GemScouting: (
+    observingClub: Club,
+    allPlayers: Player[],
+    tier4ClubIds: Set<string>,
+    allClubs: Club[],
+    coachSeed: number,
+    currentDate: Date
+  ): { player: Player; score: number }[] => {
+    if (observingClub.reputation <= 3) return [];
+
+    const observingIdealOvr = 30 + observingClub.reputation * 4.5;
+
+    const gems = allPlayers.filter(p => {
+      if (!tier4ClubIds.has(p.clubId || '')) return false;
+      const playerClub = allClubs.find(c => c.id === p.clubId);
+      if (!playerClub) return false;
+      const clubIdealOvr = 30 + playerClub.reputation * 4.5;
+      if (p.overallRating < clubIdealOvr + 12) return false;
+      if (p.overallRating < observingIdealOvr - 25) return false;
+      if (p.health.status === HealthStatus.INJURED && (p.health.injury?.daysRemaining || 0) > 60) return false;
+      return true;
+    });
+
+    if (gems.length === 0) return [];
+
+    const monthKey = currentDate.getFullYear() * 100 + (currentDate.getMonth() + 1);
+    const discoveryChance = Math.min(0.30, 0.12 + observingClub.reputation * 0.012);
+
+    const discovered: { player: Player; score: number }[] = [];
+
+    for (const player of gems) {
+      const discoverySeed = coachSeed + AiScoutingService._hashString(player.id) + monthKey;
+      if (AiScoutingService._seededRandom(discoverySeed) > discoveryChance) continue;
+
+      const playerClub = allClubs.find(c => c.id === player.clubId)!;
+      const clubIdealOvr = 30 + playerClub.reputation * 4.5;
+
+      let score = 30;
+
+      const ovrGap = player.overallRating - clubIdealOvr;
+      score += Math.min(20, ovrGap * 1.2);
+
+      const ratings = player.stats.ratingHistory;
+      if (ratings && ratings.length >= 5) {
+        const avgRating = ratings.slice(-5).reduce((s, r) => s + r, 0) / 5;
+        if      (avgRating >= 8.0) score += 20;
+        else if (avgRating >= 7.0) score += 12;
+        else if (avgRating >= 6.0) score += 5;
+        else if (avgRating < 5.0)  score -= 10;
+      }
+
+      score *= AiScoutingService._evaluatePlayerPerformance(player);
+
+      discovered.push({ player, score });
+    }
+
+    return discovered
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2);
   },
 
   /**

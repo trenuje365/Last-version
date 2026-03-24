@@ -671,6 +671,56 @@ export const FinanceService = {
   // Bonus za Superpuchar Polski
   calculateSuperCupBonus: (isWinner: boolean): number => {
     return isWinner ? 200000 : 100000;
-  }
+  },
+
+  // Premie UEFA za Puchary Europejskie (sezon 2025/26, przeliczone na PLN wg kursu 4,25 EUR/PLN)
+  calculateEuropeanPrizeMoney: (
+    competition: 'CL' | 'EL' | 'CONF',
+    event: 'Q1_ADVANCE' | 'Q2_ADVANCE' | 'GROUP_STAGE_ENTRY' | 'WIN' | 'DRAW' | 'KO_PLAYOFF' | 'R16' | 'QF' | 'SF' | 'FINALIST' | 'WINNER'
+  ): number => {
+    const EUR_PLN = 4.25;
+    const prizes: Record<string, Record<string, number>> = {
+      CL: {
+        Q1_ADVANCE:        Math.round(400_000    * EUR_PLN), //   1 700 000
+        Q2_ADVANCE:        Math.round(1_000_000  * EUR_PLN), //   4 250 000
+        GROUP_STAGE_ENTRY: Math.round(18_620_000 * EUR_PLN), //  79 135 000
+        WIN:               Math.round(2_100_000  * EUR_PLN), //   8 925 000
+        DRAW:              Math.round(700_000    * EUR_PLN), //   2 975 000
+        KO_PLAYOFF:        Math.round(1_100_000  * EUR_PLN), //   4 675 000
+        R16:               Math.round(11_000_000 * EUR_PLN), //  46 750 000
+        QF:                Math.round(12_500_000 * EUR_PLN), //  53 125 000
+        SF:                Math.round(15_000_000 * EUR_PLN), //  63 750 000
+        FINALIST:          Math.round(18_500_000 * EUR_PLN), //  78 625 000
+        WINNER:            Math.round(25_000_000 * EUR_PLN), // 106 250 000
+      },
+      EL: {
+        Q1_ADVANCE:        Math.round(100_000    * EUR_PLN), //     425 000
+        Q2_ADVANCE:        Math.round(250_000    * EUR_PLN), //   1 062 500
+        GROUP_STAGE_ENTRY: Math.round(4_310_000  * EUR_PLN), //  18 317 500
+        WIN:               Math.round(630_000    * EUR_PLN), //   2 677 500
+        DRAW:              Math.round(210_000    * EUR_PLN), //     892 500
+        KO_PLAYOFF:        Math.round(500_000    * EUR_PLN), //   2 125 000
+        R16:               Math.round(1_500_000  * EUR_PLN), //   6 375 000
+        QF:                Math.round(2_200_000  * EUR_PLN), //   9 350 000
+        SF:                Math.round(3_900_000  * EUR_PLN), //  16 575 000
+        FINALIST:          Math.round(6_100_000  * EUR_PLN), //  25 925 000
+        WINNER:            Math.round(5_200_000  * EUR_PLN), //  22 100 000
+      },
+      CONF: {
+        Q1_ADVANCE:        Math.round(75_000     * EUR_PLN), //     318 750
+        Q2_ADVANCE:        Math.round(150_000    * EUR_PLN), //     637 500
+        GROUP_STAGE_ENTRY: Math.round(3_170_000  * EUR_PLN), //  13 472 500
+        WIN:               Math.round(400_000    * EUR_PLN), //   1 700 000
+        DRAW:              Math.round(133_000    * EUR_PLN), //     565 250
+        KO_PLAYOFF:        Math.round(200_000    * EUR_PLN), //     850 000
+        R16:               Math.round(800_000    * EUR_PLN), //   3 400 000
+        QF:                Math.round(1_300_000  * EUR_PLN), //   5 525 000
+        SF:                Math.round(2_500_000  * EUR_PLN), //  10 625 000
+        FINALIST:          Math.round(4_000_000  * EUR_PLN), //  17 000 000
+        WINNER:            Math.round(3_000_000  * EUR_PLN), //  12 750 000
+      },
+    };
+    return prizes[competition]?.[event] ?? 0;
+  },
 
 };

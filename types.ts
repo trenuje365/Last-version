@@ -151,7 +151,26 @@ export enum Region {
   ENGLAND = 'ENGLAND',
   GERMANY = 'GERMANY',
   ITALY = 'ITALY',
-  FRANCE = 'FRANCE'
+  FRANCE = 'FRANCE',
+  JAPAN = 'JAPAN',
+  KOREA = 'KOREA',
+  ARGENTINA = 'ARGENTINA',
+  BRAZIL = 'BRAZIL',
+  TURKEY = 'TURKEY',
+  ARABIA = 'ARABIA',
+  FINLAND = 'FINLAND',
+  GEORGIA = 'GEORGIA',
+  ARMENIA = 'ARMENIA',
+  ALBANIA = 'ALBANIA',
+  ROMANIA = 'ROMANIA',
+  BALTIC = 'BALTIC',
+  BENELUX = 'BENELUX',
+  HUNGARIAN = 'HUNGARIAN',
+  MALTESE = 'MALTESE',
+  ISRAELI = 'ISRAELI',
+  GREEK = 'GREEK',
+  AZERBAIJANI = 'AZERBAIJANI',
+  KAZAKH = 'KAZAKH'
 }
 
 export enum PlayerPosition {
@@ -413,6 +432,7 @@ export interface Club {
   stadiumName: string;
   stadiumCapacity: number;
   reputation: number;
+  country?: string;
   isDefaultActive: boolean;
   colorPrimary?: string;
   colorSecondary?: string;
@@ -760,6 +780,7 @@ export interface MatchHistoryEntry {
   attendance?: number;
   goals: { playerName: string; minute: number; teamId: string; isPenalty: boolean }[];
   cards: { playerName: string; minute: number; teamId: string; type: 'YELLOW' | 'RED' | 'SECOND_YELLOW' }[];
+  substitutions?: { playerOutName: string; playerInName: string; minute: number; teamId: string }[];
 }
 export interface LeagueRoundResults {
   dateKey: string;

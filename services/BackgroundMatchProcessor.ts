@@ -82,6 +82,12 @@ if (todayFixtures.length === 0) {
           userTeamId,
           sessionSeed
         );
+        scoutedPlayers = AiContractService.processMonthlyPlayerReview(
+          recruitmentUpdate.updatedClubs,
+          scoutedPlayers,
+          currentDate,
+          userTeamId
+        ).updatedPlayers;
       }
 
       return { 
@@ -451,6 +457,12 @@ if (todayFixtures.length === 0) {
         userTeamId,
         sessionSeed
       );
+      currentPlayers = AiContractService.processMonthlyPlayerReview(
+        currentClubs,
+        currentPlayers,
+        currentDate,
+        userTeamId
+      ).updatedPlayers;
     }
 
     return { 

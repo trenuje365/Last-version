@@ -15,6 +15,7 @@ export const DE_MALE_FIRSTNAMES = [
 ];
 
 export const DE_MALE_LASTNAMES = [
+  // Twoja oryginalna lista (bez zmian)
   'Muller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Schaefer', 'Meyer', 'Wagner',
   'Becker', 'Bauer', 'Hoffmann', 'Schulz', 'Koch', 'Richter', 'Klein', 'Wolf',
   'Schroeder', 'Neumann', 'Braun', 'Werner', 'Schwarz', 'Hofmann', 'Zimmermann', 'Schmitt',
@@ -27,5 +28,64 @@ export const DE_MALE_LASTNAMES = [
   'Kraemer', 'Boehm', 'Schulte', 'Albrecht', 'Franke', 'Winter', 'Schumacher', 'Vogt',
   'Haas', 'Sommer', 'Schreiber', 'Engel', 'Ziegler', 'Dietrich', 'Brandt', 'Seidel',
   'Kuhn', 'Busch', 'Horn', 'Arnold', 'Kuehn', 'Bergmann', 'Pohl', 'Pfeiffer',
-  'Wolff', 'Voigt', 'Sauer', 'Goldschmidt'
+  'Wolff', 'Voigt', 'Sauer', 'Goldschmidt',
+
+  // Nowo dodane – popularne i typowo niemieckie (kolejność mniej więcej od częstszych)
+  'Mueller', 'Schafer', 'Schroder', 'Krueger', 'Kruger', 'Schmitz', 'Hartmann', 'Hofmann',
+  'Schmitt', 'Schmid', 'Lange', 'Meier', 'Maier', 'Mayer', 'Koehler', 'Schulze',
+  'Huber', 'Lehmann', 'Herrmann', 'Friedrich', 'Scholz', 'Gross', 'Guenther',
+  'Schubert', 'Winkler', 'Schuster', 'Lorenz', 'Ludwig', 'Baumann', 'Heinrich',
+  'Kraus', 'Kraemer', 'Boehm', 'Schulte', 'Albrecht', 'Franke', 'Schumacher',
+  'Haas', 'Sommer', 'Schreiber', 'Ziegler', 'Dietrich', 'Brandt', 'Seidel',
+  'Kuhn', 'Kuehn', 'Busch', 'Horn', 'Arnold', 'Bergmann', 'Pfeiffer', 'Voigt',
+  'Sauer',
+
+  // Kolejne popularne niemieckie nazwiska
+  'Schafers', 'Bauer', 'Hoffman', 'Schultze', 'Koch', 'Richter', 'Wolf', 'Neumann',
+  'Braun', 'Werner', 'Schwarz', 'Zimmermann', 'Weiss', 'Krueger', 'Lange', 'Walter',
+  'Beck', 'Koenig', 'Krause', 'Mayer', 'Frank', 'Kaiser', 'Fuchs', 'Lang', 'Thomas',
+  'Peters', 'Stein', 'Jung', 'Moeller', 'Berger', 'Martin', 'Keller', 'Hahn', 'Roth',
+  'Vogel', 'Baumann', 'Heinrich', 'Otto', 'Simon', 'Graf', 'Kraus', 'Kraemer',
+  'Boehm', 'Albrecht', 'Franke', 'Winter', 'Vogt', 'Haas', 'Sommer', 'Engel',
+  'Ziegler', 'Dietrich', 'Seidel', 'Kuhn', 'Busch', 'Horn', 'Arnold', 'Bergmann',
+  'Pohl', 'Pfeiffer', 'Wolff', 'Sauer', 'Goldschmidt',
+
+  // Rozszerzenie – kolejne typowo niemieckie (z różnych regionów)
+  'Ackermann', 'Adam', 'Adler', 'Bach', 'Bachmann', 'Baer', 'Barth', 'Bauer', 'Baum',
+  'Bayer', 'Behr', 'Behrens', 'Bender', 'Berg', 'Betz', 'Bischoff', 'Bock', 'Bode',
+  'Boerner', 'Bohn', 'Brand', 'Braun', 'Breuer', 'Brinkmann', 'Brock', 'Bruns',
+  'Buchholz', 'Buck', 'Buehler', 'Buehner', 'Burkhardt', 'Busch', 'Christ', 'Conrad',
+  'Dahl', 'Damm', 'Daniel', 'Decker', 'Diehl', 'Dittmann', 'Dorn', 'Drescher',
+  'Ebert', 'Eckert', 'Ehlers', 'Ehrlich', 'Eichler', 'Eilers', 'Ernst', 'Fahr',
+  'Feldmann', 'Fiedler', 'Fink', 'Fischer', 'Fleischer', 'Foerster', 'Frank', 'Freund',
+  'Frey', 'Friedrich', 'Fritz', 'Froehlich', 'Fuchs', 'Fuhr', 'Gebhardt', 'Geiger',
+  'Gerber', 'Gerlach', 'Geyer', 'Glaser', 'Goetz', 'Graf', 'Grimm', 'Grosse',
+  'Grunwald', 'Haag', 'Haas', 'Hahn', 'Haller', 'Hamm', 'Hammer', 'Hansen', 'Hartwig',
+  'Hase', 'Hass', 'Haupt', 'Hecht', 'Heil', 'Hein', 'Heinemann', 'Heinrich', 'Heinz',
+  'Heller', 'Hennig', 'Henning', 'Hentschel', 'Herbst', 'Hermann', 'Herzog', 'Hess',
+  'Hildebrandt', 'Hinrichs', 'Hofer', 'Hoffmann', 'Hofmann', 'Hohmann', 'Holz',
+  'Holzapfel', 'Horn', 'Huber', 'Hummel', 'Jager', 'Jahn', 'Jakob', 'Jansen',
+  'Jensen', 'Jung', 'Kaiser', 'Kalb', 'Kapp', 'Kaufmann', 'Keller', 'Kern', 'Kessler',
+  'Kirchhoff', 'Kirchner', 'Klaus', 'Klein', 'Kling', 'Klotz', 'Koch', 'Koeppen',
+  'Kohl', 'Kohler', 'Konig', 'Kopp', 'Korte', 'Kramer', 'Krause', 'Krebs', 'Kretschmer',
+  'Kreuzer', 'Kroll', 'Krone', 'Krug', 'Kruger', 'Kuhlmann', 'Kuhn', 'Kunze', 'Kurz',
+  'Lamm', 'Lang', 'Lange', 'Lehmann', 'Lehr', 'Leicht', 'Leistner', 'Lemke', 'Lenz',
+  'Lindemann', 'Link', 'Loch', 'Loeffler', 'Lohmann', 'Lorenz', 'Ludwig', 'Maier',
+  'Mann', 'Marek', 'Marx', 'Mayer', 'Meier', 'Meissner', 'Menzel', 'Merkel', 'Mertens',
+  'Metzger', 'Meyer', 'Michael', 'Michels', 'Mielke', 'Miller', 'Moebius', 'Moeller',
+  'Mohr', 'Morgenstern', 'Moser', 'Mueller', 'Muller', 'Nagel', 'Neubauer', 'Neumann',
+  'Niemann', 'Noll', 'Nowak', 'Ober', 'Ochs', 'Otto', 'Papke', 'Paul', 'Peters',
+  'Pfeifer', 'Pfeiffer', 'Pfister', 'Pohl', 'Poll', 'Preuss', 'Probst', 'Rabe',
+  'Rauch', 'Reich', 'Reichel', 'Reichert', 'Reimann', 'Reinhardt', 'Reiter', 'Renz',
+  'Richter', 'Riedel', 'Ritter', 'Roehm', 'Roth', 'Rott', 'Rupp', 'Sander', 'Sauer',
+  'Schaaf', 'Schaefer', 'Schaper', 'Scheffler', 'Schenk', 'Schilling', 'Schindler',
+  'Schirmer', 'Schlegel', 'Schlicht', 'Schlosser', 'Schmid', 'Schmidt', 'Schmitt',
+  'Schmitz', 'Schneider', 'Schnell', 'Schoen', 'Scholz', 'Schott', 'Schreiber',
+  'Schroeder', 'Schubert', 'Schulz', 'Schulze', 'Schumacher', 'Schuster', 'Schwarz',
+  'Seidel', 'Seifert', 'Seitz', 'Siebert', 'Simon', 'Singer', 'Sommer', 'Sorg',
+  'Specht', 'Stark', 'Stein', 'Steiner', 'Stoll', 'Strauss', 'Strobel', 'Sturm',
+  'Suss', 'Thiel', 'Thomas', 'Thomsen', 'Timm', 'Ulrich', 'Urban', 'Vetter', 'Vogel',
+  'Vogt', 'Voigt', 'Volk', 'Wagner', 'Walter', 'Weber', 'Weidner', 'Weiss', 'Wenzel',
+  'Werner', 'Westermann', 'Wiedemann', 'Wiese', 'Wild', 'Wilhelm', 'Winkler', 'Winter',
+  'Witt', 'Witte', 'Wolf', 'Wolff', 'Wulff', 'Zander', 'Ziegler', 'Zimmermann'
 ];

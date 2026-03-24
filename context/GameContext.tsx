@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  ViewState, Club, League, Player, Lineup, Fixture, 
+import {
+  ViewState, Club, League, Player, Lineup, Fixture, FinanceLog,
   SeasonTemplate, LeagueSchedule, PlayerNextEvent, EventKind, MatchSummary, LeagueRoundResults, ManagerProfile, MatchLiveState,
   MailMessage, MatchStatus, MailType, CompetitionType,
 Coach, TrainingIntensity,
@@ -35,6 +35,7 @@ import { CoachService } from '../services/CoachService';
 import { RefereeService } from '../services/RefereeService';
 import { FreeAgentService } from '../services/FreeAgentService';
 import { AiContractService } from '@/services/AiContractService';
+import { AiScoutingService } from '../services/AiScoutingService';
 import { BackgroundMatchProcessorCL } from '../services/BackgroundMatchProcessorCL';
 import { ScoutAssistantService } from '../services/ScoutAssistantService';
 import { ChampionshipHistoryService } from '../data/championship_history';
@@ -852,7 +853,7 @@ setMessages([welcomeMail, fanMail]);
     // null zamiast userTeamId — gracz kliknął "Symuluj", więc symulujemy WSZYSTKIE mecze
     // łącznie z drużyną gracza (brak trybu live dla CL)
     const clResult = BackgroundMatchProcessorCL.processChampionsLeagueEvent(
-      currentDate, null, allFixtures, clubs, sessionSeed
+      currentDate, null, allFixtures, clubs, players, lineups, seasonNumber, sessionSeed
     );
     setGlobalFixtures(prev => {
       const clMap = new Map(clResult.updatedFixtures.map(f => [f.id, f]));
@@ -870,7 +871,8 @@ setMessages([welcomeMail, fanMail]);
         return f;
       });
     });
-  }, [currentDate, userTeamId, allFixtures, clubs, sessionSeed]);
+    setPlayers(prev => ({ ...prev, ...clResult.updatedPlayers }));
+  }, [currentDate, userTeamId, allFixtures, clubs, players, lineups, seasonNumber, sessionSeed]);
 
     const processNegotiationResponses = (simDate: Date) => {
     const today = new Date(simDate).setHours(0,0,0,0);
@@ -1914,6 +1916,7 @@ setMessages([welcomeMail, fanMail]);
       const review = AiContractService.performSeasonSquadReview(postReviewClubs, postReviewPlayers, userTeamId);
       postReviewClubs = review.updatedClubs;
       postReviewPlayers = review.updatedPlayers;
+      postReviewPlayers = AiScoutingService.updateTransferInterests(postReviewClubs, postReviewPlayers, dateToProcess, userTeamId, sessionSeed);
       DebugLoggerService.log('SQUAD_REVIEW', `Przegląd składów AI (2 lipca) wykonany.`, true);
       
       // Wyplata pensji zawodników na start sezonu
@@ -1976,7 +1979,7 @@ const finalResult: SimulationOutput = {
 
     // 4b. Symulacja meczów CL w tle (11 i 15 lipca)
     const clResult = BackgroundMatchProcessorCL.processChampionsLeagueEvent(
-      dateToProcess, userTeamId, allFixtures, clubs, sessionSeed
+      dateToProcess, userTeamId, allFixtures, clubs, postReviewPlayers, lineups, seasonNumber, sessionSeed
     );
     // WAŻNE: używamy functional update + porównania, aby nie nadpisać wyników ligowych
     // (clResult.updatedFixtures zawiera WSZYSTKIE fixtures ze starego allFixtures)
@@ -1996,6 +1999,7 @@ const finalResult: SimulationOutput = {
         return f;
       });
     });
+    setPlayers(prev => ({ ...prev, ...clResult.updatedPlayers }));
 
     // Przetwarzanie bonusów za Superpuchar Polski
     const updatedClubsForSuperCup = finalResult.updatedClubs.map(club => {
@@ -3289,6 +3293,166 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       }
     }
   }, [currentDate, targetJumpTime, advanceDay, viewState]);
+
+  // ── Premie UEFA za Puchary Europejskie ─────────────────────────────────────
+  useEffect(() => {
+    if (!userTeamId) return;
+
+    const GROUP_STAGES: string[] = [CompetitionType.CL_GROUP_STAGE, CompetitionType.EL_GROUP_STAGE, CompetitionType.CONF_GROUP_STAGE];
+    const RETURN_LEG_MAP: Record<string, { comp: 'CL'|'EL'|'CONF'; event: 'Q1_ADVANCE'|'Q2_ADVANCE'|'R16'|'QF'|'SF'; label: string }> = {
+      [CompetitionType.CL_R1Q_RETURN]:   { comp: 'CL',   event: 'Q1_ADVANCE', label: 'awans do II rundy kwalifikacyjnej Ligi Mistrzów' },
+      [CompetitionType.CL_R2Q_RETURN]:   { comp: 'CL',   event: 'Q2_ADVANCE', label: 'awans do fazy ligowej Ligi Mistrzów' },
+      [CompetitionType.CL_R16_RETURN]:   { comp: 'CL',   event: 'R16',        label: 'awans do ćwierćfinału Ligi Mistrzów' },
+      [CompetitionType.CL_QF_RETURN]:    { comp: 'CL',   event: 'QF',         label: 'awans do półfinału Ligi Mistrzów' },
+      [CompetitionType.CL_SF_RETURN]:    { comp: 'CL',   event: 'SF',         label: 'awans do finału Ligi Mistrzów' },
+      [CompetitionType.EL_R1Q_RETURN]:   { comp: 'EL',   event: 'Q1_ADVANCE', label: 'awans do II rundy kwalifikacyjnej Ligi Europy' },
+      [CompetitionType.EL_R2Q_RETURN]:   { comp: 'EL',   event: 'Q2_ADVANCE', label: 'awans do fazy ligowej Ligi Europy' },
+      [CompetitionType.EL_R16_RETURN]:   { comp: 'EL',   event: 'R16',        label: 'awans do ćwierćfinału Ligi Europy' },
+      [CompetitionType.EL_QF_RETURN]:    { comp: 'EL',   event: 'QF',         label: 'awans do półfinału Ligi Europy' },
+      [CompetitionType.EL_SF_RETURN]:    { comp: 'EL',   event: 'SF',         label: 'awans do finału Ligi Europy' },
+      [CompetitionType.CONF_R1Q_RETURN]: { comp: 'CONF', event: 'Q1_ADVANCE', label: 'awans do II rundy kwalifikacyjnej Ligi Konferencji' },
+      [CompetitionType.CONF_R2Q_RETURN]: { comp: 'CONF', event: 'Q2_ADVANCE', label: 'awans do fazy ligowej Ligi Konferencji' },
+      [CompetitionType.CONF_R16_RETURN]: { comp: 'CONF', event: 'R16',        label: 'awans do ćwierćfinału Ligi Konferencji' },
+      [CompetitionType.CONF_QF_RETURN]:  { comp: 'CONF', event: 'QF',         label: 'awans do półfinału Ligi Konferencji' },
+      [CompetitionType.CONF_SF_RETURN]:  { comp: 'CONF', event: 'SF',         label: 'awans do finału Ligi Konferencji' },
+    };
+    const FINALS_MAP: Record<string, { comp: 'CL'|'EL'|'CONF'; name: string }> = {
+      [CompetitionType.CL_FINAL]:   { comp: 'CL',   name: 'Ligi Mistrzów' },
+      [CompetitionType.EL_FINAL]:   { comp: 'EL',   name: 'Ligi Europy' },
+      [CompetitionType.CONF_FINAL]: { comp: 'CONF', name: 'Ligi Konferencji' },
+    };
+    const GROUP_STAGE_COMP: Record<string, 'CL'|'EL'|'CONF'> = {
+      [CompetitionType.CL_GROUP_STAGE]:   'CL',
+      [CompetitionType.EL_GROUP_STAGE]:   'EL',
+      [CompetitionType.CONF_GROUP_STAGE]: 'CONF',
+    };
+    const GROUP_STAGE_NAMES: Record<string, string> = {
+      CL: 'Ligi Mistrzów', EL: 'Ligi Europy', CONF: 'Ligi Konferencji',
+    };
+
+    const awardPrize = (prize: number, description: string, date: string) => {
+      setClubs(prev => prev.map(c => {
+        if (c.id !== userTeamId) return c;
+        const log: FinanceLog = {
+          id: `UEFA_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          date,
+          amount: prize,
+          type: 'INCOME',
+          description,
+          previousBalance: c.budget,
+        };
+        return { ...c, budget: c.budget + prize, financeHistory: [log, ...(c.financeHistory || [])].slice(0, 50) };
+      }));
+    };
+
+    const userEurFixtures = globalFixtures.filter(f =>
+      f.status === MatchStatus.FINISHED &&
+      (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
+      (GROUP_STAGES.includes(f.leagueId) || !!RETURN_LEG_MAP[f.leagueId] || !!FINALS_MAP[f.leagueId])
+    );
+
+    userEurFixtures.forEach(f => {
+      const fDate = f.date instanceof Date ? f.date.toISOString().split('T')[0] : new Date(f.date).toISOString().split('T')[0];
+      const isHome = f.homeTeamId === userTeamId;
+      const teamScore = isHome ? (f.homeScore ?? 0) : (f.awayScore ?? 0);
+      const oppScore  = isHome ? (f.awayScore ?? 0) : (f.homeScore ?? 0);
+
+      // ── Faza grupowa / ligowa: premia za wygraną lub remis ──────────────
+      if (GROUP_STAGES.includes(f.leagueId)) {
+        const comp = GROUP_STAGE_COMP[f.leagueId];
+        const compName = GROUP_STAGE_NAMES[comp];
+        if (teamScore > oppScore) {
+          const key = `UEFA_GS_WIN_${f.id}`;
+          if (!sentMailIdsRef.current.has(key)) {
+            sentMailIdsRef.current.add(key);
+            awardPrize(FinanceService.calculateEuropeanPrizeMoney(comp, 'WIN'), `Premia UEFA — zwycięstwo w fazie ligowej ${compName}`, fDate);
+          }
+        } else if (teamScore === oppScore) {
+          const key = `UEFA_GS_DRAW_${f.id}`;
+          if (!sentMailIdsRef.current.has(key)) {
+            sentMailIdsRef.current.add(key);
+            awardPrize(FinanceService.calculateEuropeanPrizeMoney(comp, 'DRAW'), `Premia UEFA — remis w fazie ligowej ${compName}`, fDate);
+          }
+        }
+        return;
+      }
+
+      // ── Rewanże — ustalenie zwycięzcy agregatu ──────────────────────────
+      const retInfo = RETURN_LEG_MAP[f.leagueId];
+      if (retInfo) {
+        const key = `UEFA_ADV_${f.id}`;
+        if (sentMailIdsRef.current.has(key)) return;
+        const firstLegId = f.id.replace('_RETURN', '');
+        const firstLeg = globalFixtures.find(fl => fl.id === firstLegId);
+        if (!firstLeg || firstLeg.homeScore === null || firstLeg.awayScore === null) return;
+
+        const leg1HomeId = firstLeg.homeTeamId;
+        const leg1AwayId = firstLeg.awayTeamId;
+        const firstLegHomeIsReturnAway = f.awayTeamId === leg1HomeId;
+        const retH = f.homeScore ?? 0;
+        const retA = f.awayScore ?? 0;
+        const aggH = firstLegHomeIsReturnAway
+          ? (firstLeg.homeScore ?? 0) + retA
+          : (firstLeg.homeScore ?? 0) + retH;
+        const aggA = firstLegHomeIsReturnAway
+          ? (firstLeg.awayScore ?? 0) + retH
+          : (firstLeg.awayScore ?? 0) + retA;
+
+        let winnerId: string | null = null;
+        if (aggH > aggA) winnerId = leg1HomeId;
+        else if (aggA > aggH) winnerId = leg1AwayId;
+        else {
+          const pH = f.homePenaltyScore ?? 0;
+          const pA = f.awayPenaltyScore ?? 0;
+          if (pH > pA) winnerId = f.homeTeamId;
+          else if (pA > pH) winnerId = f.awayTeamId;
+        }
+        if (winnerId !== userTeamId) return;
+
+        sentMailIdsRef.current.add(key);
+        awardPrize(FinanceService.calculateEuropeanPrizeMoney(retInfo.comp, retInfo.event), `Premia UEFA — ${retInfo.label}`, fDate);
+
+        // Awans z kwalifikacji do fazy ligowej → osobna premia za uczestnictwo
+        if (retInfo.event === 'Q2_ADVANCE') {
+          const gsKey = `UEFA_GS_ENTRY_${f.id}`;
+          if (!sentMailIdsRef.current.has(gsKey)) {
+            sentMailIdsRef.current.add(gsKey);
+            const gsName = GROUP_STAGE_NAMES[retInfo.comp];
+            awardPrize(FinanceService.calculateEuropeanPrizeMoney(retInfo.comp, 'GROUP_STAGE_ENTRY'), `Premia UEFA — uczestnictwo w fazie ligowej ${gsName}`, fDate);
+          }
+        }
+        return;
+      }
+
+      // ── Finał — premia za udział + premia za zwycięstwo ─────────────────
+      const finalInfo = FINALS_MAP[f.leagueId];
+      if (finalInfo) {
+        const finalistKey = `UEFA_FINALIST_${f.id}`;
+        if (!sentMailIdsRef.current.has(finalistKey)) {
+          sentMailIdsRef.current.add(finalistKey);
+          awardPrize(FinanceService.calculateEuropeanPrizeMoney(finalInfo.comp, 'FINALIST'), `Premia UEFA — udział w finale ${finalInfo.name}`, fDate);
+        }
+        const h = f.homeScore ?? 0;
+        const a = f.awayScore ?? 0;
+        let winnerId: string | null = null;
+        if (h > a) winnerId = f.homeTeamId;
+        else if (a > h) winnerId = f.awayTeamId;
+        else {
+          const pH = f.homePenaltyScore ?? 0;
+          const pA = f.awayPenaltyScore ?? 0;
+          if (pH > pA) winnerId = f.homeTeamId;
+          else if (pA > pH) winnerId = f.awayTeamId;
+        }
+        if (winnerId === userTeamId) {
+          const winnerKey = `UEFA_WINNER_${f.id}`;
+          if (!sentMailIdsRef.current.has(winnerKey)) {
+            sentMailIdsRef.current.add(winnerKey);
+            awardPrize(FinanceService.calculateEuropeanPrizeMoney(finalInfo.comp, 'WINNER'), `Premia UEFA — zwycięstwo w ${finalInfo.name}`, fDate);
+          }
+        }
+      }
+    });
+  }, [globalFixtures, userTeamId, setClubs]);
 
   const jumpToDate = (date: Date) => setTargetJumpTime(new Date(date).setHours(0,0,0,0));
   const jumpToNextEvent = () => {

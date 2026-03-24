@@ -18,6 +18,25 @@ const POLISH_CLUB_FOREIGN_REGIONS: Region[] = [
   Region.SCANDINAVIA,
   Region.EX_USSR,
   Region.SPAIN,
+  Region.JAPAN,
+  Region.KOREA,
+  Region.ARGENTINA,
+  Region.BRAZIL,
+  Region.TURKEY,
+  Region.ARABIA,
+  Region.FINLAND,
+  Region.GEORGIA,
+  Region.ARMENIA,
+  Region.ALBANIA,
+  Region.ROMANIA,
+  Region.BALTIC,
+  Region.BENELUX,
+  Region.HUNGARIAN,
+  Region.MALTESE,
+  Region.ISRAELI,
+  Region.GREEK,
+  Region.AZERBAIJANI,
+  Region.KAZAKH,
 ];
 const getRandomPolishClubForeignRegion = (): Region =>
   POLISH_CLUB_FOREIGN_REGIONS[Math.floor(Math.random() * POLISH_CLUB_FOREIGN_REGIONS.length)];
@@ -155,6 +174,24 @@ contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random(
         } as Player;
     });
 
+    // TALENT MECHANIC: Tier 3/4 — 5% szans na 1 talent, 1% szans na 2. talent
+    if (leagueTier >= 3) {
+      const TALENT_CONFIG = { minBase: 70, maxBase: 80, hardCap: 88 };
+      const injectTalent = (squad: typeof squadBase) => {
+        const idx = Math.floor(Math.random() * squad.length);
+        const p = squad[idx];
+        const talentAge = 17 + Math.floor(Math.random() * 7);
+        const genData = PlayerAttributesGenerator.generateAttributes(p.position, leagueTier, clubRep, talentAge, false, TALENT_CONFIG);
+        squad[idx] = { ...p, age: talentAge, overallRating: genData.overall, attributes: genData.attributes };
+      };
+      if (Math.random() < 0.05) {
+        injectTalent(squadBase);
+        if (Math.random() < 0.01) {
+          injectTalent(squadBase);
+        }
+      }
+    }
+
     // 3. Logic: Distribute Wage Pool based on Weights
     // Fundusz płac to 42% całkowitego budżetu klubu
     const clubBudget = clubInfo?.budget || 5000000;
@@ -183,29 +220,44 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
     generateEuropeanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {
     const usedNames = new Set<string>();
 
-    // Mapa kraju → Region lokalny
-    const countryToRegion: Partial<Record<string, Region>> = {
-      'ESP': Region.SPAIN,
-      'ENG': Region.ENGLAND,
-      'GER': Region.GERMANY,
-      'ITA': Region.ITALY,
-      'FRA': Region.FRANCE,
-      'SRB': Region.BALKANS,
-      'BUL': Region.BALKANS,
-      'CRO': Region.BALKANS,
-      'BIH': Region.BALKANS,
-      'MKD': Region.BALKANS,
-      'MNE': Region.BALKANS,
-      'ALB': Region.BALKANS,
-      'SVN': Region.BALKANS,
-      'ROU': Region.BALKANS,
-      'GRE': Region.BALKANS,
+    // Mapa kraju → lokalna pula regionów (losowanie nazw lokalnych zawodników)
+    const countryToLocalPool: Partial<Record<string, Region[]>> = {
+      'ENG': [Region.ENGLAND], 'SCO': [Region.ENGLAND], 'WAL': [Region.ENGLAND],
+      'NIR': [Region.ENGLAND], 'IRL': [Region.ENGLAND],
+      'GIB': [Region.IBERIA],
+      'GER': [Region.GERMANY], 'AUT': [Region.GERMANY], 'LIE': [Region.GERMANY],
+      'LUX': [Region.FRANCE, Region.GERMANY],
+      'SUI': [Region.FRANCE, Region.GERMANY, Region.ITALY],
+      'ESP': [Region.SPAIN], 'AND': [Region.IBERIA], 'POR': [Region.IBERIA],
+      'FRA': [Region.FRANCE], 'ITA': [Region.ITALY], 'SMR': [Region.ITALY],
+      'NOR': [Region.SCANDINAVIA], 'SWE': [Region.SCANDINAVIA], 'DEN': [Region.SCANDINAVIA],
+      'ISL': [Region.SCANDINAVIA], 'FRO': [Region.SCANDINAVIA],
+      'FIN': [Region.FINLAND], 'TUR': [Region.TURKEY],
+      'GEO': [Region.GEORGIA], 'ARM': [Region.ARMENIA],
+      'ALB': [Region.ALBANIA], 'KOS': [Region.ALBANIA], 'ROU': [Region.ROMANIA],
+      'SRB': [Region.BALKANS], 'CRO': [Region.BALKANS], 'BIH': [Region.BALKANS],
+      'MKD': [Region.BALKANS], 'MNE': [Region.BALKANS], 'GRE': [Region.GREEK],
+      'BUL': [Region.BALKANS], 'SVN': [Region.BALKANS],
+      'CYP': [Region.TURKEY, Region.GREEK],
+      'MLT': [Region.MALTESE],
+      'LTU': [Region.BALTIC], 'LAT': [Region.BALTIC], 'EST': [Region.BALTIC],
+      'UKR': [Region.EX_USSR], 'RUS': [Region.EX_USSR], 'BLR': [Region.EX_USSR],
+      'MDA': [Region.EX_USSR, Region.BALKANS, Region.ROMANIA],
+      'KAZ': [Region.KAZAKH], 'AZE': [Region.AZERBAIJANI],
+      'CZE': [Region.CZ_SK], 'SVK': [Region.CZ_SK],
+      'HUN': [Region.HUNGARIAN],
+      'NED': [Region.BENELUX], 'BEL': [Region.BENELUX],
+      'ISR': [Region.ISRAELI],
     };
-       const localRegion = countryToRegion[country] ?? null;
-    // Bałkany: stałe 70% zawodników z bałkańskimi nazwiskami; pozostałe regiony: 40–60%
-    const localRatio = localRegion === Region.BALKANS ? 0.7 : localRegion ? (0.4 + Math.random() * 0.2) : 0;
+    const localPool = countryToLocalPool[country] ?? null;
+    const balkanCountries = ['SRB','CRO','BIH','MKD','MNE','GRE','BUL','SVN'];
+    const eightyPercentCountries = ['CYP','SUI'];
+    const localRatio = !localPool ? 0
+      : balkanCountries.includes(country) ? 0.7
+      : eightyPercentCountries.includes(country) ? 0.8
+      : (0.4 + Math.random() * 0.2);
     const localCount = Math.round(30 * localRatio);
-    console.log(`[Squad] ${clubId} | country=${country} | localRegion=${localRegion} | localCount=${localCount}/30`);
+    console.log(`[Squad] ${clubId} | country=${country} | localPool=${localPool} | localCount=${localCount}/30`);
 
     // Stały skład: 3 GK, 8 DEF, 10 MID, 9 FWD = 30
     const slots: { pos: PlayerPosition }[] = [
@@ -216,8 +268,10 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
     ];
 
        const squad = slots.map((slot, index) => {
-      const isLocal = localRegion !== null && index < localCount;
-      const region = isLocal ? localRegion : NameGeneratorService.getRandomForeignRegion();
+      const isLocal = localPool !== null && index < localCount;
+      const region = isLocal
+        ? localPool[Math.floor(Math.random() * localPool.length)]
+        : NameGeneratorService.getRandomForeignRegion();
       let namePair;
       let fullName;
       let attempts = 0;
@@ -264,6 +318,24 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         history: []
       } as Player;
     });
+
+    // TALENT MECHANIC: Tier 3/4 — 5% szans na 1 talent, 1% szans na 2. talent
+    if (tier >= 3) {
+      const TALENT_CONFIG = { minBase: 70, maxBase: 80, hardCap: 88 };
+      const injectTalentEU = (s: typeof squad) => {
+        const idx = Math.floor(Math.random() * s.length);
+        const p = s[idx];
+        const talentAge = 17 + Math.floor(Math.random() * 7);
+        const genData = PlayerAttributesGenerator.generateAttributes(p.position, tier, reputation, talentAge, true, TALENT_CONFIG);
+        s[idx] = { ...p, age: talentAge, overallRating: genData.overall, attributes: genData.attributes };
+      };
+      if (Math.random() < 0.05) {
+        injectTalentEU(squad);
+        if (Math.random() < 0.01) {
+          injectTalentEU(squad);
+        }
+      }
+    }
 
     return squad;
   }

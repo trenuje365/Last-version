@@ -518,7 +518,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
- // --- FINAL PUCHARY EUROPEJSKIE --- 20 Maj LIGA EUROPY ----
+// --- FINAL PUCHARY EUROPEJSKIE --- 20 Maj LIGA EUROPY ----
   { day: 20, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.EL_FINAL, label: "LE: Finał", priority: 100 },
 
 
