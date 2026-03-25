@@ -390,6 +390,19 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
         'FREE_AGENTS': [...(prev['FREE_AGENTS'] || []), ...ntSquadResult.newPlayers]
       }));
     }
+    if (ntSquadResult.playerUpdates.length > 0) {
+      const updateMap: Record<string, string> = {};
+      ntSquadResult.playerUpdates.forEach(u => { updateMap[u.id] = u.assignedNationalTeamId; });
+      setPlayers(prev => {
+        const updated: Record<string, Player[]> = {};
+        for (const [clubId, squad] of Object.entries(prev)) {
+          updated[clubId] = squad.map(p =>
+            updateMap[p.id] ? { ...p, assignedNationalTeamId: updateMap[p.id] } : p
+          );
+        }
+        return updated;
+      });
+    }
     setCoaches(prev => ({ ...prev, ...assignedNtCoaches }));
     setNationalTeams(ntSquadResult.updatedTeams);
     // ── Koniec inicjalizacji reprezentacji ────────────────────────────────────
@@ -1042,6 +1055,19 @@ setMessages([welcomeMail, fanMail]);
           ...prev,
           'FREE_AGENTS': [...(prev['FREE_AGENTS'] || []), ...ntReview.newPlayers]
         }));
+      }
+      if (ntReview.playerUpdates.length > 0) {
+        const updateMap: Record<string, string> = {};
+        ntReview.playerUpdates.forEach(u => { updateMap[u.id] = u.assignedNationalTeamId; });
+        setPlayers(prev => {
+          const updated: Record<string, Player[]> = {};
+          for (const [clubId, squad] of Object.entries(prev)) {
+            updated[clubId] = squad.map(p =>
+              updateMap[p.id] ? { ...p, assignedNationalTeamId: updateMap[p.id] } : p
+            );
+          }
+          return updated;
+        });
       }
     }
     // ── Koniec przeglądu kontuzji NT ─────────────────────────────────────────

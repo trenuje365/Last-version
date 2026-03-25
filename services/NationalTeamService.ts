@@ -6,8 +6,9 @@ import { NATIONAL_TEAMS_CONCACAF } from '../resources/static_db/NationalTeams/Na
 import { NATIONAL_TEAMS_AFC } from '../resources/static_db/NationalTeams/NationalTeamsAFC';
 import { NATIONAL_TEAMS_OFC } from '../resources/static_db/NationalTeams/NationalTeamsOFC';
 import { TACTICS_DB } from '../resources/tactics_db';
+import { STATIC_CLUBS } from '../constants';
 import { NameGeneratorService } from './NameGeneratorService';
-import { PlayerAttributesGenerator } from './PlayerAttributesGenerator';
+import { PlayerAttributesGenerator, REGION_PROFILE } from './PlayerAttributesGenerator';
 
 // Skład kadry: 3 GK + 8 DEF + 8 MID + 6 FWD = 25 zawodników
 const NT_GK = 3;
@@ -163,7 +164,8 @@ export const NationalTeamService = {
     usedNames.add(fullName);
 
     const age = 18 + Math.floor(Math.random() * 16); // 18-33 lat
-    const genData = PlayerAttributesGenerator.generateAttributes(position, tier, teamReputation, age, false);
+    const regionProfile = REGION_PROFILE[region];
+    const genData = PlayerAttributesGenerator.generateAttributes(position, tier, teamReputation, age, false, undefined, regionProfile);
 
     return {
       id: `NT_${teamId}_${String(index).padStart(3, '0')}`,
@@ -209,8 +211,9 @@ export const NationalTeamService = {
   generateSquadForTeam: (
     team: NationalTeam,
     coachExp: number,
-    allPlayers: Record<string, Player[]>
-  ): { squadPlayerIds: string[]; newPlayers: Player[] } => {
+    allPlayers: Record<string, Player[]>,
+    assignedPlayerIds: Set<string>
+  ): { squadPlayerIds: string[]; newPlayers: Player[]; selectedPlayerIds: string[] } => {
     // Wyklucz wolnych agentów — trener szuka tylko wśród zawodników z klubów
     const allPlayersList = Object.entries(allPlayers)
       .filter(([key]) => key !== 'FREE_AGENTS')
@@ -221,9 +224,22 @@ export const NationalTeamService = {
     };
     const ovrCap = TIER_OVR_CAP[team.tier] ?? 62;
 
+    const isPolishTeam = team.region === Region.POLAND;
+
     const byPos = (pos: PlayerPosition): Player[] =>
       allPlayersList
-        .filter(p => p.nationality === team.region && p.position === pos && p.overallRating <= ovrCap)
+        .filter(p => {
+          if (p.nationality !== team.region) return false;
+          if (p.position !== pos) return false;
+          if (p.overallRating > ovrCap) return false;
+          if (assignedPlayerIds.has(p.id)) return false;
+          if (p.assignedNationalTeamId && p.assignedNationalTeamId !== team.id) return false;
+          if (isPolishTeam) {
+            const club = STATIC_CLUBS.find(c => c.id === p.clubId);
+            if (club && club.leagueId !== 'L_PL_1') return false;
+          }
+          return true;
+        })
         .sort((a, b) => b.overallRating - a.overallRating);
 
     const poolGK  = byPos(PlayerPosition.GK);
@@ -243,18 +259,25 @@ export const NationalTeamService = {
 
     const squadPlayerIds: string[] = [];
     const newPlayers: Player[] = [];
+    const selectedPlayerIds: string[] = [];
     const usedNames = new Set<string>();
     let genIndex = 0;
 
     const process = (pool: Player[], needed: number, pos: PlayerPosition) => {
       const { selected, missing } = selectFromPool(pool, needed);
-      selected.forEach(p => squadPlayerIds.push(p.id));
+      selected.forEach(p => {
+        squadPlayerIds.push(p.id);
+        selectedPlayerIds.push(p.id);
+        assignedPlayerIds.add(p.id);
+      });
       for (let i = 0; i < missing; i++) {
         const np = NationalTeamService.generatePlayerForNT(
           team.id, team.region, pos, team.reputation, genIndex++, usedNames
         );
+        np.assignedNationalTeamId = team.id;
         newPlayers.push(np);
         squadPlayerIds.push(np.id);
+        assignedPlayerIds.add(np.id);
       }
     };
 
@@ -263,7 +286,7 @@ export const NationalTeamService = {
     process(poolMID, NT_MID, PlayerPosition.MID);
     process(poolFWD, NT_FWD, PlayerPosition.FWD);
 
-    return { squadPlayerIds, newPlayers };
+    return { squadPlayerIds, newPlayers, selectedPlayerIds };
   },
 
   // ─── 6. GENEROWANIE SKŁADÓW DLA WSZYSTKICH DRUŻYN ───────────────────────────
@@ -272,23 +295,26 @@ export const NationalTeamService = {
     nationalTeams: NationalTeam[],
     ntCoaches: Record<string, Coach>,
     allPlayers: Record<string, Player[]>
-  ): { updatedTeams: NationalTeam[]; newPlayers: Player[] } => {
+  ): { updatedTeams: NationalTeam[]; newPlayers: Player[]; playerUpdates: { id: string; assignedNationalTeamId: string }[] } => {
     const updatedTeams: NationalTeam[] = [];
     const allNewPlayers: Player[] = [];
+    const allPlayerUpdates: { id: string; assignedNationalTeamId: string }[] = [];
+    const assignedPlayerIds = new Set<string>();
 
     for (const team of nationalTeams) {
       const coach = team.coachId ? ntCoaches[team.coachId] : null;
       const coachExp = coach ? coach.attributes.experience : 50;
 
-      const { squadPlayerIds, newPlayers } = NationalTeamService.generateSquadForTeam(
-        team, coachExp, allPlayers
+      const { squadPlayerIds, newPlayers, selectedPlayerIds } = NationalTeamService.generateSquadForTeam(
+        team, coachExp, allPlayers, assignedPlayerIds
       );
 
+      selectedPlayerIds.forEach(id => allPlayerUpdates.push({ id, assignedNationalTeamId: team.id }));
       updatedTeams.push({ ...team, squadPlayerIds });
       allNewPlayers.push(...newPlayers);
     }
 
-    return { updatedTeams, newPlayers: allNewPlayers };
+    return { updatedTeams, newPlayers: allNewPlayers, playerUpdates: allPlayerUpdates };
   },
 
   // ─── 7. DZIENNY PRZEGLĄD KONTUZJI ────────────────────────────────────────────
@@ -297,7 +323,7 @@ export const NationalTeamService = {
     nationalTeams: NationalTeam[],
     allPlayers: Record<string, Player[]>,
     _currentDate: Date
-  ): { updatedTeams: NationalTeam[]; newPlayers: Player[] } => {
+  ): { updatedTeams: NationalTeam[]; newPlayers: Player[]; playerUpdates: { id: string; assignedNationalTeamId: string }[] } => {
     // Wyklucz wolnych agentów — zastępca musi być zawodnikiem klubowym
     const allPlayersList = Object.entries(allPlayers)
       .filter(([key]) => key !== 'FREE_AGENTS')
@@ -307,6 +333,7 @@ export const NationalTeamService = {
 
     const updatedTeams: NationalTeam[] = [];
     const allNewPlayers: Player[] = [];
+    const allPlayerUpdates: { id: string; assignedNationalTeamId: string }[] = [];
 
     for (const team of nationalTeams) {
       const squadIds = [...team.squadPlayerIds];
@@ -324,16 +351,19 @@ export const NationalTeamService = {
           p.nationality === team.region &&
           p.position === player.position &&
           p.health.status === HealthStatus.HEALTHY &&
-          !squadIds.includes(p.id)
+          !squadIds.includes(p.id) &&
+          (!p.assignedNationalTeamId || p.assignedNationalTeamId === team.id)
         );
 
         if (replacement) {
           squadIds[i] = replacement.id;
+          allPlayerUpdates.push({ id: replacement.id, assignedNationalTeamId: team.id });
         } else {
           // Dogeneruj brakującego zawodnika
           const np = NationalTeamService.generatePlayerForNT(
             team.id, team.region, player.position, team.reputation, genIndex++, usedNames
           );
+          np.assignedNationalTeamId = team.id;
           allNewPlayers.push(np);
           squadIds[i] = np.id;
         }
@@ -343,6 +373,6 @@ export const NationalTeamService = {
       updatedTeams.push(changed ? { ...team, squadPlayerIds: squadIds } : team);
     }
 
-    return { updatedTeams, newPlayers: allNewPlayers };
+    return { updatedTeams, newPlayers: allNewPlayers, playerUpdates: allPlayerUpdates };
   },
 };

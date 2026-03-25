@@ -7,7 +7,8 @@
       "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name *data.ts -print)",
       "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name *SquadGeneration* -print)",
       "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name *GameContext* -print)",
-      "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name types.ts -print)"
+      "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name types.ts -print)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

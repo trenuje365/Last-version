@@ -1,5 +1,5 @@
 
-import { PlayerAttributes, PlayerPosition } from '../types';
+import { PlayerAttributes, PlayerPosition, Region } from '../types';
 
 // Constants for Generation Caps and Base Levels per Tier
 // Adjusted to meet Polish League realism requirements:
@@ -19,6 +19,50 @@ export const EUROPEAN_TIER_CONFIG: Record<number, { minBase: number; maxBase: nu
   2: { minBase: 65, maxBase: 82, hardCap: 95 },
   3: { minBase: 45, maxBase: 68, hardCap: 85 },
   4: { minBase: 20, maxBase: 52, hardCap: 65 },
+};
+
+// Profil regionu: baseOffset obniża bazę generowania, starChance to szansa na “iskrę talentu” per atrybut.
+// Dotyczy wyłącznie syntetycznych zawodników kadry narodowej (generatePlayerForNT).
+export const REGION_PROFILE: Partial<Record<Region, { baseOffset: number; starChance: number }>> = {
+  // Elite
+  [Region.SPAIN]:     { baseOffset:   0, starChance: 0.10 },
+  [Region.FRANCE]:    { baseOffset:   0, starChance: 0.10 },
+  [Region.ENGLAND]:   { baseOffset:   0, starChance: 0.10 },
+  [Region.GERMANY]:   { baseOffset:   0, starChance: 0.10 },
+  [Region.ITALY]:     { baseOffset:   0, starChance: 0.10 },
+  [Region.BRAZIL]:    { baseOffset:   0, starChance: 0.10 },
+  [Region.ARGENTINA]: { baseOffset:   0, starChance: 0.10 },
+  // Wysoki
+  [Region.IBERIA]:    { baseOffset:  -2, starChance: 0.06 },
+  [Region.BENELUX]:   { baseOffset:  -2, starChance: 0.06 },
+  // Dobry
+  [Region.SCANDINAVIA]: { baseOffset: -4, starChance: 0.04 },
+  [Region.CZ_SK]:     { baseOffset:  -4, starChance: 0.04 },
+  [Region.SSA]:       { baseOffset:  -4, starChance: 0.04 },
+  [Region.KOREA]:     { baseOffset:  -4, starChance: 0.04 },
+  // Średnio
+  [Region.POLAND]:    { baseOffset:  -6, starChance: 0.03 },
+  [Region.BALKANS]:   { baseOffset:  -6, starChance: 0.03 },
+  [Region.EX_USSR]:   { baseOffset:  -6, starChance: 0.03 },
+  [Region.TURKEY]:    { baseOffset:  -6, starChance: 0.03 },
+  [Region.JAPAN]:     { baseOffset:  -6, starChance: 0.03 },
+  // Poniżej Średnio
+  [Region.GREEK]:     { baseOffset:  -8, starChance: 0.02 },
+  [Region.ROMANIA]:   { baseOffset:  -8, starChance: 0.02 },
+  [Region.HUNGARIAN]: { baseOffset:  -8, starChance: 0.02 },
+  [Region.ISRAELI]:   { baseOffset:  -8, starChance: 0.02 },
+  [Region.FINLAND]:   { baseOffset:  -8, starChance: 0.02 },
+  // Niski
+  [Region.ARABIA]:    { baseOffset: -10, starChance: 0.015 },
+  [Region.GEORGIA]:   { baseOffset: -10, starChance: 0.015 },
+  [Region.ALBANIA]:   { baseOffset: -10, starChance: 0.015 },
+  [Region.ARMENIA]:   { baseOffset: -10, starChance: 0.015 },
+  [Region.BALTIC]:    { baseOffset: -10, starChance: 0.015 },
+  // Bardzo niski
+  [Region.AZERBAIJANI]: { baseOffset: -13, starChance: 0.010 },
+  [Region.KAZAKH]:    { baseOffset: -13, starChance: 0.010 },
+  // Dno
+  [Region.MALTESE]:   { baseOffset: -16, starChance: 0.005 },
 };
 
 
@@ -54,7 +98,7 @@ const OVR_WEIGHTS: Record<PlayerPosition, Partial<Record<keyof PlayerAttributes,
 
 export const PlayerAttributesGenerator = {
   
-   generateAttributes: (position: PlayerPosition, leagueTier: number, clubReputation: number, age: number, isEuropean: boolean = false, talentConfig?: { minBase: number; maxBase: number; hardCap: number }): { attributes: PlayerAttributes, overall: number } => {
+   generateAttributes: (position: PlayerPosition, leagueTier: number, clubReputation: number, age: number, isEuropean: boolean = false, talentConfig?: { minBase: number; maxBase: number; hardCap: number }, regionProfile?: { baseOffset: number; starChance: number }): { attributes: PlayerAttributes, overall: number } => {
 
     // 1. Determine Base Level based on Tier
     const configTable = isEuropean ? EUROPEAN_TIER_CONFIG : TIER_CONFIG;
@@ -64,7 +108,7 @@ export const PlayerAttributesGenerator = {
 
     // Reputation Bonus (0 to 5)
     const repBonus = Math.min(5, Math.max(0, clubReputation - 2)); 
-    const tierBase = config.minBase + Math.random() * (config.maxBase - config.minBase) + repBonus;
+    const tierBase = config.minBase + Math.random() * (config.maxBase - config.minBase) + repBonus + (regionProfile?.baseOffset ?? 0);
     
     // 2. Generate individual attributes based on Profile
     const profile = PROFILES[position];
@@ -122,7 +166,7 @@ export const PlayerAttributesGenerator = {
       
       value = Math.max(1, Math.min(Math.floor(value), config.hardCap));
       
-      if (Math.random() < 0.04) {
+      if (Math.random() < (regionProfile?.starChance ?? 0.04)) {
           value = Math.min(99, value + Math.floor(Math.random() * 12) + 3);
       }
 

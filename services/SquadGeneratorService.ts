@@ -267,11 +267,23 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       ...Array(9).fill({ pos: PlayerPosition.FWD }),
     ];
 
+    const polishRoll = Math.random();
+    const polishCount = polishRoll < 0.01 ? 3 : polishRoll < 0.05 ? 2 : polishRoll < 0.10 ? 1 : 0;
+    const polishSlots = new Set<number>();
+    while (polishSlots.size < polishCount) {
+      polishSlots.add(Math.floor(Math.random() * 30));
+    }
+
        const squad = slots.map((slot, index) => {
       const isLocal = localPool !== null && index < localCount;
-      const region = isLocal
-        ? localPool[Math.floor(Math.random() * localPool.length)]
-        : NameGeneratorService.getRandomForeignRegion();
+      let region: Region;
+      if (polishSlots.has(index)) {
+        region = Region.POLAND;
+      } else if (isLocal) {
+        region = localPool[Math.floor(Math.random() * localPool.length)];
+      } else {
+        region = NameGeneratorService.getRandomForeignRegion();
+      }
       let namePair;
       let fullName;
       let attempts = 0;
