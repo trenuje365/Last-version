@@ -212,7 +212,7 @@ export const PostMatchCLStudioView: React.FC = () => {
                     {agg && (
                       <div className="flex justify-center">
                         <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em]">
-                          Agregat: {agg.teamATotal} : {agg.teamBTotal}
+                          Agregat: {agg.teamBTotal} : {agg.teamATotal}
                         </span>
                       </div>
                     )}
