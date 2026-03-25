@@ -180,7 +180,7 @@ case ViewState.POLISH_CUP_BRACKET:
         return <RefereeCard />;
       case ViewState.REFEREE_LIST:
         return (
-           <div className="min-h-screen bg-slate-900 text-slate-50 p-6">
+           <div className="min-h-screen bg-transparent text-slate-50 p-6">
             <RefereeListView />
           </div>
         );

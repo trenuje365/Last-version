@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import refereeBgImg from '../../Graphic/themes/refree.png';
 import { useGame } from '../../context/GameContext';
 import { ViewState, Referee } from '../../types';
 import { RefereeService } from '../../services/RefereeService';
@@ -36,11 +37,17 @@ export const RefereeListView: React.FC = () => {
       
       {/* BACKGROUND DECOR */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{ backgroundImage: `url(${refereeBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/50 to-slate-950" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
         <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
       {/* HEADER */}
-      <div className="flex items-center justify-between px-8 py-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-3xl shrink-0 shadow-xl">
+      <div className="flex items-center justify-between px-8 py-4 bg-white/5 rounded-2xl border border-white/10 shrink-0 shadow-xl">
          <div className="flex items-center gap-4">
             <div className="text-xl">⚖️</div>
             <div>

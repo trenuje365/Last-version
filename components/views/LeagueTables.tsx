@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import ekstraklasaBgImg from '../../Graphic/themes/ekstraklasa.png';
 import { useGame } from '../../context/GameContext';
 import { ViewState, LeagueLevel, Club } from '../../types';
 import { Button } from '../ui/Button';
@@ -41,6 +42,12 @@ export const LeagueTables: React.FC = () => {
       
       {/* BACKGROUND DYNAMIC LAYER */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{ backgroundImage: `url(${ekstraklasaBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/50 to-slate-950" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
         <div 
           className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-20 transition-all duration-1000"
           style={{ background: leagueColor }}
@@ -49,7 +56,7 @@ export const LeagueTables: React.FC = () => {
       </div>
 
       {/* HEADER SECTION */}
-      <div className="flex items-center justify-between px-8 py-5 bg-white/5 rounded-[32px] border border-white/10 backdrop-blur-3xl shrink-0 shadow-2xl">
+      <div className="flex items-center justify-between px-8 py-5 bg-white/5 rounded-[32px] border border-white/10 shrink-0 shadow-2xl">
          <div className="flex items-center gap-6">
             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-inner">
                {viewMode === 'TABLE' ? '📊' : '📅'}
@@ -156,7 +163,7 @@ export const LeagueTables: React.FC = () => {
       <div className="flex-1 overflow-hidden flex flex-col gap-4">
         
         {viewMode === 'TABLE' ? (
-          <div className="flex-1 bg-slate-900/30 rounded-[40px] border border-white/5 backdrop-blur-2xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="flex-1 bg-slate-900/30 rounded-[40px] border border-white/5 shadow-2xl flex flex-col overflow-hidden">
              <div className="overflow-y-auto custom-scrollbar flex-1 p-6 flex flex-col items-center">
                 <div className="w-full max-w-6xl">
                     <table className="w-full text-left border-separate border-spacing-y-2 table-fixed">
@@ -284,7 +291,7 @@ export const LeagueTables: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col gap-4 min-h-0">
-             <div className="bg-slate-900/50 p-6 rounded-[32px] border border-white/5 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-xl max-w-4xl mx-auto w-full">
+             <div className="bg-slate-900/50 p-6 rounded-[32px] border border-white/5 flex items-center justify-between shrink-0 shadow-xl max-w-4xl mx-auto w-full">
                 <button 
                   disabled={selectedRound <= 1}
                   onClick={() => setSelectedRound(r => r - 1)}
@@ -338,7 +345,7 @@ export const LeagueTables: React.FC = () => {
                               </div>
 
                               <div className="w-32 flex flex-col items-center justify-center shrink-0">
-                                 <div className="bg-black/60 px-6 py-2.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-2xl group-hover:scale-110 transition-transform">
+                                 <div className="bg-black/60 px-6 py-2.5 rounded-2xl border border-white/10 shadow-2xl group-hover:scale-110 transition-transform">
                                     {isFinished ? (
                                       <span className="text-2xl font-black font-mono text-emerald-400 tracking-tighter tabular-nums">
                                         {fixture.homeScore} : {fixture.awayScore}
