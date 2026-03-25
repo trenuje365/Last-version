@@ -701,6 +701,8 @@ isPenalties?: boolean;
   comebackPower?: number;
   comebackExpiry?: number;
   comebackSide?: 'HOME' | 'AWAY' | null;
+  halftimeTalkApplied?: boolean;
+  halftimeMomentumBonus?: number;
   userInstructions: TacticalInstructions;
 }
 

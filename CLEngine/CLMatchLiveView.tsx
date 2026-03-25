@@ -60,6 +60,8 @@ import { InjuryUpgradeService } from '../services/InjuryUpgradeService';
 import { AttendanceService } from '../services/AttendanceService';
 import { LineupService } from '../services/LineupService';
 import { FinanceService } from '@/services/FinanceService';
+import { HalftimeTalkModal } from '../components/modals/HalftimeTalkModal';
+import { TalkEffect } from '../services/HalftimeTalkService';
 
 const CL_LEAGUE_IDS: CompetitionType[] = [
   CompetitionType.CL_R1Q, CompetitionType.CL_R1Q_RETURN,
@@ -149,6 +151,7 @@ export const CLMatchLiveView = () => {
   const [isTacticsOpen, setIsTacticsOpen] = useState(false);
   const [isCelebratingGoal, setIsCelebratingGoal] = useState(false);
     const [showCommentHistory, setShowCommentHistory] = useState(false);
+  const [isHalftimeTalkOpen, setIsHalftimeTalkOpen] = useState(false);
   const [activePenalty, setActivePenalty] = useState<{
     side: 'HOME' | 'AWAY',
     kicker: Player,
@@ -290,6 +293,8 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
         sessionSeed,
       ////// DO ZAIMPLEMENTOWANIA PRZYCISKI TEMPO NASTAWIENIE I INTESNYWNOSC ...
         tacticalImpact: 1.0,
+        halftimeTalkApplied: false,
+        halftimeMomentumBonus: 0,
        userInstructions: {
           tempo: 'NORMAL',
           mindset: 'NEUTRAL',
@@ -319,6 +324,12 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [matchState?.logs]);
+
+  useEffect(() => {
+    if (matchState?.isHalfTime && !matchState.halftimeTalkApplied && !isHalftimeTalkOpen) {
+      setIsHalftimeTalkOpen(true);
+    }
+  }, [matchState?.isHalfTime, matchState?.halftimeTalkApplied]);
 
   const handleOpenPlayerCard = (pId: string) => {
     setMatchState(prev => prev ? { ...prev, isPaused: true } : prev);
@@ -504,6 +515,35 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
       return () => clearTimeout(closeTimer);
     }
   }, [activeVAR?.phase, activeVAR?.verdict, setMatchState]);
+
+  const handleHalftimeTalk = (effect: TalkEffect) => {
+    setMatchState(prev => {
+      if (!prev) return prev;
+      const isHome = userSide === 'HOME';
+      const userFatigueMap = isHome ? prev.homeFatigue : prev.awayFatigue;
+      const userXI = isHome ? prev.homeLineup.startingXI : prev.awayLineup.startingXI;
+      const nextFatigue = { ...userFatigueMap };
+      if (effect.fatigueRegenBonus !== 0) {
+        userXI.forEach(pId => {
+          if (pId) nextFatigue[pId] = Math.min(100, (nextFatigue[pId] || 100) + effect.fatigueRegenBonus);
+        });
+      }
+      return {
+        ...prev,
+        homeFatigue: isHome ? nextFatigue : prev.homeFatigue,
+        awayFatigue: !isHome ? nextFatigue : prev.awayFatigue,
+        halftimeTalkApplied: true,
+        halftimeMomentumBonus: effect.momentumDelta,
+        userInstructions: {
+          ...prev.userInstructions,
+          tempoResponseFactor:     effect.tempoResponseFactor,
+          mindsetResponseFactor:   effect.mindsetResponseFactor,
+          intensityResponseFactor: effect.intensityResponseFactor,
+        },
+      };
+    });
+    setIsHalftimeTalkOpen(false);
+  };
 
   const handleTacticsClose = (newLineup: Lineup, subsCount: number, subsHistory: SubstitutionRecord[]) => {
     setMatchState(prev => {
@@ -2619,7 +2659,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
       <div className="flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 rounded-[28px] shadow-2xl">
         <button
           disabled={hasMandatorySub}
-          onClick={() => matchState.isHalfTime ? setMatchState(s => s ? {...s, isHalfTime: false, isPaused: false, addedTime: 0} : s) : setMatchState(s => s ? {...s, isPaused: !s.isPaused, isPausedForEvent: false, flashMessage: null} : s)}
+          onClick={() => matchState.isHalfTime ? setMatchState(s => s ? {...s, isHalfTime: false, isPaused: false, addedTime: 0, momentum: Math.max(-100, Math.min(100, s.momentum + (s.halftimeMomentumBonus || 0))), halftimeMomentumBonus: 0} : s) : setMatchState(s => s ? {...s, isPaused: !s.isPaused, isPausedForEvent: false, flashMessage: null} : s)}
           className={`min-w-[170px] py-3 px-7 rounded-xl font-black italic uppercase tracking-widest text-sm transition-all hover:scale-105 active:scale-95 shadow-2xl border
             ${hasMandatorySub
               ? 'bg-red-600/20 border-red-500/40 text-red-500 hover:bg-red-600/30 shadow-red-500/10'
@@ -2737,6 +2777,46 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
         ))}
       </div>
     )}
+
+{(() => {
+        const isHome = userSide === 'HOME';
+        const uXI  = isHome ? matchState.homeLineup.startingXI : matchState.awayLineup.startingXI;
+        const oXI  = isHome ? matchState.awayLineup.startingXI : matchState.homeLineup.startingXI;
+        const uFat = isHome ? matchState.homeFatigue : matchState.awayFatigue;
+        const validIds = uXI.filter((id): id is string => id !== null);
+        const avgUserFatigue = validIds.length > 0 ? validIds.reduce((acc, id) => acc + (uFat[id] ?? 100), 0) / validIds.length : 100;
+        const uStats = isHome ? matchState.liveStats.home : matchState.liveStats.away;
+        const oStats = isHome ? matchState.liveStats.away : matchState.liveStats.home;
+        const uYellows = uXI.filter((id): id is string => id !== null).filter(id => (matchState.playerYellowCards[id] || 0) >= 1).length;
+        const oYellows = oXI.filter((id): id is string => id !== null).filter(id => (matchState.playerYellowCards[id] || 0) >= 1).length;
+        const avgMomentum = matchState.momentumTicks > 0 ? matchState.momentumSum / matchState.momentumTicks : 0;
+        const userPossession = Math.round(Math.max(20, Math.min(80, 50 + avgMomentum * 0.3)));
+        return (
+          <HalftimeTalkModal
+            isOpen={isHalftimeTalkOpen}
+            onClose={handleHalftimeTalk}
+            userScore={isHome ? matchState.homeScore : matchState.awayScore}
+            oppScore={isHome ? matchState.awayScore : matchState.homeScore}
+            userSide={userSide}
+            homeClubName={ctx.homeClub.name}
+            awayClubName={ctx.awayClub.name}
+            userShots={uStats.shots}
+            userShotsOnTarget={uStats.shotsOnTarget}
+            userCorners={uStats.corners}
+            userFouls={uStats.fouls}
+            userYellowCards={uYellows}
+            oppShots={oStats.shots}
+            oppShotsOnTarget={oStats.shotsOnTarget}
+            oppCorners={oStats.corners}
+            oppFouls={oStats.fouls}
+            oppYellowCards={oYellows}
+            userPossession={userPossession}
+            momentumEndOf1st={matchState.momentum}
+            avgFatigue={avgUserFatigue}
+            sessionSeed={matchState.sessionSeed}
+          />
+        );
+      })()}
 
 ///Etykieta przerwa w meczu ///
      {matchState.isHalfTime && !isTacticsOpen && (

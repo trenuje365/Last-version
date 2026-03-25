@@ -753,7 +753,7 @@ const boardConfidence = useMemo(() => {
               <TileButton label="PLANER" icon="📅" onClick={() => navigateTo(ViewState.CALENDAR_DEBUG)} disabled={isJumping} />
               <TileButton label="KADRA" icon="👕" onClick={() => navigateTo(ViewState.SQUAD_VIEW)} disabled={isJumping} />
               <TileButton 
-                 label="EUROPA" 
+                 label="EUROPA I ŚWIAT" 
                  icon="🌍" 
                  onClick={() => navigateTo(ViewState.EUROPEAN_CLUBS)} 
                  disabled={isJumping}

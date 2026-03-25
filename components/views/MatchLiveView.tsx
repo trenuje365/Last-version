@@ -58,6 +58,8 @@ import { DebugLoggerService } from '../../services/DebugLoggerService';
 import { InjuryUpgradeService } from '../../services/InjuryUpgradeService';
 import { AttendanceService } from '../../services/AttendanceService';
 import { FinanceService } from '@/services/FinanceService';
+import { HalftimeTalkModal } from '../modals/HalftimeTalkModal';
+import { TalkEffect } from '../../services/HalftimeTalkService';
 
 const BigJerseyIcon = ({ primary, secondary, size = "w-16 h-16" }: { primary: string, secondary: string, size?: string }) => (
   <div className="relative group">
@@ -100,6 +102,7 @@ export const MatchLiveView = () => {
     verdict?: 'GOAL' | 'NO_GOAL'
   } | null>(null);
   const varDataRef = useRef<{ side: 'HOME' | 'AWAY', scorerName: string, minute: number } | null>(null);
+  const [isHalftimeTalkOpen, setIsHalftimeTalkOpen] = useState(false);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -208,6 +211,8 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
         sessionSeed,
       ////// DO ZAIMPLEMENTOWANIA PRZYCISKI TEMPO NASTAWIENIE I INTESNYWNOSC ...
         tacticalImpact: 1.0,
+        halftimeTalkApplied: false,
+        halftimeMomentumBonus: 0,
        userInstructions: {
           tempo: 'NORMAL',
           mindset: 'NEUTRAL',
@@ -237,6 +242,12 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [matchState?.logs]);
+
+  useEffect(() => {
+    if (matchState?.isHalfTime && !matchState.halftimeTalkApplied && !isHalftimeTalkOpen) {
+      setIsHalftimeTalkOpen(true);
+    }
+  }, [matchState?.isHalfTime, matchState?.halftimeTalkApplied]);
 
   const handleOpenPlayerCard = (pId: string) => {
     setMatchState(prev => prev ? { ...prev, isPaused: true } : prev);
@@ -383,6 +394,35 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
       };
     });
     setIsTacticsOpen(false);
+  };
+
+  const handleHalftimeTalk = (effect: TalkEffect) => {
+    setMatchState(prev => {
+      if (!prev) return prev;
+      const isHome = userSide === 'HOME';
+      const userFatigueMap = isHome ? prev.homeFatigue : prev.awayFatigue;
+      const userXI = isHome ? prev.homeLineup.startingXI : prev.awayLineup.startingXI;
+      const nextFatigue = { ...userFatigueMap };
+      if (effect.fatigueRegenBonus !== 0) {
+        userXI.forEach(pId => {
+          if (pId) nextFatigue[pId] = Math.min(100, (nextFatigue[pId] || 100) + effect.fatigueRegenBonus);
+        });
+      }
+      return {
+        ...prev,
+        homeFatigue: isHome ? nextFatigue : prev.homeFatigue,
+        awayFatigue: !isHome ? nextFatigue : prev.awayFatigue,
+        halftimeTalkApplied: true,
+        halftimeMomentumBonus: effect.momentumDelta,
+        userInstructions: {
+          ...prev.userInstructions,
+          tempoResponseFactor:     effect.tempoResponseFactor,
+          mindsetResponseFactor:   effect.mindsetResponseFactor,
+          intensityResponseFactor: effect.intensityResponseFactor,
+        },
+      };
+    });
+    setIsHalftimeTalkOpen(false);
   };
 
   useEffect(() => {
@@ -2523,7 +2563,7 @@ const hasScored = matchState.homeGoals.some(g => (g.scorerId ? g.scorerId === p.
       <div className="flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 rounded-[28px] shadow-2xl">
         <button
           disabled={hasMandatorySub}
-          onClick={() => matchState.isHalfTime ? setMatchState(s => s ? {...s, isHalfTime: false, isPaused: false, period: 2, minute: 45, addedTime: 0} : s) : setMatchState(s => s ? {...s, isPaused: !s.isPaused, isPausedForEvent: false, flashMessage: null} : s)}
+          onClick={() => matchState.isHalfTime ? setMatchState(s => s ? {...s, isHalfTime: false, isPaused: false, period: 2, minute: 45, addedTime: 0, momentum: Math.max(-100, Math.min(100, s.momentum + (s.halftimeMomentumBonus || 0))), halftimeMomentumBonus: 0} : s) : setMatchState(s => s ? {...s, isPaused: !s.isPaused, isPausedForEvent: false, flashMessage: null} : s)}
           className={`min-w-[170px] py-3 px-7 rounded-xl font-black italic uppercase tracking-widest text-sm transition-all hover:scale-105 active:scale-95 shadow-2xl border
             ${hasMandatorySub
               ? 'bg-red-600/20 border-red-500/40 text-red-500 hover:bg-red-600/30 shadow-red-500/10'
@@ -2634,13 +2674,86 @@ const hasScored = matchState.homeGoals.some(g => (g.scorerId ? g.scorerId === p.
           </button>
         </div>
         
-        {matchState.logs.map((log) => (
-          <div key={log.id} className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 hover:bg-white/10 transition-colors">
-            <span className="font-black text-blue-400">{log.minute}'</span> - {log.text}
-          </div>
-        ))}
+        {matchState.logs.map((log) => {
+          const isHome = log.teamSide === 'HOME';
+          const isAway = log.teamSide === 'AWAY';
+          const teamColor = isHome ? kitColors!.home.primary : isAway ? kitColors!.away.primary : null;
+          return (
+            <div
+              key={log.id}
+              className="p-3 rounded-xl border border-white/10 text-xs text-slate-200 hover:brightness-125 transition-all"
+              style={{
+                backgroundColor: teamColor ? hexToRgba(teamColor, 0.10) : 'rgba(255,255,255,0.05)',
+                borderLeftColor: teamColor ?? undefined,
+                borderLeftWidth: teamColor ? '3px' : undefined,
+              }}
+            >
+              <span className="inline-flex items-center justify-center min-w-[28px] h-5 rounded-full bg-white text-black font-black text-[9px] px-1 mr-1.5 shrink-0">{log.minute}'</span>{log.text}
+            </div>
+          );
+        })}
       </div>
     )}
+
+{(() => {
+        const isHome = userSide === 'HOME';
+        const uXI  = isHome ? matchState.homeLineup.startingXI : matchState.awayLineup.startingXI;
+        const oXI  = isHome ? matchState.awayLineup.startingXI : matchState.homeLineup.startingXI;
+        const uFat = isHome ? matchState.homeFatigue : matchState.awayFatigue;
+        const validIds = uXI.filter((id): id is string => id !== null);
+        const avgUserFatigue = validIds.length > 0 ? validIds.reduce((acc, id) => acc + (uFat[id] ?? 100), 0) / validIds.length : 100;
+        const uStats = isHome ? matchState.liveStats.home : matchState.liveStats.away;
+        const oStats = isHome ? matchState.liveStats.away : matchState.liveStats.home;
+        const uYellows = uXI.filter((id): id is string => id !== null).filter(id => (matchState.playerYellowCards[id] || 0) >= 1).length;
+        const oYellows = oXI.filter((id): id is string => id !== null).filter(id => (matchState.playerYellowCards[id] || 0) >= 1).length;
+        const avgMomentum = matchState.momentumTicks > 0 ? matchState.momentumSum / matchState.momentumTicks : 0;
+        const userPossession = Math.round(Math.max(20, Math.min(80, 50 + avgMomentum * 0.3)));
+        const uScore = isHome ? matchState.homeScore : matchState.awayScore;
+        const oScore = isHome ? matchState.awayScore : matchState.homeScore;
+        const htSeed = matchState.sessionSeed;
+        const htRng = (off: number) => seededRng(htSeed, 45, off);
+        const htShots = (base: number, goals: number, off: number) =>
+          base + goals * (2 + Math.floor(htRng(off) * 3)) + Math.floor(htRng(off + 1) * 3) + 1;
+        const htShotsOT = (shots: number, goals: number, off: number) =>
+          Math.max(goals, Math.floor(shots * (0.40 + htRng(off) * 0.30)));
+        const htCorners = (base: number, off: number) =>
+          base < 3 ? base + Math.floor(htRng(off) * 4) + 1 : base;
+        const htFouls = (base: number, cards: number, off: number) =>
+          Math.max(3, base + cards * (2 + Math.floor(htRng(off) * 3)));
+        const calibUShots   = htShots(uStats.shots, uScore, 200);
+        const calibOShots   = htShots(oStats.shots, oScore, 300);
+        const calibUSOT     = htShotsOT(calibUShots, uScore, 410);
+        const calibOSOT     = htShotsOT(calibOShots, oScore, 510);
+        const calibUCorners = htCorners(uStats.corners, 600);
+        const calibOCorners = htCorners(oStats.corners, 700);
+        const calibUFouls   = htFouls(uStats.fouls, uYellows, 800);
+        const calibOFouls   = htFouls(oStats.fouls, oYellows, 900);
+        return (
+          <HalftimeTalkModal
+            isOpen={isHalftimeTalkOpen}
+            onClose={handleHalftimeTalk}
+            userScore={isHome ? matchState.homeScore : matchState.awayScore}
+            oppScore={isHome ? matchState.awayScore : matchState.homeScore}
+            userSide={userSide}
+            homeClubName={ctx.homeClub.name}
+            awayClubName={ctx.awayClub.name}
+            userShots={calibUShots}
+            userShotsOnTarget={calibUSOT}
+            userCorners={calibUCorners}
+            userFouls={calibUFouls}
+            userYellowCards={uYellows}
+            oppShots={calibOShots}
+            oppShotsOnTarget={calibOSOT}
+            oppCorners={calibOCorners}
+            oppFouls={calibOFouls}
+            oppYellowCards={oYellows}
+            userPossession={userPossession}
+            momentumEndOf1st={matchState.momentum}
+            avgFatigue={avgUserFatigue}
+            sessionSeed={matchState.sessionSeed}
+          />
+        );
+      })()}
 
 ///Etykieta przerwa w meczu ///
      {matchState.isHalfTime && !isTacticsOpen && (

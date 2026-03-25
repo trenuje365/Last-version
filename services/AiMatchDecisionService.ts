@@ -281,7 +281,7 @@ const tactic = TacticRepository.getById(newLineup.tacticId);
           newLineup = LineupService.swapPlayers(newLineup, playerOutId, bestSub.id, slotIdx);
           newSubsCount = currentSubsCount + 1;
           subRecord = { playerOutId, playerInId: bestSub.id, minute: state.minute };
-          logs.push(`${isHalftime ? '' : state.minute + '\''} ${bestSub.lastName} zastępuje ${pOut?.lastName} (${reason}).`);
+          logs.push(`${isHalftime ? '' : state.minute + '\''} ${bestSub.lastName} zastępuje ${pOut?.lastName} ${reason}.`);
         }
       }
     }

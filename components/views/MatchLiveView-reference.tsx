@@ -1759,9 +1759,13 @@ const summary: MatchSummary = {
       <div className={`flex flex-wrap gap-2 mt-1 ${side === 'AWAY' ? 'justify-end' : 'justify-start'}`}>
         
       {goals.map((g, i) => {
-          // TUTAJ WSTAW TEN KOD - Inteligentne formatowanie nazwiska strzelca
-          const nameToDisplay = g.playerName.includes('.') ? g.playerName : g.playerName; 
-          // KONIEC WSTAWKI
+          const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+          const foundPlayer = g.scorerId
+            ? playersList.find(px => px.id === g.scorerId)
+            : playersList.find(px => px.lastName === g.playerName);
+          const nameToDisplay = foundPlayer
+            ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}`
+            : g.playerName;
           return (
             <span key={`g-${i}`} className={`text-[9px] font-bold flex items-center gap-1 ${g.isMiss ? 'text-rose-500' : g.varDisallowed ? 'text-slate-500' : 'text-white'}`}>
               {g.isMiss ? '❌' : '⚽'}{' '}
@@ -1772,8 +1776,26 @@ const summary: MatchSummary = {
           );
         })}
 
-        {cards.map((c, i) => <span key={`c-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">{c.type === MatchEventType.RED_CARD ? '🟥' : '🟨'} {c.playerName}</span>)}
-        {injs.map((j, i) => <span key={`j-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1"><span className={j.type === MatchEventType.INJURY_SEVERE ? 'text-red-500' : 'text-white'}>✚</span> {j.playerName}</span>)}
+        {cards.map((c, i) => {
+          const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+          const foundPlayer = playersList.find(px => px.lastName === c.playerName);
+          const cardName = foundPlayer ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}` : c.playerName;
+          return (
+            <span key={`c-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">
+              {c.type === MatchEventType.RED_CARD ? '🟥' : '🟨'} {cardName} ({c.minute}')
+            </span>
+          );
+        })}
+        {injs.map((j, i) => {
+          const playersList = side === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+          const foundPlayer = playersList.find(px => px.lastName === j.playerName);
+          const injName = foundPlayer ? `${foundPlayer.firstName.charAt(0)}. ${foundPlayer.lastName}` : j.playerName;
+          return (
+            <span key={`j-${i}`} className="text-[9px] font-bold text-white flex items-center gap-1">
+              <span className={j.type === MatchEventType.INJURY_SEVERE ? 'text-red-500' : 'text-white'}>✚</span> {injName} ({j.minute}')
+            </span>
+          );
+        })}
       </div>
     );
   };
@@ -2024,7 +2046,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
                   <span className="text-8xl font-black italic text-yellow-400 tracking-tighter drop-shadow-[0_0_30px_rgba(250,204,21,1)]">GOL!</span>
                </div>
             ) : (
-               <><div className="text-8xl font-black text-white tracking-tighter leading-none mb-1">{matchState.homeScore} <span className="text-slate-700 mx-1">&nbsp;&nbsp;&nbsp;</span> {matchState.awayScore}</div>
+               <><div className="text-8xl font-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.4)] tracking-tighter leading-none mb-1">{matchState.homeScore} <span className="text-slate-700 mx-1">&nbsp;&nbsp;&nbsp;</span> {matchState.awayScore}</div>
                   <div className="flex items-center gap-3"><div className="text-xl font-mono font-bold text-emerald-400 animate-pulse bg-emerald-500/10 px-3 py-0.5 rounded-lg border border-emerald-500/20">{matchState.isFinished ? 'WYNIK KOŃCOWY' : `${matchState.minute}'`}</div>
                   {matchState.addedTime > 0 && !matchState.isFinished && <div className="text-[11px] font-black text-red-500 font-mono">+{matchState.addedTime}</div>}</div></>
             )}
