@@ -391,7 +391,7 @@ const NTSquadView: React.FC<{ team: NationalTeam; coachName: string; playerById:
 export const EuropeanClubsView: React.FC = () => {
   const { navigateTo, viewClubDetails, viewPlayerDetails, nationalTeams, coaches, players, clubs,
           europeanViewTab: activeTab, setEuropeanViewTab: setActiveTab,
-          selectedNTId, setSelectedNTId } = useGame();
+          selectedNTId, setSelectedNTId, previousViewState } = useGame();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [activeContinent, setActiveContinent] = useState<string>('Europe');
   const selectedNT = nationalTeams.find(t => t.id === selectedNTId) ?? null;
