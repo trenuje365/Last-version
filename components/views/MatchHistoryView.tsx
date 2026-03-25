@@ -4,6 +4,7 @@ import { useGame } from '../../context/GameContext';
 import { ViewState, MatchHistoryEntry, MatchEventType, CompetitionType } from '../../types';
 import { MatchHistoryService } from '../../services/MatchHistoryService';
 import { ChampionshipHistoryService } from '../../data/championship_history';
+import historiaBg from '../../Graphic/themes/historia.png';
 
 export const MatchHistoryView: React.FC = () => {
   const { navigateTo, clubs, seasonNumber, supercupWinners } = useGame();
@@ -196,6 +197,10 @@ export const MatchHistoryView: React.FC = () => {
         );
       }
       
+      if (selectedLeague === 'CL') return matchSeason && m.competition.startsWith('CL_');
+      if (selectedLeague === 'EL') return matchSeason && m.competition.startsWith('EL_');
+      if (selectedLeague === 'CONF') return matchSeason && m.competition.startsWith('CONF_');
+
       return matchSeason && m.competition === selectedLeague;
     });
     
@@ -222,7 +227,9 @@ export const MatchHistoryView: React.FC = () => {
     compName = 'PUCHAR POLSKI';
   } else if (comp === CompetitionType.SUPER_CUP || comp.includes('SUPER_CUP')) {
     compName = 'SUPERPUCHAR POLSKI';
-  }
+  } else if (comp.startsWith('CL_')) compName = 'LIGA MISTRZÓW';
+  else if (comp.startsWith('EL_')) compName = 'LIGA EUROPY';
+  else if (comp.startsWith('CONF_')) compName = 'LIGA KONFERENCJI';
 
   // Dodaj datę do labelu (opcjonalnie, ale czytelniej)
   groups.push({
@@ -237,9 +244,14 @@ export const MatchHistoryView: React.FC = () => {
   const getClub = (id: string) => clubs.find(c => c.id === id);
 
   return (
+    <>
+    <div className="fixed inset-0 -z-10">
+      <div className="absolute inset-0 bg-cover bg-center blur-sm scale-105" style={{ backgroundImage: `url(${historiaBg})` }} />
+      <div className="absolute inset-0 bg-black/85" />
+    </div>
     <div className="h-[calc(100vh-3rem)] max-w-[1400px] mx-auto flex flex-col gap-4 animate-fade-in text-white">
       {/* HEADER */}
-      <div className="flex items-center justify-between px-8 py-5 bg-white/5 rounded-[32px] border border-white/10 backdrop-blur-3xl shrink-0 shadow-2xl">
+      <div className="relative flex items-center justify-between px-8 py-5 bg-white/5 rounded-[32px] border border-white/10 shrink-0 shadow-2xl">
         <div className="flex items-center gap-6">
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-inner">📜</div>
           <div>
@@ -255,9 +267,9 @@ export const MatchHistoryView: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex-1 flex gap-6 min-h-0">
+      <div className="relative flex-1 flex gap-6 min-h-0">
         {/* SIDEBAR FILTERS */}
-        <div className="w-64 flex flex-col gap-3 shrink-0 bg-slate-900/40 rounded-[35px] border border-white/5 p-6 backdrop-blur-xl">
+        <div className="w-64 flex flex-col gap-3 shrink-0 bg-slate-900/20 rounded-[35px] border border-white/5 p-6">
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2 px-2">Kategorie</span>
             <button 
               onClick={() => { setViewMode('champions'); setSelectedLeague('ALL'); }} 
@@ -274,7 +286,10 @@ export const MatchHistoryView: React.FC = () => {
               { id: 'L_PL_1', label: 'EKSTRAKLASA', icon: '🏆' },
               { id: 'L_PL_2', label: '1. LIGA', icon: '🥈' },
               { id: 'L_PL_3', label: '2. LIGA', icon: '🥉' },
-              { id: 'POLISH_CUP', label: 'PUCHAR POLSKI', icon: '🛡️' }
+              { id: 'POLISH_CUP', label: 'PUCHAR POLSKI', icon: '🛡️' },
+              { id: 'CL', label: 'LIGA MISTRZÓW', icon: '⭐' },
+              { id: 'EL', label: 'PUCHAR LIGI EUROPY', icon: '🟠' },
+              { id: 'CONF', label: 'PUCHAR LIGI KONFERENCJI', icon: '🟢' }
             ].map(l => (
               <button 
                 key={l.id} 
@@ -296,7 +311,7 @@ export const MatchHistoryView: React.FC = () => {
         </div>
 
         {/* MATCH LIST */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/20 rounded-[40px] border border-white/5 backdrop-blur-md">
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/10 rounded-[40px] border border-white/5">
           {viewMode === 'matches' ? (
             <>
               <div className="px-8 pt-8 flex gap-4">
@@ -613,5 +628,6 @@ export const MatchHistoryView: React.FC = () => {
         .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
       `}</style>
     </div>
+    </>
   );
 };

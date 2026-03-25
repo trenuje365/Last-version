@@ -319,7 +319,20 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
             homeGoals: newHomeGoals,
             awayGoals: newAwayGoals,
             logs: [newLog, ...prev.logs],
-            momentum: MomentumService.computeMomentum(ctx, prev, finalResult, activePenalty.side, prev.homeFatigue, prev.awayFatigue)
+            momentum: MomentumService.computeMomentum(ctx, prev, finalResult, activePenalty.side, prev.homeFatigue, prev.awayFatigue),
+            liveStats: {
+              ...prev.liveStats,
+              home: activePenalty.side === 'HOME' ? {
+                ...prev.liveStats.home,
+                shots: prev.liveStats.home.shots + 1,
+                shotsOnTarget: isGoal ? prev.liveStats.home.shotsOnTarget + 1 : prev.liveStats.home.shotsOnTarget
+              } : prev.liveStats.home,
+              away: activePenalty.side === 'AWAY' ? {
+                ...prev.liveStats.away,
+                shots: prev.liveStats.away.shots + 1,
+                shotsOnTarget: isGoal ? prev.liveStats.away.shotsOnTarget + 1 : prev.liveStats.away.shotsOnTarget
+              } : prev.liveStats.away
+            }
           };
         });
 

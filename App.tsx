@@ -208,7 +208,7 @@ case ViewState.CL_GROUP_DRAW:
 
         case ViewState.MATCH_HISTORY_BROWSER:
         return (
-          <div className="min-h-screen bg-slate-900 text-slate-50 p-6">
+          <div className="min-h-screen bg-transparent text-slate-50 p-6">
             <MatchHistoryView />
           </div>
         );

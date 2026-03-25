@@ -39,6 +39,7 @@ import { FreeAgentService } from '../services/FreeAgentService';
 import { AiContractService } from '@/services/AiContractService';
 import { AiScoutingService } from '../services/AiScoutingService';
 import { BackgroundMatchProcessorCL } from '../services/BackgroundMatchProcessorCL';
+import { MatchHistoryService } from '../services/MatchHistoryService';
 import { ScoutAssistantService } from '../services/ScoutAssistantService';
 import { ChampionshipHistoryService } from '../data/championship_history';
 
@@ -936,6 +937,7 @@ setMessages([welcomeMail, fanMail]);
       });
     });
     setPlayers(prev => ({ ...prev, ...clResult.updatedPlayers }));
+    clResult.matchHistoryEntries.forEach(entry => MatchHistoryService.logMatch(entry));
   }, [currentDate, userTeamId, allFixtures, clubs, players, lineups, seasonNumber, sessionSeed]);
 
     const processNegotiationResponses = (simDate: Date) => {
@@ -2091,6 +2093,7 @@ const finalResult: SimulationOutput = {
       });
     });
     setPlayers(prev => ({ ...prev, ...clResult.updatedPlayers }));
+    clResult.matchHistoryEntries.forEach(entry => MatchHistoryService.logMatch(entry));
 
     // Przetwarzanie bonusów za Superpuchar Polski
     const updatedClubsForSuperCup = finalResult.updatedClubs.map(club => {

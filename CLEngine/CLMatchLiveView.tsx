@@ -1683,6 +1683,7 @@ return {
     const updatedFixtures = simResult.updatedFixtures.map(f => f.id === ctx.fixture.id ? { ...f, status: 'FINISHED' as any, homeScore: matchState.homeScore, awayScore: matchState.awayScore, ...(matchState.homePenaltyScore !== undefined && { homePenaltyScore: matchState.homePenaltyScore, awayPenaltyScore: matchState.awayPenaltyScore }) } : f);
 
     const clBgResult = BackgroundMatchProcessorCL.processChampionsLeagueEvent(currentDate, userTeamId, updatedFixtures, clubs, players, lineups, seasonNumber, sessionSeed);
+    clBgResult.matchHistoryEntries.forEach(entry => MatchHistoryService.logMatch(entry));
 
     const timeline: MatchSummaryEvent[] = [];
     let hCounter = 0, aCounter = 0;
@@ -2536,7 +2537,8 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
   ) : (
     <>
       {/* ── GÓRNY BOX: Tempo / Postawa / Styl gry ── */}
-      <div className="flex gap-5 justify-center py-2.5 px-8 bg-white/5 border border-white/10 rounded-[22px] shadow-xl">
+      <div className="flex gap-5 justify-center py-2.5 px-10 bg-black-400 border-5 border-white/50 rounded-[24px] shadow-4xl relative overflow-hidden">
+        <div className="absolute inset-0 rounded-[7px] pointer-events-none" style={{boxShadow:'inset 0 2px 2px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 8px 0 rgba(255,255,255,0.10)'}} />
       {/* ── TEMPO ── */}
       {(() => {
         const cd = matchState.userInstructions.tempoCooldown;
@@ -2548,12 +2550,11 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
           const c = s.userInstructions.tempoCooldown;
           if (c > 0 && s.minute < c) return s;
           if (s.userInstructions.tempo === val) return s;
-          const expiry = val === 'NORMAL' ? -1 : s.minute + 7 + Math.floor(Math.random() * 6);
-          return { ...s, userInstructions: { ...s.userInstructions, tempo: val, tempoExpiry: expiry, tempoCooldown: s.minute + 5 } };
+          return { ...s, userInstructions: { ...s.userInstructions, tempo: val, tempoExpiry: -1, tempoCooldown: s.minute + 5 } };
         });
         return (
           <div className={`flex flex-col items-center gap-1 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">
+            <span className="text-[9px] text-yellow-500 uppercase tracking-widest font-semibold">
               {locked ? `Tempo – blokada ${remaining}'` : 'Tempo'}
             </span>
             <div className="flex rounded-lg overflow-hidden border border-white/15 shadow-lg">
@@ -2567,7 +2568,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
                   onClick={() => pick(val)}
                   disabled={locked}
                   className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
-                    cur === val ? activeClass : 'bg-white/5 text-slate-500 hover:text-slate-200 hover:bg-white/10'
+                    cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
                   }`}
                 >{label}</button>
               ))}
@@ -2587,12 +2588,11 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
           const c = s.userInstructions.mindsetCooldown;
           if (c > 0 && s.minute < c) return s;
           if (s.userInstructions.mindset === val) return s;
-          const expiry = val === 'NEUTRAL' ? -1 : s.minute + 7 + Math.floor(Math.random() * 6);
-          return { ...s, userInstructions: { ...s.userInstructions, mindset: val, mindsetExpiry: expiry, mindsetCooldown: s.minute + 5 } };
+          return { ...s, userInstructions: { ...s.userInstructions, mindset: val, mindsetExpiry: -1, mindsetCooldown: s.minute + 5 } };
         });
         return (
           <div className={`flex flex-col items-center gap-1 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">
+            <span className="text-[9px] text-yellow-500 uppercase tracking-widest font-semibold">
               {locked ? `Postawa – blokada ${remaining}'` : 'Postawa'}
             </span>
             <div className="flex rounded-lg overflow-hidden border border-white/15 shadow-lg">
@@ -2606,7 +2606,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
                   onClick={() => pick(val)}
                   disabled={locked}
                   className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
-                    cur === val ? activeClass : 'bg-white/5 text-slate-500 hover:text-slate-200 hover:bg-white/10'
+                    cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
                   }`}
                 >{label}</button>
               ))}
@@ -2626,12 +2626,11 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
           const c = s.userInstructions.intensityCooldown;
           if (c > 0 && s.minute < c) return s;
           if (s.userInstructions.intensity === val) return s;
-          const expiry = val === 'NORMAL' ? -1 : s.minute + 7 + Math.floor(Math.random() * 6);
-          return { ...s, userInstructions: { ...s.userInstructions, intensity: val, intensityExpiry: expiry, intensityCooldown: s.minute + 5 } };
+          return { ...s, userInstructions: { ...s.userInstructions, intensity: val, intensityExpiry: -1, intensityCooldown: s.minute + 5 } };
         });
         return (
           <div className={`flex flex-col items-center gap-1 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">
+            <span className="text-[9px] text-yellow-500 uppercase tracking-widest font-semibold">
               {locked ? `Styl gry – blokada ${remaining}'` : 'Styl gry'}
             </span>
             <div className="flex rounded-lg overflow-hidden border border-white/15 shadow-lg">
@@ -2645,7 +2644,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
                   onClick={() => pick(val)}
                   disabled={locked}
                   className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
-                    cur === val ? activeClass : 'bg-white/5 text-slate-500 hover:text-slate-200 hover:bg-white/10'
+                    cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
                   }`}
                 >{label}</button>
               ))}
