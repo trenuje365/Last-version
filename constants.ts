@@ -4,6 +4,7 @@ import { RAW_PL_CLUBS, generateClubId } from './resources/static_db/clubs/pl_clu
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from './resources/static_db/clubs/ChampionsLeagueTeams';
 import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from './resources/static_db/clubs/EuropeLeagueTeams';
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from './resources/static_db/clubs/ConferenceLeagueTeams';
+import { CLUBS_SOUTH_AMERICA, generateSAClubId } from './resources/static_db/clubs/SouthamericanTeams';
 // TUTAJ WSTAW IMPORTY DRUŻYN NARODOWYCH
 import { FinanceService } from './services/FinanceService';
 import { NATIONAL_TEAMS_EUROPE } from './resources/static_db/NationalTeams/NationalTeamsEurope';
@@ -47,6 +48,7 @@ export const REGION_NATIONALITY_LABEL: Record<Region, string> = {
   [Region.GREEK]:       'Grecja',
   [Region.AZERBAIJANI]: 'Azerbejdżan',
   [Region.KAZAKH]:      'Kazachstan',
+  [Region.SOUTH_AMERICAN]: 'Ameryka Południowa',
 };
 
 const generateNTId = (name: string) => `NT_${name.toUpperCase().replace(/\s+/g, '_')}`;
@@ -224,6 +226,27 @@ export const STATIC_CONF_CLUBS: Club[] = RAW_CONFERENCE_LEAGUE_CLUBS.map(raw => 
   name: raw.name,
   shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
   leagueId: 'L_CONF',
+  colorsHex: raw.colors,
+  stadiumName: raw.stadium,
+  stadiumCapacity: raw.capacity,
+  reputation: raw.reputation,
+  country: raw.country,
+  isDefaultActive: true,
+  colorPrimary: raw.colors[0],
+  colorSecondary: raw.colors[1] || '#FFFFFF',
+  rosterIds: [],
+  budget: 0,
+  boardStrictness: 5,
+  signingBonusPool: 0,
+  stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+  isInPolishCup: false,
+}));
+
+export const STATIC_SA_CLUBS: Club[] = CLUBS_SOUTH_AMERICA.map(raw => ({
+  id: generateSAClubId(raw.name),
+  name: raw.name,
+  shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
+  leagueId: 'L_SA',
   colorsHex: raw.colors,
   stadiumName: raw.stadium,
   stadiumCapacity: raw.capacity,

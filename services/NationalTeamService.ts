@@ -165,7 +165,7 @@ export const NationalTeamService = {
 
     const age = 18 + Math.floor(Math.random() * 16); // 18-33 lat
     const regionProfile = REGION_PROFILE[region];
-    const genData = PlayerAttributesGenerator.generateAttributes(position, tier, teamReputation, age, false, undefined, regionProfile);
+    const genData = PlayerAttributesGenerator.generateAttributes(position, tier, teamReputation, age, tier <= 2, undefined, regionProfile);
 
     return {
       id: `NT_${teamId}_${String(index).padStart(3, '0')}`,
@@ -220,7 +220,7 @@ export const NationalTeamService = {
       .flatMap(([, arr]) => arr);
 
     const TIER_OVR_CAP: Record<number, number> = {
-      1: 99, 2: 92, 3: 80, 4: 70, 5: 62,
+      1: 99, 2: 87, 3: 77, 4: 67, 5: 57,
     };
     const ovrCap = TIER_OVR_CAP[team.tier] ?? 62;
 

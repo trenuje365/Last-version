@@ -16,9 +16,10 @@ const TIER_CONFIG: Record<number, { minBase: number; maxBase: number; hardCap: n
 
 export const EUROPEAN_TIER_CONFIG: Record<number, { minBase: number; maxBase: number; hardCap: number }> = {
   1: { minBase: 80, maxBase: 92, hardCap: 99 },
-  2: { minBase: 65, maxBase: 82, hardCap: 95 },
-  3: { minBase: 45, maxBase: 68, hardCap: 85 },
-  4: { minBase: 20, maxBase: 52, hardCap: 65 },
+  2: { minBase: 60, maxBase: 76, hardCap: 87 },
+  3: { minBase: 50, maxBase: 66, hardCap: 77 },
+  4: { minBase: 38, maxBase: 54, hardCap: 67 },
+  5: { minBase: 28, maxBase: 44, hardCap: 57 },
 };
 
 // Profil regionu: baseOffset obniża bazę generowania, starChance to szansa na “iskrę talentu” per atrybut.
@@ -34,7 +35,7 @@ export const REGION_PROFILE: Partial<Record<Region, { baseOffset: number; starCh
   [Region.ARGENTINA]: { baseOffset:   0, starChance: 0.10 },
   // Wysoki
   [Region.IBERIA]:    { baseOffset:  -2, starChance: 0.06 },
-  [Region.BENELUX]:   { baseOffset:  -2, starChance: 0.06 },
+  [Region.BENELUX]:   { baseOffset:   0, starChance: 0.10 },
   // Dobry
   [Region.SCANDINAVIA]: { baseOffset: -4, starChance: 0.04 },
   [Region.CZ_SK]:     { baseOffset:  -4, starChance: 0.04 },

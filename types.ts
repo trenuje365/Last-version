@@ -172,7 +172,8 @@ export enum Region {
   ISRAELI = 'ISRAELI',
   GREEK = 'GREEK',
   AZERBAIJANI = 'AZERBAIJANI',
-  KAZAKH = 'KAZAKH'
+  KAZAKH = 'KAZAKH',
+  SOUTH_AMERICAN = 'SOUTH_AMERICAN'
 }
 
 export enum PlayerPosition {

@@ -51,7 +51,7 @@ export const ClubDetails: React.FC = () => {
   const handleBack = () => {
     if (club.leagueId === 'L_PL_4') {
       navigateTo(ViewState.HIDDEN_LEAGUE);
-    } else if (previousViewState === ViewState.EUROPEAN_CLUBS) {
+    } else if (club.leagueId === 'L_SA' || previousViewState === ViewState.EUROPEAN_CLUBS) {
       navigateTo(ViewState.EUROPEAN_CLUBS);
     } else {
       navigateTo(ViewState.LEAGUE_TABLES);

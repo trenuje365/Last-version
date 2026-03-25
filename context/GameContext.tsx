@@ -14,7 +14,8 @@ import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../resources/static_d
 import { ELDrawService } from '../LECupEngine/ELDrawService';
 import { CONFDrawService } from '../LECupEngine/CONFDrawService';
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../resources/static_db/clubs/ConferenceLeagueTeams';
-import { STATIC_CLUBS, STATIC_LEAGUES, STATIC_CL_CLUBS, STATIC_EL_CLUBS, STATIC_CONF_CLUBS, START_DATE } from '../constants';
+import { CLUBS_SOUTH_AMERICA, generateSAClubId } from '../resources/static_db/clubs/SouthamericanTeams';
+import { STATIC_CLUBS, STATIC_LEAGUES, STATIC_CL_CLUBS, STATIC_EL_CLUBS, STATIC_CONF_CLUBS, STATIC_SA_CLUBS, START_DATE } from '../constants';
 import { SeasonTemplateGenerator } from '../services/SeasonTemplateGenerator';
 import { LeagueScheduleGenerator } from '../services/LeagueScheduleGenerator';
 import { CalendarEngine } from '../services/CalendarEngine';
@@ -169,7 +170,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionSeed, setSessionSeed] = useState<number>(0);
   const [viewState, setViewState] = useState<ViewState>(ViewState.START_MENU);
   const [previousViewState, setPreviousViewState] = useState<ViewState | null>(null);
-  const [clubs, setClubs] = useState<Club[]>([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS]);
+  const [clubs, setClubs] = useState<Club[]>([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS, ...STATIC_SA_CLUBS]);
   const [leagues, setLeagues] = useState<League[]>(STATIC_LEAGUES);
   const [players, setPlayers] = useState<Record<string, Player[]>>({});
   const [lineups, setLineups] = useState<Record<string, Lineup>>({});
@@ -307,6 +308,13 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
         return newSquad;
     }
 
+    const rawSA = CLUBS_SOUTH_AMERICA.find(c => generateSAClubId(c.name) === clubId);
+    if (rawSA) {
+        const newSquad = SquadGeneratorService.generateSouthAmericanSquad(clubId, rawSA.tier, rawSA.reputation, rawSA.country);
+        setPlayers(prev => ({ ...prev, [clubId]: newSquad }));
+        return newSquad;
+    }
+
     const newSquad = SquadGeneratorService.generateSquadForClub(clubId);
     setPlayers(prev => ({ ...prev, [clubId]: newSquad }));
     return newSquad;
@@ -334,7 +342,7 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     setSessionSeed(Math.floor(Math.random() * 1000000));
     const template = SeasonTemplateGenerator.generate(startYear);
     // -> tutaj wstaw kod
-    const coachData = CoachService.generateInitialCoaches([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS]);
+    const coachData = CoachService.generateInitialCoaches([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS, ...STATIC_SA_CLUBS]);
     setCoaches(coachData.coaches);
     setClubs(coachData.updatedClubs);
    
@@ -362,6 +370,10 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     RAW_CONFERENCE_LEAGUE_CLUBS.forEach(club => {
       const clubId = generateCONFClubId(club.name);
       europeanPlayers[clubId] = SquadGeneratorService.generateEuropeanSquad(clubId, club.tier, club.reputation, club.country);
+    });
+    CLUBS_SOUTH_AMERICA.forEach(club => {
+      const clubId = generateSAClubId(club.name);
+      europeanPlayers[clubId] = SquadGeneratorService.generateSouthAmericanSquad(clubId, club.tier, club.reputation, club.country);
     });
     setPlayers(prev => ({ ...prev, ...europeanPlayers }));
 
@@ -411,7 +423,7 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     setProcessedDrawIds([]);
     const initialSuperCup = SuperCupService.generateFixture(2025, STATIC_CLUBS);
     setGlobalFixtures([initialSuperCup]);
-    setClubs([...STATIC_CLUBS.map(c => ({ ...c, isInPolishCup: false })), ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS]);
+    setClubs([...STATIC_CLUBS.map(c => ({ ...c, isInPolishCup: false })), ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS, ...STATIC_SA_CLUBS]);
     navigateTo(ViewState.MANAGER_CREATION);
   };
 

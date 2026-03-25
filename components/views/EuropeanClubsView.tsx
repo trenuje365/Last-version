@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import ntBgImg from '../../Graphic/themes/national_teams_view.png';
+import saWorldBgImg from '../../Graphic/themes/innekluby.png';
+import allTeamsBgImg from '../../Graphic/themes/allteams.png';
+import allCupsBgImg from '../../Graphic/themes/allcups.png';
 import { useGame } from '../../context/GameContext';
 import { ViewState, NationalTeam, Player, PlayerPosition, PlayerAttributes } from '../../types';
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from '../../resources/static_db/clubs/ChampionsLeagueTeams';
@@ -7,6 +10,8 @@ import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../../resources/stati
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../../resources/static_db/clubs/ConferenceLeagueTeams';
 import { RAW_PL_CLUBS, generateClubId } from '../../resources/static_db/clubs/pl_clubs';
 import { getClubLogo } from '../../resources/ClubLogoAssets';
+import { CLUBS_SOUTH_AMERICA } from '../../resources/static_db/clubs/SouthamericanTeams';
+import { generateSAClubId } from '../../resources/static_db/clubs/SouthamericanTeams';
 
 const FLAG_COLUMNS = 5;
 
@@ -27,6 +32,8 @@ const FLAG_CODE: Record<string, string> = {
   POL: 'pl', POR: 'pt', RUS: 'ru',
   SCO: 'gb-sct', SMR: 'sm', SRB: 'rs', SVK: 'sk', SVN: 'si',
   SWE: 'se', SUI: 'ch', TUR: 'tr', UKR: 'ua', WAL: 'gb-wls',
+  ARG: 'ar', BRA: 'br', URU: 'uy', COL: 'co', ECU: 'ec',
+  CHI: 'cl', PAR: 'py', PER: 'pe', BOL: 'bo', VEN: 've',
 };
 
 const COUNTRY_NAME: Record<string, string> = {
@@ -43,6 +50,8 @@ const COUNTRY_NAME: Record<string, string> = {
   POL: 'Polska', POR: 'Portugalia', RUS: 'Rosja',
   SCO: 'Szkocja', SMR: 'San Marino', SRB: 'Serbia', SVK: 'Słowacja', SVN: 'Słowenia',
   SWE: 'Szwecja', SUI: 'Szwajcaria', TUR: 'Turcja', UKR: 'Ukraina', WAL: 'Walia',
+  ARG: 'Argentyna', BRA: 'Brazylia', URU: 'Urugwaj', COL: 'Kolumbia', ECU: 'Ekwador',
+  CHI: 'Chile', PAR: 'Paragwaj', PER: 'Peru', BOL: 'Boliwia', VEN: 'Wenezuela',
 };
 
 const flagUrl = (code: string) =>
@@ -87,6 +96,14 @@ function buildCountryClubMap(): Record<string, ClubEntry[]> {
 
 const COUNTRY_CLUB_MAP = buildCountryClubMap();
 
+const SA_COUNTRY_ORDER = ['ARG', 'BRA', 'URU', 'COL', 'ECU', 'CHI', 'PAR', 'PER', 'BOL', 'VEN'];
+const SA_CLUB_MAP: Record<string, ClubEntry[]> = {};
+CLUBS_SOUTH_AMERICA.forEach(c => {
+  const id = generateSAClubId(c.name);
+  if (!SA_CLUB_MAP[c.country]) SA_CLUB_MAP[c.country] = [];
+  SA_CLUB_MAP[c.country].push({ id, name: c.name, reputation: c.reputation, colors: c.colors });
+});
+
 const ClubColorBadge: React.FC<{ club: ClubEntry }> = ({ club }) => {
   const logo = getClubLogo(club.id);
   if (logo) {
@@ -94,12 +111,12 @@ const ClubColorBadge: React.FC<{ club: ClubEntry }> = ({ club }) => {
       <img
         src={logo}
         alt={club.name}
-        className="w-8 h-8 object-contain shrink-0"
+        className="w-10 h-10 object-contain shrink-0"
       />
     );
   }
   return (
-    <div className="flex shrink-0 rounded overflow-hidden w-8 h-8 border border-white/10">
+    <div className="flex shrink-0 rounded overflow-hidden w-10 h-10 border border-white/10">
       <div className="flex-1" style={{ backgroundColor: club.colors[0] }} />
       <div className="flex-1" style={{ backgroundColor: club.colors[1] || '#222' }} />
     </div>
@@ -109,10 +126,10 @@ const ClubColorBadge: React.FC<{ club: ClubEntry }> = ({ club }) => {
 const ClubRow: React.FC<{ club: ClubEntry; onSelect: () => void }> = ({ club, onSelect }) => (
   <button
     onClick={onSelect}
-    className="group relative w-full h-14 rounded-xl overflow-hidden transition-all duration-200 border border-white/[0.04] hover:border-white/[0.12] mb-0.5 text-left"
+    className="group relative w-full h-[70px] rounded-xl overflow-hidden transition-all duration-200 border border-white/[0.04] hover:border-white/[0.12] mb-0.5 text-left"
   >
-    <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: club.colors[0] }} />
-    <div className="absolute right-2 top-[-4px] text-4xl font-black italic text-white/[0.035] select-none group-hover:text-white/[0.065] transition-colors leading-none tracking-tighter">
+    <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ backgroundColor: club.colors[0] }} />
+    <div className="absolute right-2 top-[-4px] text-5xl font-black italic text-white/[0.035] select-none group-hover:text-white/[0.065] transition-colors leading-none tracking-tighter">
       {club.name.substring(0, 4).toUpperCase()}
     </div>
     <div
@@ -121,11 +138,11 @@ const ClubRow: React.FC<{ club: ClubEntry; onSelect: () => void }> = ({ club, on
     />
     <div className="relative h-full flex items-center pl-5 pr-4 gap-4">
       <ClubColorBadge club={club} />
-      <span className="flex-1 text-sm font-semibold text-slate-300 group-hover:text-white transition-colors truncate tracking-wide">
+      <span className="flex-1 text-base font-semibold text-slate-300 group-hover:text-white transition-colors truncate tracking-wide">
         {club.name}
       </span>
-      <span className="text-[10px] text-slate-600 tabular-nums shrink-0 font-mono">rep. {club.reputation}</span>
-      <span className="text-slate-700 group-hover:text-slate-400 transition-colors text-sm shrink-0">›</span>
+      <span className="text-[11px] text-slate-600 tabular-nums shrink-0 font-mono">rep. {club.reputation}</span>
+      <span className="text-slate-700 group-hover:text-slate-400 transition-colors text-base shrink-0">›</span>
     </div>
   </button>
 );
@@ -179,29 +196,29 @@ const NTCard: React.FC<{ team: NationalTeam; coachName: string; onSelect: () => 
     className="group relative w-full rounded-xl overflow-hidden transition-all duration-200 border border-white/[0.05] hover:border-white/[0.15] mb-1 text-left"
     style={{ background: `linear-gradient(90deg, ${team.colorsHex[0]}18, transparent 60%)` }}
   >
-    <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: team.colorsHex[0] }} />
-    <div className="absolute right-2 top-[-4px] text-4xl font-black italic text-white/[0.03] select-none group-hover:text-white/[0.06] transition-colors leading-none tracking-tighter">
+    <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ backgroundColor: team.colorsHex[0] }} />
+    <div className="absolute right-2 top-[-4px] text-6xl font-black italic text-white/[0.03] select-none group-hover:text-white/[0.06] transition-colors leading-none tracking-tighter">
       {team.name.substring(0, 4).toUpperCase()}
     </div>
-    <div className="relative h-11 flex items-center pl-5 pr-4 gap-3">
+    <div className="relative h-[62px] flex items-center pl-6 pr-5 gap-4">
       {rank !== undefined && (
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/20 text-[10px] font-black tabular-nums text-white shrink-0">
+        <span className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 border border-white/20 text-sm font-black tabular-nums text-white shrink-0">
           {rank}
         </span>
       )}
-      <div className="flex shrink-0 rounded-md overflow-hidden w-5 h-5 border border-white/10">
+      <div className="flex shrink-0 rounded-md overflow-hidden w-7 h-7 border border-white/10">
         <div className="flex-1" style={{ backgroundColor: team.colorsHex[0] }} />
         <div className="flex-1" style={{ backgroundColor: team.colorsHex[1] || '#222' }} />
       </div>
-      <span className="flex-1 text-sm font-black italic uppercase tracking-wide text-white truncate">
+      <span className="flex-1 text-lg font-black italic uppercase tracking-wide text-white truncate">
         {team.name}
       </span>
       {showTier && (
-        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded shrink-0 ${TIER_BADGE[team.tier] ?? TIER_BADGE[5]}`}>
+        <span className={`text-xs font-black uppercase px-3 py-1 rounded shrink-0 ${TIER_BADGE[team.tier] ?? TIER_BADGE[5]}`}>
           Tier {team.tier}
         </span>
       )}
-      <span className="text-white/30 group-hover:text-white/70 transition-colors text-sm shrink-0">›</span>
+      <span className="text-white/30 group-hover:text-white/70 transition-colors text-lg shrink-0">›</span>
     </div>
   </button>
 );
@@ -389,7 +406,7 @@ export const EuropeanClubsView: React.FC = () => {
   const handleBack = () => {
     if (selectedNT) { setSelectedNT(null); return; }
     if (selectedCountry) { setSelectedCountry(null); return; }
-    navigateTo(ViewState.DASHBOARD);
+    navigateTo(previousViewState && previousViewState !== ViewState.EUROPEAN_CLUBS ? previousViewState : ViewState.DASHBOARD);
   };
 
   const clubsForCountry = selectedCountry ? (COUNTRY_CLUB_MAP[selectedCountry] || []) : [];
@@ -409,14 +426,21 @@ export const EuropeanClubsView: React.FC = () => {
 
   const continentTeams = useMemo(() => {
     if (activeContinent === 'RANKING') {
-      return [...nationalTeams].sort((a, b) =>
-        a.tier !== b.tier ? a.tier - b.tier : b.reputation - a.reputation
-      );
+      const avgOverall = (team: NationalTeam): number => {
+        const ratings = team.squadPlayerIds.map(id => playerById[id]?.overallRating ?? 0).filter(r => r > 0);
+        return ratings.length ? ratings.reduce((s, r) => s + r, 0) / ratings.length : 0;
+      };
+      return [...nationalTeams].sort((a, b) => {
+        const diff = avgOverall(b) - avgOverall(a);
+        if (diff !== 0) return diff;
+        if (b.reputation !== a.reputation) return b.reputation - a.reputation;
+        return a.tier - b.tier;
+      });
     }
     return nationalTeams
       .filter(t => t.continent === activeContinent)
       .sort((a, b) => a.name.localeCompare(b.name, 'pl'));
-  }, [nationalTeams, activeContinent]);
+  }, [nationalTeams, activeContinent, playerById]);
 
   const getCoachName = (team: NationalTeam): string => {
     if (!team.coachId) return '';
@@ -439,6 +463,36 @@ export const EuropeanClubsView: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-transparent to-slate-950 opacity-60" />
         </div>
       )}
+      {activeTab === 'clubs' && selectedCountry === 'WORLD' && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{ backgroundImage: `url(${saWorldBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/50 to-slate-950" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
+        </div>
+      )}
+      {activeTab === 'clubs' && !selectedCountry && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-25"
+            style={{ backgroundImage: `url(${allTeamsBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/50 to-slate-950" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
+        </div>
+      )}
+      {activeTab === 'clubs' && selectedCountry && selectedCountry !== 'WORLD' && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-25"
+            style={{ backgroundImage: `url(${allCupsBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/50 to-slate-950" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
+        </div>
+      )}
       {/* Background ambient glow */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[30%] w-[60%] h-[60%] rounded-full blur-[180px] opacity-10"
@@ -449,13 +503,13 @@ export const EuropeanClubsView: React.FC = () => {
           style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
       </div>
 
-      <div className={`relative z-10 w-full transition-all duration-300 ${activeTab === 'clubs' && selectedCountry === 'POL' ? 'max-w-[1600px]' : activeTab === 'clubs' && selectedCountry ? 'max-w-2xl' : activeTab === 'clubs' ? 'max-w-[1500px]' : selectedNT ? 'max-w-[80vw]' : 'max-w-3xl'}`}>
+      <div className={`relative z-10 w-full transition-all duration-300 ${activeTab === 'clubs' && selectedCountry === 'POL' ? 'max-w-[1600px]' : activeTab === 'clubs' && selectedCountry === 'WORLD' ? 'max-w-5xl' : activeTab === 'clubs' && selectedCountry && selectedCountry !== 'POL' ? 'max-w-4xl' : activeTab === 'clubs' ? 'max-w-[1500px]' : selectedNT ? 'max-w-[80vw]' : 'max-w-[1280px]'}`}>
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-5">
           <button
             onClick={handleBack}
-            className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-white/10 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:bg-slate-700/80 transition-colors backdrop-blur-sm"
+            className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-white/10 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:bg-slate-700/80 transition-colors"
           >
             ← Wróć
           </button>
@@ -463,11 +517,17 @@ export const EuropeanClubsView: React.FC = () => {
             {activeTab === 'clubs' && !selectedCountry && (
               <h1 className="text-base font-black uppercase tracking-widest text-white">Reprezentacje i Kluby Europejskie</h1>
             )}
-            {activeTab === 'clubs' && selectedCountry && (
+            {activeTab === 'clubs' && selectedCountry && selectedCountry !== 'WORLD' && (
               <div className="flex items-center gap-3">
                 <img src={flagUrl(selectedCountry)} alt={COUNTRY_NAME[selectedCountry]} className="h-5 shadow-sm rounded-sm" />
                 <h1 className="text-base font-black uppercase tracking-widest text-white">{COUNTRY_NAME[selectedCountry]}</h1>
                 <span className="text-[10px] text-slate-500">{clubsForCountry.length} klubów</span>
+              </div>
+            )}
+            {activeTab === 'clubs' && selectedCountry === 'WORLD' && (
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🌍</span>
+                <h1 className="text-base font-black uppercase tracking-widest text-white">Inne drużyny</h1>
               </div>
             )}
             {activeTab === 'nt' && !selectedNT && (
@@ -511,8 +571,8 @@ export const EuropeanClubsView: React.FC = () => {
 
             {/* ── ZAKŁADKA KLUBY ─────────────────────────────────────────────── */}
 
-            {activeTab === 'clubs' && selectedCountry && selectedCountry !== 'POL' && (
-              <div>
+            {activeTab === 'clubs' && selectedCountry && selectedCountry !== 'POL' && selectedCountry !== 'WORLD' && (
+              <div className="grid grid-cols-2 gap-x-3 p-2">
                 {clubsForCountry.map(club => (
                   <ClubRow key={club.id} club={club} onSelect={() => viewClubDetails(club.id)} />
                 ))}
@@ -534,7 +594,7 @@ export const EuropeanClubsView: React.FC = () => {
                         : 'III Liga i niższe';
 
                   return (
-                    <div key={tier} className="relative rounded-[28px] overflow-hidden bg-slate-900/40 backdrop-blur-2xl border border-white/[0.06] min-w-0">
+                    <div key={tier} className="relative rounded-[28px] overflow-hidden bg-slate-900/40 border border-white/[0.06] min-w-0">
                       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none" />
                       <div className="absolute right-2 bottom-[-8px] text-[4rem] font-black italic text-white/[0.03] select-none pointer-events-none leading-none tracking-tighter">
                         {tier === 1 ? 'EKS' : tier === 2 ? 'I L' : tier === 3 ? 'II L' : 'III'}
@@ -556,40 +616,94 @@ export const EuropeanClubsView: React.FC = () => {
               </div>
             )}
 
+            {activeTab === 'clubs' && selectedCountry === 'WORLD' && (
+              <div className="p-6">
+                <div className="grid grid-cols-3 gap-6">
+                  {SA_COUNTRY_ORDER.filter(code => SA_CLUB_MAP[code]?.length > 0).map(code => (
+                    <div key={code}>
+                      {/* Country header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <img src={flagUrl(code)} alt={COUNTRY_NAME[code]} className="h-6 w-9 object-cover rounded shadow-lg" />
+                        <span className="text-sm font-black uppercase tracking-[0.18em] text-white">{COUNTRY_NAME[code]}</span>
+                        <div className="flex-1 h-px bg-white/[0.06]" />
+                        <span className="text-[10px] text-slate-600 font-medium">{SA_CLUB_MAP[code].length} klubów</span>
+                      </div>
+                      {/* Club rows */}
+                      <div className="space-y-1">
+                        {SA_CLUB_MAP[code].map((club, idx) => {
+                          const c0 = club.colors?.[0] ?? '#6366f1';
+                          const c1 = club.colors?.[1] ?? c0;
+                          const c2 = club.colors?.[2] ?? c1;
+                          return (
+                            <button
+                              key={club.id}
+                              onClick={() => viewClubDetails(club.id)}
+                              className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.05] hover:border-white/[0.14] bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-150"
+                            >
+                              {/* Rank */}
+                              <span className="w-4 text-[10px] font-black text-slate-700 group-hover:text-slate-500 transition-colors text-right shrink-0">{idx + 1}</span>
+                              {/* Club color badge */}
+                              <div
+                                className="w-9 h-7 rounded-md shrink-0 overflow-hidden"
+                                style={{ background: `linear-gradient(135deg, ${c0} 0%, ${c0} 50%, ${c1} 50%, ${c1} 100%)`, border: '1px solid rgba(255,255,255,0.1)' }}
+                              >
+                                <div className="w-full h-full" style={{ background: `linear-gradient(to bottom, ${c2}22, transparent)` }} />
+                              </div>
+                              {/* Club name */}
+                              <span className="flex-1 text-[11px] font-black text-slate-200 group-hover:text-white transition-colors text-left tracking-widest truncate uppercase">{club.name}</span>
+                              <span className="text-slate-700 group-hover:text-slate-400 transition-colors text-xs shrink-0">›</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {activeTab === 'clubs' && !selectedCountry && (
               <div
                 className="grid gap-2 p-4"
                 style={{
                   gridAutoFlow: 'column',
-                  gridTemplateRows: `repeat(${Math.ceil(countries.length / FLAG_COLUMNS)}, auto)`,
+                  gridTemplateRows: `repeat(${Math.ceil((countries.length + 1) / FLAG_COLUMNS)}, auto)`,
                   gridTemplateColumns: `repeat(${FLAG_COLUMNS}, minmax(0, 1fr))`
                 }}
               >
-                {countries.map(code => (
+                {[...countries, 'WORLD'].map(code => (
                   <button
                     key={code}
                     onClick={() => setSelectedCountry(code)}
-                    className="group relative flex flex-col items-center gap-2.5 px-3 py-3 rounded-2xl overflow-hidden transition-all duration-200 text-center bg-slate-900/50 backdrop-blur-sm border border-white/[0.07] hover:border-white/[0.18] hover:bg-slate-800/60 min-h-[88px]"
+                    className="group relative flex flex-col items-center gap-2.5 px-3 py-3 rounded-2xl overflow-hidden transition-all duration-200 text-center bg-slate-900/40 border border-white/[0.07] hover:border-white/[0.18] hover:bg-slate-800/50 min-h-[88px]"
                   >
-                    {/* Gloss layer */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none" />
-                    {/* Ghost country name */}
-                    <div className="absolute right-1 bottom-[-2px] text-[2.2rem] font-black italic text-white/[0.05] select-none group-hover:text-white/[0.09] transition-colors leading-none pointer-events-none tracking-tighter">
-                      {code}
-                    </div>
-                    {/* Hover shimmer from top */}
-                    <div
-                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                      style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04), transparent)' }}
-                    />
-                    <img
-                      src={flagUrl(code)}
-                      alt={COUNTRY_NAME[code]}
-                      className="relative w-[72px] h-[46px] object-cover rounded-md shadow-lg"
-                    />
-                    <span className="relative text-[10px] text-slate-400 group-hover:text-white transition-colors leading-tight font-semibold w-full text-center truncate">
-                      {COUNTRY_NAME[code]}
-                    </span>
+                    {code === 'WORLD' ? (
+                      <>
+                        <span className="relative text-[2.8rem] leading-none mt-1">🌍</span>
+                        <span className="relative text-[10px] text-slate-400 group-hover:text-white transition-colors leading-tight font-semibold w-full text-center truncate">
+                          Inne drużyny
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="absolute right-1 bottom-[-2px] text-[2.2rem] font-black italic text-white/[0.05] select-none group-hover:text-white/[0.09] transition-colors leading-none pointer-events-none tracking-tighter">
+                          {code}
+                        </div>
+                        <div
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                          style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04), transparent)' }}
+                        />
+                        <img
+                          src={flagUrl(code)}
+                          alt={COUNTRY_NAME[code]}
+                          className="relative w-[72px] h-[46px] object-cover rounded-md shadow-lg"
+                        />
+                        <span className="relative text-[10px] text-slate-400 group-hover:text-white transition-colors leading-tight font-semibold w-full text-center truncate">
+                          {COUNTRY_NAME[code]}
+                        </span>
+                      </>
+                    )}
                   </button>
                 ))}
               </div>
@@ -600,12 +714,12 @@ export const EuropeanClubsView: React.FC = () => {
             {activeTab === 'nt' && !selectedNT && (
               <div className="p-2">
                 {/* Sub-zakładki kontynentów */}
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="flex flex-wrap gap-2 mb-5 justify-center">
                   {CONTINENTS.map(({ key, label }) => (
                     <button
                       key={key}
                       onClick={() => setActiveContinent(key)}
-                      className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                         activeContinent === key
                           ? 'bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.3)]'
                           : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.07] border border-white/[0.08]'
@@ -617,7 +731,7 @@ export const EuropeanClubsView: React.FC = () => {
                 </div>
 
                 {/* Licznik */}
-                <div className="text-[9px] text-slate-600 font-semibold uppercase tracking-widest mb-2 px-1">
+                <div className="text-[11px] text-slate-600 font-semibold uppercase tracking-widest mb-3 px-1">
                   {continentTeams.length} reprezentacji
                 </div>
 

@@ -38,8 +38,17 @@ const POLISH_CLUB_FOREIGN_REGIONS: Region[] = [
   Region.AZERBAIJANI,
   Region.KAZAKH,
 ];
-const getRandomPolishClubForeignRegion = (): Region =>
-  POLISH_CLUB_FOREIGN_REGIONS[Math.floor(Math.random() * POLISH_CLUB_FOREIGN_REGIONS.length)];
+const getRandomPolishClubForeignRegion = (leagueTier: number): Region => {
+  const brazilWeight    = leagueTier <= 2 ? 5 : 0;
+  const argentinaWeight = 1;
+  const others = POLISH_CLUB_FOREIGN_REGIONS.filter(r => r !== Region.BRAZIL && r !== Region.ARGENTINA);
+  const otherWeight = (100 - brazilWeight - argentinaWeight) / others.length;
+  const roll = Math.random() * 100;
+  if (roll < brazilWeight) return Region.BRAZIL;
+  if (roll < brazilWeight + argentinaWeight) return Region.ARGENTINA;
+  const idx = Math.floor((roll - brazilWeight - argentinaWeight) / otherWeight);
+  return others[Math.min(idx, others.length - 1)];
+};
 const GK_COUNT = 4;
 const DEF_COUNT = 10;
 const MID_COUNT = 10;
@@ -117,7 +126,7 @@ export const SquadGeneratorService = {
     const squadBase = slots.map((slot, index) => {
         let namePair;
         let fullName;
-        let region = slot.isForeign ? getRandomPolishClubForeignRegion() : Region.POLAND;
+        let region = slot.isForeign ? getRandomPolishClubForeignRegion(leagueTier) : Region.POLAND;
 
         let attempts = 0;
         do {
@@ -274,6 +283,18 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       polishSlots.add(Math.floor(Math.random() * 30));
     }
 
+    const getSouthAmericanBoostedRegion = (): Region => {
+      const brazilWeight    = country === 'POR' ? 25 : country === 'ITA' ? 12 : country === 'ESP' ? 10 : 1;
+      const argentinaWeight = country === 'POR' ? 10 : country === 'ITA' ?  8 : country === 'ESP' ? 15 : 1;
+      const beneluxWeight   = ['ENG','GER','FRA','ITA','ESP'].includes(country) ? 5 : 1;
+      const totalWeight = brazilWeight + argentinaWeight + beneluxWeight + 28;
+      const roll = Math.random() * totalWeight;
+      if (roll < brazilWeight) return Region.BRAZIL;
+      if (roll < brazilWeight + argentinaWeight) return Region.ARGENTINA;
+      if (roll < brazilWeight + argentinaWeight + beneluxWeight) return Region.BENELUX;
+      return NameGeneratorService.getRandomForeignRegion();
+    };
+
        const squad = slots.map((slot, index) => {
       const isLocal = localPool !== null && index < localCount;
       let region: Region;
@@ -282,7 +303,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       } else if (isLocal) {
         region = localPool[Math.floor(Math.random() * localPool.length)];
       } else {
-        region = NameGeneratorService.getRandomForeignRegion();
+        region = getSouthAmericanBoostedRegion();
       }
       let namePair;
       let fullName;
@@ -348,6 +369,87 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         }
       }
     }
+
+    return squad;
+  },
+
+  generateSouthAmericanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {
+    const usedNames = new Set<string>();
+
+    const countryToLocalRegion: Partial<Record<string, Region>> = {
+      'ARG': Region.ARGENTINA,
+      'BRA': Region.BRAZIL,
+    };
+    const localRegion = countryToLocalRegion[country] ?? Region.SOUTH_AMERICAN;
+
+    const totalSlots = 30;
+    const localCount = Math.round(totalSlots * 0.75); // 23
+    const saCount    = Math.round(totalSlots * 0.20); // 6
+    // foreignCount = 30 - 23 - 6 = 1
+
+    const slots: { pos: PlayerPosition }[] = [
+      ...Array(3).fill({ pos: PlayerPosition.GK }),
+      ...Array(8).fill({ pos: PlayerPosition.DEF }),
+      ...Array(10).fill({ pos: PlayerPosition.MID }),
+      ...Array(9).fill({ pos: PlayerPosition.FWD }),
+    ];
+
+    const squad = slots.map((slot, index) => {
+      let region: Region;
+      if (index < localCount) {
+        region = localRegion;
+      } else if (index < localCount + saCount) {
+        region = Region.SOUTH_AMERICAN;
+      } else {
+        region = NameGeneratorService.getRandomForeignRegion();
+      }
+
+      let namePair;
+      let fullName;
+      let attempts = 0;
+      do {
+        namePair = NameGeneratorService.getRandomName(region);
+        fullName = `${namePair.firstName} ${namePair.lastName}`;
+        attempts++;
+      } while (usedNames.has(fullName) && attempts < 50);
+      usedNames.add(fullName);
+
+      const age = 17 + Math.floor(Math.random() * 18);
+      const genData = PlayerAttributesGenerator.generateAttributes(slot.pos, tier, reputation, age, true);
+
+      return {
+        id: `SA_${clubId}_${String(index).padStart(2, '0')}`,
+        firstName: namePair.firstName,
+        lastName: namePair.lastName,
+        clubId,
+        position: slot.pos,
+        nationality: region,
+        age,
+        fatigueDebt: 0,
+        overallRating: genData.overall,
+        attributes: genData.attributes,
+        stats: {
+          matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,
+          yellowCards: 0, redCards: 0, cleanSheets: 0,
+          seasonalChanges: {}, ratingHistory: []
+        },
+        health: { status: HealthStatus.HEALTHY },
+        condition: 100,
+        suspensionMatches: 0,
+        contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random() * 3), 5, 30).toISOString(),
+        annualSalary: 0,
+        marketValue: 0,
+        isUntouchable: true,
+        negotiationStep: 0,
+        negotiationLockoutUntil: null,
+        contractLockoutUntil: null,
+        boardLockoutUntil: null,
+        isNegotiationPermanentBlocked: false,
+        transferLockoutUntil: null,
+        freeAgentLockoutUntil: null,
+        history: []
+      } as Player;
+    });
 
     return squad;
   }
