@@ -1616,8 +1616,11 @@ return {
     if (calibAwayFouls < 8) calibAwayFouls += Math.floor(Math.random() * 13) + 2;
 
     // b) Strzały ogólne (Gole jako katalizator)
-    const calibHomeShots = matchState.liveStats.home.shots + (matchState.homeScore * (Math.floor(Math.random() * 3) + 2));
-    const calibAwayShots = matchState.liveStats.away.shots + (matchState.awayScore * (Math.floor(Math.random() * 3) + 2));
+    let calibHomeShots = matchState.liveStats.home.shots + (matchState.homeScore * (Math.floor(Math.random() * 3) + 2));
+    let calibAwayShots = matchState.liveStats.away.shots + (matchState.awayScore * (Math.floor(Math.random() * 3) + 2));
+    // Failsafe: drużyna zawsze oddaje min. 4 strzały
+    if (calibHomeShots < 4) calibHomeShots += Math.floor(Math.random() * 8) + 4;
+    if (calibAwayShots < 4) calibAwayShots += Math.floor(Math.random() * 8) + 4;
 
     // c) Rzuty rożne (Safe-min 3)
     let calibHomeCorners = matchState.liveStats.home.corners;

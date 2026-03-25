@@ -44,6 +44,11 @@ export const Dashboard: React.FC = () => {
   const [selectedMail, setSelectedMail] = useState<MailMessage | null>(null);
   const [isFinanceModalOpen, setIsFinanceModalOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    setIsProcessing(false);
+  }, [currentDate]);
 
   const myClub = clubs.find(c => c.id === userTeamId);
 
@@ -430,7 +435,7 @@ const boardConfidence = useMemo(() => {
 
     <div className="h-[1080px] max-w-[1920px] mx-auto flex flex-col gap-4 animate-fade-in overflow-hidden relative pr-2 z-10">
 
-      {isJumping && (
+      {(isJumping || isProcessing) && (
         <div className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
            <div className="bg-slate-900 border border-white/10 px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-pulse">
               <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
@@ -653,7 +658,7 @@ const boardConfidence = useMemo(() => {
 
            <div className="shrink-0 flex flex-col items-center gap-2">
               <button 
-                onClick={actionConfig.action}
+                onClick={() => { setIsProcessing(true); setTimeout(actionConfig.action, 0); }}
                 disabled={actionConfig.disabled}
                 className={`
                   relative group px-14 py-6 rounded-[32px] transition-all duration-500 transform hover:scale-105 active:scale-95
