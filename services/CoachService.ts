@@ -92,6 +92,8 @@ createRandomCoach: (isPolish: boolean): Coach => {
       nationality: region,
       nationalityFlag: isPolish ? '🇵🇱' : '🌍',
       currentClubId: null,
+      currentNationalTeamId: null,
+      isNationalTeamCoach: false,
       hiredDate: new Date('2025-07-01').toISOString(), // Domyślna data startu sezonu
       blacklist: {},
       attributes: {
@@ -102,6 +104,47 @@ createRandomCoach: (isPolish: boolean): Coach => {
       },
       history: []
     };
+  },
+
+  generateNationalTeamCoaches: (): Coach[] => {
+    // Generuje ~500 trenerów dedykowanych reprezentacjom narodowym (overhead dla 208 drużyn)
+    // Rozłożonych proporcjonalnie po 5 przedziałach doświadczenia odpowiadających reputacji NT
+    const tiers = [
+      { minExp: 85, maxExp: 99, count: 100 }, // rep 18-20: światowe potęgi
+      { minExp: 65, maxExp: 84, count: 100 }, // rep 14-17: silne reprezentacje
+      { minExp: 40, maxExp: 64, count: 120 }, // rep 10-13: średnie reprezentacje
+      { minExp: 20, maxExp: 39, count: 100 }, // rep 6-9:  słabe reprezentacje
+      { minExp: 5,  maxExp: 19, count: 80  }, // rep 1-5:  najsłabsze reprezentacje
+    ];
+    const result: Coach[] = [];
+    tiers.forEach(({ minExp, maxExp, count }) => {
+      for (let i = 0; i < count; i++) {
+        const region = NameGeneratorService.getRandomForeignRegion();
+        const namePair = NameGeneratorService.getRandomName(region);
+        const exp = minExp + Math.floor(Math.random() * (maxExp - minExp + 1));
+        result.push({
+          id: `NT_COACH_${Math.random().toString(36).substr(2, 9)}`,
+          firstName: namePair.firstName,
+          lastName: namePair.lastName,
+          age: 35 + Math.floor(Math.random() * 35),
+          nationality: region,
+          nationalityFlag: '🌍',
+          currentClubId: null,
+          currentNationalTeamId: null,
+          isNationalTeamCoach: true,
+          hiredDate: new Date('2025-07-01').toISOString(),
+          blacklist: {},
+          attributes: {
+            experience: exp,
+            decisionMaking: 20 + Math.floor(Math.random() * 79),
+            motivation: 20 + Math.floor(Math.random() * 79),
+            training: 20 + Math.floor(Math.random() * 79)
+          },
+          history: []
+        });
+      }
+    });
+    return result;
   },
 
   evaluatePerformance: (club: Club, coach: Coach, rank: number): { fire: boolean, reason: string } => {

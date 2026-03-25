@@ -111,6 +111,8 @@ export interface Coach {
   attributes: CoachAttributes;
   history: CoachHistoryEntry[];
   currentClubId: string | null;
+  currentNationalTeamId?: string | null;
+  isNationalTeamCoach?: boolean;
   hiredDate: string; // ISO Date String
    blacklist: Record<string, number>;
 }
@@ -467,6 +469,10 @@ export interface NationalTeam {
   stadiumName: string;
   stadiumCapacity: number;
   reputation: number;
+  region: Region;
+  coachId: string | null;
+  squadPlayerIds: string[];
+  tacticId: string | null;
 }
 export interface League {
   id: string;
