@@ -33,7 +33,8 @@ export const PreMatchCLLiveStudioView: React.FC = () => {
        f.leagueId === CompetitionType.CL_GROUP_STAGE ||
        f.leagueId === CompetitionType.CL_R16 || f.leagueId === CompetitionType.CL_R16_RETURN ||
        f.leagueId === CompetitionType.CL_QF || f.leagueId === CompetitionType.CL_QF_RETURN ||
-       f.leagueId === CompetitionType.CL_SF || f.leagueId === CompetitionType.CL_SF_RETURN)
+       f.leagueId === CompetitionType.CL_SF || f.leagueId === CompetitionType.CL_SF_RETURN ||
+       f.leagueId === CompetitionType.CL_FINAL)
     );
   }, [fixtures, currentDate, userTeamId]);
 

@@ -1184,7 +1184,7 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
-        // ── LK: Mecze Rundy 1 (gracz nie uczestniczy — auto-symulacja) ──────
+        // ── LK: Mecze Rundy 1 ───────────────────────────────────────────────
         case CompetitionType.CONF_R1Q:
         case CompetitionType.CONF_R1Q_RETURN: {
           const alreadyPlayedCONF = allFixtures.some(f =>
@@ -1193,7 +1193,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayedCONF) {
-            processCLMatchDay();
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
           }
           break;
         }
@@ -1209,7 +1211,7 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
-        // ── LK: Mecze Rundy 2 (gracz nie uczestniczy — auto-symulacja) ──────
+        // ── LK: Mecze Rundy 2 ───────────────────────────────────────────────
         case CompetitionType.CONF_R2Q:
         case CompetitionType.CONF_R2Q_RETURN: {
           const alreadyPlayedCONFR2Q = allFixtures.some(f =>
@@ -1218,7 +1220,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayedCONFR2Q) {
-            processCLMatchDay();
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
           }
           break;
         }
@@ -1234,14 +1238,18 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
-        // ── LK: Faza Grupowa (auto-symulacja) ──────────────────────────────
+        // ── LK: Faza Grupowa ────────────────────────────────────────────────
         case CompetitionType.CONF_GROUP_STAGE: {
           const alreadyPlayedCONFGS = allFixtures.some(f =>
             f.date.toDateString() === dateToProcess.toDateString() &&
             f.leagueId === CompetitionType.CONF_GROUP_STAGE &&
             f.status === MatchStatus.FINISHED
           );
-          if (!alreadyPlayedCONFGS) { processCLMatchDay(); }
+          if (!alreadyPlayedCONFGS) {
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
+          }
           break;
         }
 
@@ -1254,7 +1262,7 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
-        // ── LK: 1/8 Finału (mecze — auto-symulacja) ─────────────────────────
+        // ── LK: 1/8 Finału ──────────────────────────────────────────────────
         case CompetitionType.CONF_R16:
         case CompetitionType.CONF_R16_RETURN: {
           const alreadyPlayedCONFR16 = allFixtures.some(f =>
@@ -1263,7 +1271,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayedCONFR16) {
-            processCLMatchDay();
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
           }
           break;
         }
@@ -1276,7 +1286,7 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
-        // ── LK: 1/4 Finału (mecze — auto-symulacja) ─────────────────────────
+        // ── LK: 1/4 Finału ──────────────────────────────────────────────────
         case CompetitionType.CONF_QF:
         case CompetitionType.CONF_QF_RETURN: {
           const alreadyPlayedCONFQF = allFixtures.some(f =>
@@ -1285,7 +1295,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayedCONFQF) {
-            processCLMatchDay();
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
           }
           break;
         }
@@ -1298,7 +1310,7 @@ setMessages([welcomeMail, fanMail]);
           skipDayAdvance = true; break;
         }
 
-        // ── LK: 1/2 Finału (mecze — auto-symulacja) ──────────────────────────
+        // ── LK: 1/2 Finału ──────────────────────────────────────────────────
         case CompetitionType.CONF_SF:
         case CompetitionType.CONF_SF_RETURN: {
           const alreadyPlayedCONFSF = allFixtures.some(f =>
@@ -1307,7 +1319,9 @@ setMessages([welcomeMail, fanMail]);
             f.status === MatchStatus.FINISHED
           );
           if (!alreadyPlayedCONFSF) {
-            processCLMatchDay();
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
           }
           break;
         }
@@ -1339,7 +1353,9 @@ setMessages([welcomeMail, fanMail]);
           if (!confFinalFixture) break;
           const alreadyPlayedCONFFinal = confFinalFixture.status === MatchStatus.FINISHED;
           if (!alreadyPlayedCONFFinal) {
-            processCLMatchDay();
+            if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+            navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
+            skipDayAdvance = true; break;
           }
           if (alreadyPlayedCONFFinal) {
             const mailKey = `CONF_FINAL_RESULT_${confFinalFixture.date.getFullYear()}`;
@@ -1713,7 +1729,7 @@ setMessages([welcomeMail, fanMail]);
           const alreadyPlayed = finalFixture.status === MatchStatus.FINISHED;
           if (!alreadyPlayed) {
             if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
-            navigateTo(ViewState.PRE_MATCH_CL_FINAL);
+            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
             skipDayAdvance = true; break;
           }
           // Finał rozegrany — wyślij mail o zwycięzcy (raz)
@@ -1913,6 +1929,10 @@ setMessages([welcomeMail, fanMail]);
          primaryEvent.slot.competition === CompetitionType.EL_R2Q ||
          primaryEvent.slot.competition === CompetitionType.EL_R2Q_RETURN ||
          primaryEvent.slot.competition === CompetitionType.EL_GROUP_STAGE ||
+         primaryEvent.slot.competition === CompetitionType.CONF_R1Q ||
+         primaryEvent.slot.competition === CompetitionType.CONF_R1Q_RETURN ||
+         primaryEvent.slot.competition === CompetitionType.CONF_R2Q ||
+         primaryEvent.slot.competition === CompetitionType.CONF_R2Q_RETURN ||
          primaryEvent.slot.competition === CompetitionType.CONF_GROUP_STAGE ||
          primaryEvent.slot.competition === CompetitionType.EL_R16 ||
          primaryEvent.slot.competition === CompetitionType.EL_R16_RETURN ||

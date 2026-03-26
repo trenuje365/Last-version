@@ -2,17 +2,17 @@ import React, { useEffect, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, Player, PlayerPosition, HealthStatus, InjurySeverity } from '../types';
 import { KitSelectionService } from '../services/KitSelectionService';
-import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../resources/static_db/clubs/EuropeLeagueTeams';
+import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from '../resources/static_db/clubs/ConferenceLeagueTeams';
 import { PlayerPresentationService } from '../services/PlayerPresentationService';
 import { TacticRepository } from '../resources/tactics_db';
 import { getClubLogo } from '../resources/ClubLogoAssets';
 
-import ligaEuropaBg from '../Graphic/themes/LigaEuropa.png';
+import ligaKonferencjiBg from '../Graphic/themes/Liga_konferencji.png';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
-export const PreMatchELLiveStudioView: React.FC = () => {
+export const PreMatchCONFLiveStudioView: React.FC = () => {
   const {
     navigateTo,
     userTeamId,
@@ -28,19 +28,19 @@ export const PreMatchELLiveStudioView: React.FC = () => {
       f.status === 'SCHEDULED' &&
       f.date.toDateString() === currentDate.toDateString() &&
       (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
-      (f.leagueId === CompetitionType.EL_R1Q || f.leagueId === CompetitionType.EL_R1Q_RETURN ||
-       f.leagueId === CompetitionType.EL_R2Q || f.leagueId === CompetitionType.EL_R2Q_RETURN ||
-       f.leagueId === CompetitionType.EL_GROUP_STAGE ||
-       f.leagueId === CompetitionType.EL_R16 || f.leagueId === CompetitionType.EL_R16_RETURN ||
-       f.leagueId === CompetitionType.EL_QF || f.leagueId === CompetitionType.EL_QF_RETURN ||
-       f.leagueId === CompetitionType.EL_SF || f.leagueId === CompetitionType.EL_SF_RETURN ||
-       f.leagueId === CompetitionType.EL_FINAL)
+      (f.leagueId === CompetitionType.CONF_R1Q || f.leagueId === CompetitionType.CONF_R1Q_RETURN ||
+       f.leagueId === CompetitionType.CONF_R2Q || f.leagueId === CompetitionType.CONF_R2Q_RETURN ||
+       f.leagueId === CompetitionType.CONF_GROUP_STAGE ||
+       f.leagueId === CompetitionType.CONF_R16 || f.leagueId === CompetitionType.CONF_R16_RETURN ||
+       f.leagueId === CompetitionType.CONF_QF || f.leagueId === CompetitionType.CONF_QF_RETURN ||
+       f.leagueId === CompetitionType.CONF_SF || f.leagueId === CompetitionType.CONF_SF_RETURN ||
+       f.leagueId === CompetitionType.CONF_FINAL)
     );
   }, [fixtures, currentDate, userTeamId]);
 
   useEffect(() => {
     if (!fixture) {
-      navigateTo(ViewState.PRE_MATCH_EL_STUDIO);
+      navigateTo(ViewState.PRE_MATCH_CONF_STUDIO);
     }
   }, [fixture, navigateTo]);
 
@@ -50,8 +50,8 @@ export const PreMatchELLiveStudioView: React.FC = () => {
   const weather = useMemo(() => {
     if (!homeClub || !fixture) return null;
     let country = 'POL';
-    if (homeClub.leagueId === 'L_EL') {
-      const raw = RAW_EUROPA_LEAGUE_CLUBS.find(c => generateELClubId(c.name) === homeClub.id);
+    if (homeClub.leagueId === 'L_CONF') {
+      const raw = RAW_CONFERENCE_LEAGUE_CLUBS.find(c => generateCONFClubId(c.name) === homeClub.id);
       country = raw?.country ?? 'POL';
     }
     let hash = 0;
@@ -153,11 +153,11 @@ export const PreMatchELLiveStudioView: React.FC = () => {
   const firstLegResult = useMemo(() => {
     if (!fixture || !homeClub || !awayClub) return null;
     const returnToFirstLeg: Record<string, string> = {
-      [CompetitionType.EL_R1Q_RETURN]: CompetitionType.EL_R1Q,
-      [CompetitionType.EL_R2Q_RETURN]: CompetitionType.EL_R2Q,
-      [CompetitionType.EL_R16_RETURN]: CompetitionType.EL_R16,
-      [CompetitionType.EL_QF_RETURN]: CompetitionType.EL_QF,
-      [CompetitionType.EL_SF_RETURN]: CompetitionType.EL_SF,
+      [CompetitionType.CONF_R1Q_RETURN]: CompetitionType.CONF_R1Q,
+      [CompetitionType.CONF_R2Q_RETURN]: CompetitionType.CONF_R2Q,
+      [CompetitionType.CONF_R16_RETURN]: CompetitionType.CONF_R16,
+      [CompetitionType.CONF_QF_RETURN]: CompetitionType.CONF_QF,
+      [CompetitionType.CONF_SF_RETURN]: CompetitionType.CONF_SF,
     };
     const firstLegId = returnToFirstLeg[fixture.leagueId as string];
     if (!firstLegId) return null;
@@ -201,21 +201,21 @@ export const PreMatchELLiveStudioView: React.FC = () => {
   }, [homeClub, awayClub, fixture]);
 
   const roundLabel = useMemo(() => {
-    if (!fixture) return 'LIGA EUROPY';
+    if (!fixture) return 'LIGA KONFERENCJI';
     switch (fixture.leagueId) {
-      case CompetitionType.EL_R1Q: return '1. RUNDA KWALIFIKACYJNA';
-      case CompetitionType.EL_R1Q_RETURN: return '1. RUNDA KWALIFIKACYJNA — REWANŻ';
-      case CompetitionType.EL_R2Q: return '2. RUNDA KWALIFIKACYJNA';
-      case CompetitionType.EL_R2Q_RETURN: return '2. RUNDA KWALIFIKACYJNA — REWANŻ';
-      case CompetitionType.EL_GROUP_STAGE: return 'FAZA GRUPOWA';
-      case CompetitionType.EL_R16: return '1/8 FINAŁU';
-      case CompetitionType.EL_R16_RETURN: return '1/8 FINAŁU — REWANŻ';
-      case CompetitionType.EL_QF: return '1/4 FINAŁU';
-      case CompetitionType.EL_QF_RETURN: return '1/4 FINAŁU — REWANŻ';
-      case CompetitionType.EL_SF: return '1/2 FINAŁU';
-      case CompetitionType.EL_SF_RETURN: return '1/2 FINAŁU — REWANŻ';
-      case CompetitionType.EL_FINAL: return 'FINAŁ';
-      default: return 'LIGA EUROPY';
+      case CompetitionType.CONF_R1Q: return '1. RUNDA KWALIFIKACYJNA';
+      case CompetitionType.CONF_R1Q_RETURN: return '1. RUNDA KWALIFIKACYJNA — REWANŻ';
+      case CompetitionType.CONF_R2Q: return '2. RUNDA KWALIFIKACYJNA';
+      case CompetitionType.CONF_R2Q_RETURN: return '2. RUNDA KWALIFIKACYJNA — REWANŻ';
+      case CompetitionType.CONF_GROUP_STAGE: return 'FAZA GRUPOWA';
+      case CompetitionType.CONF_R16: return '1/8 FINAŁU';
+      case CompetitionType.CONF_R16_RETURN: return '1/8 FINAŁU — REWANŻ';
+      case CompetitionType.CONF_QF: return '1/4 FINAŁU';
+      case CompetitionType.CONF_QF_RETURN: return '1/4 FINAŁU — REWANŻ';
+      case CompetitionType.CONF_SF: return '1/2 FINAŁU';
+      case CompetitionType.CONF_SF_RETURN: return '1/2 FINAŁU — REWANŻ';
+      case CompetitionType.CONF_FINAL: return 'FINAŁ';
+      default: return 'LIGA KONFERENCJI';
     }
   }, [fixture]);
 
@@ -231,8 +231,8 @@ export const PreMatchELLiveStudioView: React.FC = () => {
 
   if (!fixture || !homeClub || !awayClub || !matchKits || !squadDetails || !weather) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-950 text-white font-black uppercase italic tracking-tighter text-orange-400">
-        Inicjalizacja Studia Europa League...
+      <div className="h-screen flex items-center justify-center bg-slate-950 text-white font-black uppercase italic tracking-tighter text-emerald-400">
+        Inicjalizacja Studia Conference League...
       </div>
     );
   }
@@ -244,9 +244,9 @@ export const PreMatchELLiveStudioView: React.FC = () => {
 
       {/* TŁO */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <img src={ligaEuropaBg} alt="" className="w-full h-full object-cover opacity-25" />
+        <img src={ligaKonferencjiBg} alt="" className="w-full h-full object-cover opacity-25" />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/50 to-slate-950/95" />
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-orange-500/8 blur-[150px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-500/8 blur-[150px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-900/10 blur-[150px]" />
       </div>
 
@@ -264,23 +264,23 @@ export const PreMatchELLiveStudioView: React.FC = () => {
               <div>
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Gospodarz</p>
                 <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">{homeClub.name}</h2>
-                <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">{homeTactic?.name || '—'}</p>
+                <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">{homeTactic?.name || '—'}</p>
               </div>
             </div>
 
             {/* Środek — tytuł */}
             <div className="flex flex-col items-center px-8 text-center shrink-0">
-              <p className="text-orange-400 text-[9px] font-black uppercase tracking-[0.5em]">UEFA Europa League</p>
+              <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.5em]">UEFA Conference League</p>
               <h1 className="text-2xl font-black italic uppercase tracking-tighter text-white leading-tight mt-1">{roundLabel}</h1>
               {firstLegResult && (
-                <p className="text-[10px] font-black text-orange-300 uppercase tracking-widest mt-1">
+                <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mt-1">
                   1. mecz: {awayClub.name} {firstLegResult.homeScore}:{firstLegResult.awayScore} {homeClub.name}
                 </p>
               )}
               <p className="text-slate-400 text-[10px] mt-1">{currentDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · 21:00</p>
               <div className="flex items-center gap-2 mt-3">
-                <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shadow-[0_0_10px_rgba(251,146,60,0.8)]" />
-                <span className="text-[9px] font-black text-orange-400 uppercase tracking-[0.4em]">Studio Przedmeczowe</span>
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em]">Studio Przedmeczowe</span>
               </div>
             </div>
 
@@ -289,7 +289,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
               <div>
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Gość</p>
                 <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">{awayClub.name}</h2>
-                <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">{awayTactic?.name || '—'}</p>
+                <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">{awayTactic?.name || '—'}</p>
               </div>
               {getClubLogo(awayClub.id) && (
                 <img src={getClubLogo(awayClub.id)} alt={awayClub.name} className="w-16 h-16 object-contain drop-shadow-2xl" />
@@ -305,7 +305,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
           <div className={GLASS_CARD + " w-64 p-5 flex flex-col shrink-0"}>
             <div className={GLOSS_LAYER} />
             <div className="relative z-10 flex flex-col h-full">
-              <p className="text-[9px] font-black text-orange-400 uppercase tracking-[0.4em] text-center mb-3">{homeClub.name} — Skład</p>
+              <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] text-center mb-3">{homeClub.name} — Skład</p>
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
                 {squadDetails.hXI.map(p => (
                   <div key={p.id} className="flex items-center gap-2 py-1 border-b border-white/[0.03]">
@@ -374,7 +374,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
                 <div className={GLOSS_LAYER} />
                 <div className="relative z-10 text-center">
                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-1">Taktyka Gospodarzy</p>
-                  <p className="text-xl font-black text-orange-400 italic uppercase">{homeTactic?.name || '—'}</p>
+                  <p className="text-xl font-black text-emerald-400 italic uppercase">{homeTactic?.name || '—'}</p>
                   {teamStats && (
                     <p className="text-[10px] text-slate-400 mt-0.5">
                       Atak {teamStats.homeAttack} · Obrona {teamStats.homeDefense} · Pressing {teamStats.homePressing}
@@ -395,7 +395,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
                       </div>
                       <div className="text-center">
                         <p className="text-[8px] text-slate-500 uppercase">X</p>
-                        <p className="text-xl font-black text-orange-400 italic">{bettingOdds.draw.toFixed(2)}</p>
+                        <p className="text-xl font-black text-emerald-400 italic">{bettingOdds.draw.toFixed(2)}</p>
                       </div>
                       <div className="text-center">
                         <p className="text-[8px] text-slate-500 uppercase">2</p>
@@ -410,7 +410,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
                 <div className={GLOSS_LAYER} />
                 <div className="relative z-10 text-center">
                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-1">Taktyka Gości</p>
-                  <p className="text-xl font-black text-orange-400 italic uppercase">{awayTactic?.name || '—'}</p>
+                  <p className="text-xl font-black text-emerald-400 italic uppercase">{awayTactic?.name || '—'}</p>
                   {teamStats && (
                     <p className="text-[10px] text-slate-400 mt-0.5">
                       Atak {teamStats.awayAttack} · Obrona {teamStats.awayDefense} · Pressing {teamStats.awayPressing}
@@ -427,9 +427,9 @@ export const PreMatchELLiveStudioView: React.FC = () => {
                   <img src={getClubLogo(homeClub.id)} alt={homeClub.name} className="w-20 h-20 object-contain drop-shadow-2xl opacity-90 transform -rotate-3" />
                 )}
                 <div className="text-center">
-                  <p className="text-orange-400 text-[9px] font-black uppercase tracking-[0.6em]">UEFA Europa League</p>
+                  <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.6em]">UEFA Conference League</p>
                   <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none my-1">
-                    {homeClub.name} <span className="text-orange-400">vs</span> {awayClub.name}
+                    {homeClub.name} <span className="text-emerald-400">vs</span> {awayClub.name}
                   </h2>
                   <p className="text-slate-400 text-sm uppercase tracking-widest">{roundLabel}</p>
                 </div>
@@ -456,10 +456,10 @@ export const PreMatchELLiveStudioView: React.FC = () => {
                 </div>
               )}
               <button
-                onClick={() => navigateTo(ViewState.MATCH_LIVE_EL)}
-                className="px-20 py-5 rounded-[30px] bg-orange-500 hover:bg-orange-400 text-white font-black italic text-xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-[0_20px_60px_rgba(249,115,22,0.35)] border-b-4 border-orange-700"
+                onClick={() => navigateTo(ViewState.MATCH_LIVE_CONF)}
+                className="px-20 py-5 rounded-[30px] bg-emerald-500 hover:bg-emerald-400 text-white font-black italic text-xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-[0_20px_60px_rgba(52,211,153,0.35)] border-b-4 border-emerald-700"
               >
-                ZAGRAJ NA ŻYWO 🟠
+                ZAGRAJ NA ŻYWO 🟢
               </button>
             </div>
           </div>
@@ -468,7 +468,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
           <div className={GLASS_CARD + " w-64 p-5 flex flex-col shrink-0"}>
             <div className={GLOSS_LAYER} />
             <div className="relative z-10 flex flex-col h-full">
-              <p className="text-[9px] font-black text-orange-400 uppercase tracking-[0.4em] text-center mb-3">{awayClub.name} — Skład</p>
+              <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] text-center mb-3">{awayClub.name} — Skład</p>
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 text-right">
                 {squadDetails.aXI.map(p => (
                   <div key={p.id} className="flex items-center gap-2 py-1 border-b border-white/[0.03] flex-row-reverse">
@@ -496,7 +496,7 @@ export const PreMatchELLiveStudioView: React.FC = () => {
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.15); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.15); border-radius: 10px; }
       `}</style>
     </div>
   );

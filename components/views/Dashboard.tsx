@@ -177,10 +177,9 @@ const boardConfidence = useMemo(() => {
             error: lineupValidation.valid ? null : lineupValidation.error,
           };
 
-        // ── Liga Mistrzów / Liga Europy — mecz ──────────────────────────
+        // ── Liga Mistrzów / Liga Europy / Liga Konferencji — mecz ───────
         case EventKind.MATCH_EURO: {
           const isCLFinal = todayEvent.slot.competition === CompetitionType.CL_FINAL;
-          const isELFinal = todayEvent.slot.competition === CompetitionType.EL_FINAL;
           const isELComp = todayEvent.slot.competition === CompetitionType.EL_R1Q ||
                            todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ||
                            todayEvent.slot.competition === CompetitionType.EL_R2Q ||
@@ -193,11 +192,22 @@ const boardConfidence = useMemo(() => {
                            todayEvent.slot.competition === CompetitionType.EL_SF ||
                            todayEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
                            todayEvent.slot.competition === CompetitionType.EL_FINAL;
+          const isCONFComp = todayEvent.slot.competition === CompetitionType.CONF_R1Q ||
+                             todayEvent.slot.competition === CompetitionType.CONF_R1Q_RETURN ||
+                             todayEvent.slot.competition === CompetitionType.CONF_R2Q ||
+                             todayEvent.slot.competition === CompetitionType.CONF_R2Q_RETURN ||
+                             todayEvent.slot.competition === CompetitionType.CONF_GROUP_STAGE ||
+                             todayEvent.slot.competition === CompetitionType.CONF_R16 ||
+                             todayEvent.slot.competition === CompetitionType.CONF_R16_RETURN ||
+                             todayEvent.slot.competition === CompetitionType.CONF_QF ||
+                             todayEvent.slot.competition === CompetitionType.CONF_QF_RETURN ||
+                             todayEvent.slot.competition === CompetitionType.CONF_SF ||
+                             todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN ||
+                             todayEvent.slot.competition === CompetitionType.CONF_FINAL;
           return {
-            text: isCLFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : isELFinal ? '🟠 FINAŁ LIGI EUROPY' : isELComp ? '🟠 LIGA EUROPY' : 'LIGA MISTRZÓW ⭐',
+            text: isCLFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : isCONFComp ? '🟢 LIGA KONFERENCJI' : isELComp ? '🟠 LIGA EUROPY' : 'LIGA MISTRZÓW ⭐',
             action: () => {
-              if (isELFinal) { processCLMatchDay(); navigateTo(ViewState.POST_MATCH_CL_STUDIO); }
-              else { navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_FINAL : isELComp ? ViewState.PRE_MATCH_EL_STUDIO : ViewState.PRE_MATCH_CL_STUDIO); }
+              navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_STUDIO : isCONFComp ? ViewState.PRE_MATCH_CONF_STUDIO : isELComp ? ViewState.PRE_MATCH_EL_STUDIO : ViewState.PRE_MATCH_CL_STUDIO);
             },
             isMatch: true,
             disabled: isJumping,

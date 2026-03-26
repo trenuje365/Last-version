@@ -57,6 +57,10 @@ import { PostMatchELStudioView } from './LECupEngine/PostMatchELStudioView';
 import { CONFDrawView } from './LECupEngine/CONFDrawView';
 import { CONFR2QDrawView } from './LECupEngine/CONFR2QDrawView';
 import { CONFHistoryView } from './LECupEngine/CONFHistoryView';
+import { PreMatchCONFStudioView } from './LECupEngine/PreMatchCONFStudioView';
+import { PreMatchCONFLiveStudioView } from './LECupEngine/PreMatchCONFLiveStudioView';
+import { CONFMatchLiveView } from './LECupEngine/CONFMatchLiveView';
+import { PostMatchCONFStudioView } from './LECupEngine/PostMatchCONFStudioView';
 import { ELGroupDrawView } from './components/views/ELGroupDrawView';
 import { CONFGroupDrawView } from './LECupEngine/CONFGroupDrawView';
 import { CONFR16DrawView } from './LECupEngine/CONFR16DrawView';
@@ -132,6 +136,18 @@ case ViewState.MATCH_LIVE_EL:
 
 case ViewState.POST_MATCH_EL_STUDIO:
   return <PostMatchELStudioView />;
+
+case ViewState.PRE_MATCH_CONF_STUDIO:
+  return <PreMatchCONFStudioView />;
+
+case ViewState.PRE_MATCH_CONF_LIVE_STUDIO:
+  return <PreMatchCONFLiveStudioView />;
+
+case ViewState.MATCH_LIVE_CONF:
+  return <CONFMatchLiveView />;
+
+case ViewState.POST_MATCH_CONF_STUDIO:
+  return <PostMatchCONFStudioView />;
 
   case ViewState.PRE_MATCH_CL_FINAL:
   return <PreMatchCLFinalView />;

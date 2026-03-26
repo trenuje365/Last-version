@@ -64,29 +64,29 @@ import { HalftimeTalkModal } from '../components/modals/HalftimeTalkModal';
 import { TalkEffect } from '../services/HalftimeTalkService';
 
 const CL_LEAGUE_IDS: CompetitionType[] = [
-  CompetitionType.EL_R1Q, CompetitionType.EL_R1Q_RETURN,
-  CompetitionType.EL_R2Q, CompetitionType.EL_R2Q_RETURN,
-  CompetitionType.EL_GROUP_STAGE,
-  CompetitionType.EL_R16, CompetitionType.EL_R16_RETURN,
-  CompetitionType.EL_QF, CompetitionType.EL_QF_RETURN,
-  CompetitionType.EL_SF, CompetitionType.EL_SF_RETURN,
-  CompetitionType.EL_FINAL,
+  CompetitionType.CONF_R1Q, CompetitionType.CONF_R1Q_RETURN,
+  CompetitionType.CONF_R2Q, CompetitionType.CONF_R2Q_RETURN,
+  CompetitionType.CONF_GROUP_STAGE,
+  CompetitionType.CONF_R16, CompetitionType.CONF_R16_RETURN,
+  CompetitionType.CONF_QF, CompetitionType.CONF_QF_RETURN,
+  CompetitionType.CONF_SF, CompetitionType.CONF_SF_RETURN,
+  CompetitionType.CONF_FINAL,
 ];
 
 const RETURN_LEG_TYPES: CompetitionType[] = [
-  CompetitionType.EL_R1Q_RETURN,
-  CompetitionType.EL_R2Q_RETURN,
-  CompetitionType.EL_R16_RETURN,
-  CompetitionType.EL_QF_RETURN,
-  CompetitionType.EL_SF_RETURN,
+  CompetitionType.CONF_R1Q_RETURN,
+  CompetitionType.CONF_R2Q_RETURN,
+  CompetitionType.CONF_R16_RETURN,
+  CompetitionType.CONF_QF_RETURN,
+  CompetitionType.CONF_SF_RETURN,
 ];
 
 const FIRST_LEG_MAP: Partial<Record<CompetitionType, CompetitionType>> = {
-  [CompetitionType.EL_R1Q_RETURN]: CompetitionType.EL_R1Q,
-  [CompetitionType.EL_R2Q_RETURN]: CompetitionType.EL_R2Q,
-  [CompetitionType.EL_R16_RETURN]: CompetitionType.EL_R16,
-  [CompetitionType.EL_QF_RETURN]: CompetitionType.EL_QF,
-  [CompetitionType.EL_SF_RETURN]: CompetitionType.EL_SF,
+  [CompetitionType.CONF_R1Q_RETURN]: CompetitionType.CONF_R1Q,
+  [CompetitionType.CONF_R2Q_RETURN]: CompetitionType.CONF_R2Q,
+  [CompetitionType.CONF_R16_RETURN]: CompetitionType.CONF_R16,
+  [CompetitionType.CONF_QF_RETURN]: CompetitionType.CONF_QF,
+  [CompetitionType.CONF_SF_RETURN]: CompetitionType.CONF_SF,
 };
 
 const checkShootoutWinner = (seq: { side: 'HOME' | 'AWAY', result: 'SCORED' | 'MISSED' }[]): 'HOME' | 'AWAY' | null => {
@@ -141,7 +141,7 @@ const BigJerseyIcon = ({ primary, secondary, size = "w-16 h-16" }: { primary: st
   </div>
 );
 
-export const ELMatchLiveView = () => {
+export const CONFMatchLiveView = () => {
   const { 
     navigateTo, userTeamId, clubs, fixtures, players, 
     lineups, currentDate, setLastMatchSummary, applySimulationResult, viewPlayerDetails,seasonNumber, coaches,
@@ -1881,7 +1881,7 @@ const summary: MatchSummary = {
 
     setLastMatchSummary(summary);
     setMatchState(null);
-    navigateTo(ViewState.POST_MATCH_EL_STUDIO);
+    navigateTo(ViewState.POST_MATCH_CONF_STUDIO);
   };
 
   if (!matchState || !ctx || !env || !kitColors) return null;

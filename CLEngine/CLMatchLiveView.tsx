@@ -70,6 +70,7 @@ const CL_LEAGUE_IDS: CompetitionType[] = [
   CompetitionType.CL_R16, CompetitionType.CL_R16_RETURN,
   CompetitionType.CL_QF, CompetitionType.CL_QF_RETURN,
   CompetitionType.CL_SF, CompetitionType.CL_SF_RETURN,
+  CompetitionType.CL_FINAL,
 ];
 
 const RETURN_LEG_TYPES: CompetitionType[] = [
@@ -2428,7 +2429,7 @@ const SquadList = ({ side, lineup, players, fatigue, injs, subsHistory }: { side
       const p = ctx.homePlayers.find(px => px.id === pId);
       if (!p || matchState.sentOffIds.includes(p.id)) return null;
       const injury = matchState.homeInjuries[pId];
-const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && !g.isMiss);
+const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && !g.isMiss && !g.varDisallowed);
       return (
         <div
   key={`h-${p.id}`}
@@ -2453,7 +2454,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
             {matchState.playerYellowCards[p.id] > 0 && <div className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-yellow-400 border-2 border-slate-900 rounded-md shadow-lg" />}
 
  {hasScored && (
-              <div className="absolute -top-2 -left-2 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] shadow-lg border border-black z-30">
+              <div className="absolute -top-2 -left-2 text-[10px] z-30">
                 ⚽
               </div>
             )}
@@ -2477,7 +2478,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
   const p = ctx.awayPlayers.find(px => px.id === pId);
   if (!p || matchState.sentOffIds.includes(p.id)) return null;
   const injury = matchState.awayInjuries[pId];
- const hasScored = matchState.awayGoals.some(g => g.playerName === p.lastName && !g.isMiss);
+ const hasScored = matchState.awayGoals.some(g => g.playerName === p.lastName && !g.isMiss && !g.varDisallowed);
   return (
     <div
       key={`a-${p.id}`}
@@ -2501,7 +2502,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
         {matchState.playerYellowCards[p.id] > 0 && <div className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-yellow-400 border-2 border-slate-900 rounded-md shadow-lg" />}
 
  {hasScored && (
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] shadow-lg border border-black z-30">
+          <div className="absolute -top-2 -right-2 text-[10px] z-30">
             ⚽
           </div>
         )}

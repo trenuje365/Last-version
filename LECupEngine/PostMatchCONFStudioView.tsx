@@ -1,13 +1,22 @@
 import React, { useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../types';
-import ligaMistrzowBg from '../Graphic/themes/cl_theme.png';
-import ligaEuropaBg from '../Graphic/themes/LigaEuropa.png';
+import ligaKonferencjiBg from '../Graphic/themes/Liga_konferencji.png';
 
 const GLASS_CARD = "bg-slate-950/20 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
-export const PostMatchCLStudioView: React.FC = () => {
+const CONF_MATCH_LEAGUE_IDS = [
+  CompetitionType.CONF_R1Q, CompetitionType.CONF_R1Q_RETURN,
+  CompetitionType.CONF_R2Q, CompetitionType.CONF_R2Q_RETURN,
+  CompetitionType.CONF_GROUP_STAGE,
+  CompetitionType.CONF_R16, CompetitionType.CONF_R16_RETURN,
+  CompetitionType.CONF_QF, CompetitionType.CONF_QF_RETURN,
+  CompetitionType.CONF_SF, CompetitionType.CONF_SF_RETURN,
+  CompetitionType.CONF_FINAL,
+];
+
+export const PostMatchCONFStudioView: React.FC = () => {
   const { fixtures, clubs, currentDate, navigateTo, advanceDay } = useGame();
 
   const results = useMemo(() => {
@@ -15,76 +24,46 @@ export const PostMatchCLStudioView: React.FC = () => {
     return fixtures.filter(f =>
       f.date.toDateString() === dateStr &&
       f.status === MatchStatus.FINISHED &&
-                 (f.leagueId === CompetitionType.CL_R1Q || f.leagueId === CompetitionType.CL_R1Q_RETURN ||
-       f.leagueId === CompetitionType.CL_R2Q || f.leagueId === CompetitionType.CL_R2Q_RETURN ||
-        f.leagueId === CompetitionType.CL_GROUP_STAGE ||
-       f.leagueId === CompetitionType.CL_R16 || f.leagueId === CompetitionType.CL_R16_RETURN ||
-            f.leagueId === CompetitionType.CL_QF || f.leagueId === CompetitionType.CL_QF_RETURN ||
-       f.leagueId === CompetitionType.CL_SF || f.leagueId === CompetitionType.CL_SF_RETURN ||
-       f.leagueId === CompetitionType.CL_FINAL ||
-       f.leagueId === CompetitionType.EL_QF || f.leagueId === CompetitionType.EL_QF_RETURN ||
-       f.leagueId === CompetitionType.EL_SF || f.leagueId === CompetitionType.EL_SF_RETURN ||
-       f.leagueId === CompetitionType.EL_FINAL)
+      CONF_MATCH_LEAGUE_IDS.includes(f.leagueId as CompetitionType)
     );
   }, [fixtures, currentDate]);
 
   const getClub = (id: string) => clubs.find(c => c.id === id);
 
-  const isELDay = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.EL_QF ||
-     results[0].leagueId === CompetitionType.EL_QF_RETURN ||
-     results[0].leagueId === CompetitionType.EL_SF ||
-     results[0].leagueId === CompetitionType.EL_SF_RETURN ||
-     results[0].leagueId === CompetitionType.EL_FINAL);
+  const firstResult = results[0];
 
-    const isReturn = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.CL_R1Q_RETURN ||
-     results[0].leagueId === CompetitionType.CL_R2Q_RETURN ||
-     results[0].leagueId === CompetitionType.CL_R16_RETURN ||
-     results[0].leagueId === CompetitionType.CL_QF_RETURN ||
-     results[0].leagueId === CompetitionType.CL_SF_RETURN ||
-     results[0].leagueId === CompetitionType.EL_QF_RETURN ||
-     results[0].leagueId === CompetitionType.EL_SF_RETURN);
+  const isReturn = !!firstResult && (
+    firstResult.leagueId === CompetitionType.CONF_R1Q_RETURN ||
+    firstResult.leagueId === CompetitionType.CONF_R2Q_RETURN ||
+    firstResult.leagueId === CompetitionType.CONF_R16_RETURN ||
+    firstResult.leagueId === CompetitionType.CONF_QF_RETURN ||
+    firstResult.leagueId === CompetitionType.CONF_SF_RETURN
+  );
 
-  const isQF = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.CL_QF ||
-     results[0].leagueId === CompetitionType.CL_QF_RETURN);
+  const getRoundLabel = (): string => {
+    if (!firstResult) return 'Liga Konferencji · Wyniki';
+    switch (firstResult.leagueId) {
+      case CompetitionType.CONF_R1Q:         return '1. Mecz — 1. Runda Kwalifikacyjna · Wyniki';
+      case CompetitionType.CONF_R1Q_RETURN:  return 'Rewanż — 1. Runda Kwalifikacyjna · Wyniki';
+      case CompetitionType.CONF_R2Q:         return '1. Mecz — 2. Runda Kwalifikacyjna · Wyniki';
+      case CompetitionType.CONF_R2Q_RETURN:  return 'Rewanż — 2. Runda Kwalifikacyjna · Wyniki';
+      case CompetitionType.CONF_GROUP_STAGE: return 'Faza Grupowa · Wyniki';
+      case CompetitionType.CONF_R16:         return '1/8 Finału — 1. Mecz · Wyniki';
+      case CompetitionType.CONF_R16_RETURN:  return '1/8 Finału — Rewanż · Wyniki';
+      case CompetitionType.CONF_QF:          return '1/4 Finału — 1. Mecz · Wyniki';
+      case CompetitionType.CONF_QF_RETURN:   return '1/4 Finału — Rewanż · Wyniki';
+      case CompetitionType.CONF_SF:          return '1/2 Finału — 1. Mecz · Wyniki';
+      case CompetitionType.CONF_SF_RETURN:   return '1/2 Finału — Rewanż · Wyniki';
+      case CompetitionType.CONF_FINAL:       return 'Finał Ligi Konferencji · Wynik';
+      default:                               return 'Liga Konferencji · Wyniki';
+    }
+  };
 
-  const isSF = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.CL_SF ||
-     results[0].leagueId === CompetitionType.CL_SF_RETURN);
-
- const isR2Q = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.CL_R2Q ||
-     results[0].leagueId === CompetitionType.CL_R2Q_RETURN);
-
-  const isGroupStage = results.length > 0 &&
-    results[0].leagueId === CompetitionType.CL_GROUP_STAGE;
-    const isR16 = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.CL_R16 ||
-     results[0].leagueId === CompetitionType.CL_R16_RETURN);
-
-  const isELQF = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.EL_QF ||
-     results[0].leagueId === CompetitionType.EL_QF_RETURN);
-
-  const isELSF = results.length > 0 &&
-    (results[0].leagueId === CompetitionType.EL_SF ||
-     results[0].leagueId === CompetitionType.EL_SF_RETURN);
-
-  const isELFinal = results.length > 0 &&
-    results[0].leagueId === CompetitionType.EL_FINAL;
-
-  const isCLFinal = results.length > 0 &&
-    results[0].leagueId === CompetitionType.CL_FINAL;
-
-  // Dla rewanżu: oblicz agregat dla każdego meczu
   const getAggregate = (fixture: typeof results[0]) => {
     if (!isReturn) return null;
     const firstLegId = fixture.id.replace('_RETURN', '');
     const firstLeg = fixtures.find(f => f.id === firstLegId);
     if (!firstLeg || firstLeg.homeScore === null) return null;
-    // W 1. meczu: home=A, away=B. W rewanżu: home=B, away=A
     const teamATotal = firstLeg.homeScore + (fixture.awayScore ?? 0);
     const teamBTotal = firstLeg.awayScore! + (fixture.homeScore ?? 0);
     return { teamATotal, teamBTotal, teamAId: firstLeg.homeTeamId, teamBId: firstLeg.awayTeamId };
@@ -100,10 +79,10 @@ export const PostMatchCLStudioView: React.FC = () => {
 
       {/* TŁO */}
       <div className="fixed inset-0 z-0">
-        <img 
-          src={isELDay ? ligaEuropaBg : ligaMistrzowBg} 
-          alt="" 
-          className="w-full h-full object-cover" 
+        <img
+          src={ligaKonferencjiBg}
+          alt=""
+          className="w-full h-full object-cover"
           style={{ filter: 'brightness(0.4)' }}
         />
         <div className="absolute inset-0 bg-slate-950/60" />
@@ -115,31 +94,13 @@ export const PostMatchCLStudioView: React.FC = () => {
         <div className={GLASS_CARD + " p-6 flex items-center justify-between shrink-0"}>
           <div className={GLOSS_LAYER} />
           <div className="flex items-center gap-5">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isELDay ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-amber-400/10 border border-amber-400/20'}`}>
-              {isELDay ? '🟠' : '⭐'}
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-emerald-500/10 border border-emerald-500/20">
+              🟢
             </div>
             <div>
-              <p className={`text-[9px] font-black uppercase tracking-[0.5em] ${isELDay ? 'text-orange-400' : 'text-amber-400'}`}>{isELDay ? 'UEFA Europa League · Wyniki' : 'UEFA Champions League · Wyniki'}</p>
-                        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">
-                          {isCLFinal
-                  ? 'Finał Ligi Mistrzów · Wynik'
-                  : isELFinal
-                  ? 'Finał Ligi Europy · Wynik'
-                  : isELSF
-                    ? (isReturn ? 'LE: 1/2 Finału — Rewanż · Wyniki' : 'LE: 1/2 Finału — 1. Mecz · Wyniki')
-                    : isELQF
-                      ? (isReturn ? 'LE: 1/4 Finału — Rewanż · Wyniki' : 'LE: 1/4 Finału — 1. Mecz · Wyniki')
-                      : isGroupStage
-                        ? `Faza Grupowa LM · Wyniki`
-                        : isSF
-                          ? (isReturn ? '1/2 Finału — Rewanż · Wyniki' : '1/2 Finału — 1. Mecz · Wyniki')
-                          : isQF
-                            ? (isReturn ? '1/4 Finału — Rewanż · Wyniki' : '1/4 Finału — 1. Mecz · Wyniki')
-                            : isR16
-                              ? (isReturn ? '1/8 Finału — Rewanż · Wyniki' : '1/8 Finału — 1. Mecz · Wyniki')
-                              : isReturn
-                                ? `Rewanż — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`
-                                : `1. Mecz — ${isR2Q ? '2.' : '1.'} Runda Preeliminacyjna`}
+              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-emerald-400">UEFA Conference League · Wyniki</p>
+              <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">
+                {getRoundLabel()}
               </h1>
               <p className="text-slate-400 text-xs mt-1">{currentDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
@@ -170,7 +131,6 @@ export const PostMatchCLStudioView: React.FC = () => {
                 const awayWins = (fixture.awayScore ?? 0) > (fixture.homeScore ?? 0);
                 const hasPens = fixture.homePenaltyScore !== undefined;
 
-                // Zwycięzca dwumeczu (tylko przy rewanżu)
                 let aggWinnerId: string | null = null;
                 if (agg) {
                   if (agg.teamATotal > agg.teamBTotal) aggWinnerId = agg.teamAId;
@@ -187,7 +147,7 @@ export const PostMatchCLStudioView: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1 justify-end">
                         {aggWinnerId === fixture.homeTeamId && (
-                          <span className="text-amber-400 text-[9px] font-black uppercase tracking-[0.3em]">AWANS</span>
+                          <span className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em]">AWANS</span>
                         )}
                         <span className={`text-sm font-black uppercase italic tracking-tight text-right truncate max-w-[180px] transition-colors ${homeWins ? 'text-white' : 'text-slate-400'}`}>
                           {home.name}
@@ -210,7 +170,7 @@ export const PostMatchCLStudioView: React.FC = () => {
                           {away.name}
                         </span>
                         {aggWinnerId === fixture.awayTeamId && (
-                          <span className="text-amber-400 text-[9px] font-black uppercase tracking-[0.3em]">AWANS</span>
+                          <span className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em]">AWANS</span>
                         )}
                       </div>
                     </div>

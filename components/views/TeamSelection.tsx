@@ -7,19 +7,23 @@ import { ViewState, Club } from '../../types';
 export const TeamSelection: React.FC = () => {
   const { clubs, selectUserTeam, navigateTo } = useGame();
   
-  const [selectedLeagueTier, setSelectedLeagueTier] = useState<number>(1);
+  const [selectedLeagueTier, setSelectedLeagueTier] = useState<number | 'FOREIGN'>(1);
+  const [selectedCountry, setSelectedCountry] = useState<'ENG' | 'ITA' | 'ESP'>('ENG');
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
 
-  // Filter clubs: Active only, and belongs to selected tier. 
+  // Filter clubs: Active only, and belongs to selected tier.
   const filteredClubs = useMemo(() => {
-    return clubs.filter(c => 
-      c.isDefaultActive && 
+    return clubs.filter(c =>
+      c.isDefaultActive &&
       ((selectedLeagueTier === 1 && c.leagueId === 'L_PL_1') ||
        (selectedLeagueTier === 2 && c.leagueId === 'L_PL_2') ||
        (selectedLeagueTier === 3 && c.leagueId === 'L_PL_3') ||
-       (selectedLeagueTier === 4 && c.leagueId === 'L_PL_4'))
+       (selectedLeagueTier === 4 && c.leagueId === 'L_PL_4') ||
+       (selectedLeagueTier === 'FOREIGN' &&
+         (c.leagueId === 'L_CL' || c.leagueId === 'L_EL' || c.leagueId === 'L_CONF') &&
+         c.country === selectedCountry))
     );
-  }, [clubs, selectedLeagueTier]);
+  }, [clubs, selectedLeagueTier, selectedCountry]);
 
   // Set default selection when tier changes
   useEffect(() => {
@@ -71,21 +75,52 @@ export const TeamSelection: React.FC = () => {
               ROZPOCZNIJ NOWĄ KARIERĘ • SEZON 2025/26
             </p>
           </div>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4].map(tier => (
-                <button
-                  key={tier}
-                  onClick={() => setSelectedLeagueTier(tier)}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all border
-                    ${selectedLeagueTier === tier 
-                      ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' 
-                      : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                    }
-                  `}
-                >
-                  {tier}. LIGA
-                </button>
-              ))}
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map(tier => (
+                  <button
+                    key={tier}
+                    onClick={() => setSelectedLeagueTier(tier)}
+                    className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all border
+                      ${selectedLeagueTier === tier
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                        : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                      }
+                    `}
+                  >
+                    {tier}. LIGA
+                  </button>
+                ))}
+              <button
+                onClick={() => setSelectedLeagueTier('FOREIGN')}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all border
+                  ${selectedLeagueTier === 'FOREIGN'
+                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                    : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                  }
+                `}
+              >
+                INNE DRUŻYNY
+              </button>
+            </div>
+            {selectedLeagueTier === 'FOREIGN' && (
+              <div className="flex gap-2 justify-end">
+                {(['ENG', 'ITA', 'ESP'] as const).map(country => (
+                  <button
+                    key={country}
+                    onClick={() => setSelectedCountry(country)}
+                    className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-widest transition-all border
+                      ${selectedCountry === country
+                        ? 'bg-emerald-700 border-emerald-500 text-white'
+                        : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                      }
+                    `}
+                  >
+                    {country === 'ENG' ? 'ANGLIA' : country === 'ITA' ? 'WŁOCHY' : 'HISZPANIA'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -208,7 +243,10 @@ export const TeamSelection: React.FC = () => {
                 <div className="flex-1 text-center md:text-left">
                    <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[9px] font-black tracking-[0.3em] uppercase mb-6 backdrop-blur-md">
                       <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                      {selectedLeagueTier}. Liga Polska
+                      {selectedLeagueTier === 'FOREIGN'
+                        ? (selectedCountry === 'ENG' ? 'Anglia' : selectedCountry === 'ITA' ? 'Włochy' : 'Hiszpania')
+                        : `${selectedLeagueTier}. Liga Polska`
+                      }
                    </div>
                    
                    <h2 className="text-6xl md:text-8xl font-black text-white italic uppercase tracking-tighter leading-[0.85] mb-8 drop-shadow-2xl">

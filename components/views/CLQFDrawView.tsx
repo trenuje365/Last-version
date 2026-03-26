@@ -128,7 +128,7 @@ export const CLQFDrawView: React.FC = () => {
                         {clubB?.name ?? pair.teamB}
                       </span>
                       {isUserIn && pair.teamB === userTeamId && (
-                        <span className="text-amber-400 text-[9px] font-black uppercase tracking-[0.3em]">TY</span>
+                        <span className="text-amber-400 text-[9px] font-black uppercase tracking-[0.3em]">*</span>
                       )}
                     </div>
                   </div>

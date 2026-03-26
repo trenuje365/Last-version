@@ -21,6 +21,7 @@ export const PreMatchCLStudioView: React.FC = () => {
        f.leagueId === CompetitionType.CL_R16 || f.leagueId === CompetitionType.CL_R16_RETURN ||
        f.leagueId === CompetitionType.CL_QF  || f.leagueId === CompetitionType.CL_QF_RETURN  ||
        f.leagueId === CompetitionType.CL_SF  || f.leagueId === CompetitionType.CL_SF_RETURN  ||
+       f.leagueId === CompetitionType.CL_FINAL ||
        f.leagueId === CompetitionType.EL_QF  || f.leagueId === CompetitionType.EL_QF_RETURN  ||
        f.leagueId === CompetitionType.EL_SF  || f.leagueId === CompetitionType.EL_SF_RETURN  ||
        f.leagueId === CompetitionType.EL_FINAL)

@@ -1,22 +1,22 @@
 import React, { useMemo, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../types';
-import ligaEuropaBg from '../Graphic/themes/LigaEuropa.png';
+import ligaKonferencjiBg from '../Graphic/themes/Liga_konferencji.png';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
-const EL_MATCH_LEAGUE_IDS = [
-  CompetitionType.EL_R1Q, CompetitionType.EL_R1Q_RETURN,
-  CompetitionType.EL_R2Q, CompetitionType.EL_R2Q_RETURN,
-  CompetitionType.EL_GROUP_STAGE,
-  CompetitionType.EL_R16, CompetitionType.EL_R16_RETURN,
-  CompetitionType.EL_QF, CompetitionType.EL_QF_RETURN,
-  CompetitionType.EL_SF, CompetitionType.EL_SF_RETURN,
-  CompetitionType.EL_FINAL,
+const CONF_MATCH_LEAGUE_IDS = [
+  CompetitionType.CONF_R1Q, CompetitionType.CONF_R1Q_RETURN,
+  CompetitionType.CONF_R2Q, CompetitionType.CONF_R2Q_RETURN,
+  CompetitionType.CONF_GROUP_STAGE,
+  CompetitionType.CONF_R16, CompetitionType.CONF_R16_RETURN,
+  CompetitionType.CONF_QF, CompetitionType.CONF_QF_RETURN,
+  CompetitionType.CONF_SF, CompetitionType.CONF_SF_RETURN,
+  CompetitionType.CONF_FINAL,
 ];
 
-export const PreMatchELStudioView: React.FC = () => {
+export const PreMatchCONFStudioView: React.FC = () => {
   const { fixtures, clubs, currentDate, navigateTo, processCLMatchDay, userTeamId } = useGame();
 
   const todayPairs = useMemo(() => {
@@ -24,7 +24,7 @@ export const PreMatchELStudioView: React.FC = () => {
     return fixtures.filter(f =>
       f.date.toDateString() === dateStr &&
       f.status === MatchStatus.SCHEDULED &&
-      EL_MATCH_LEAGUE_IDS.includes(f.leagueId as CompetitionType)
+      CONF_MATCH_LEAGUE_IDS.includes(f.leagueId as CompetitionType)
     );
   }, [fixtures, currentDate]);
 
@@ -33,42 +33,42 @@ export const PreMatchELStudioView: React.FC = () => {
   const firstFixture = todayPairs[0];
 
   const isReturn = !!firstFixture && (
-    firstFixture.leagueId === CompetitionType.EL_R1Q_RETURN ||
-    firstFixture.leagueId === CompetitionType.EL_R2Q_RETURN ||
-    firstFixture.leagueId === CompetitionType.EL_R16_RETURN ||
-    firstFixture.leagueId === CompetitionType.EL_QF_RETURN ||
-    firstFixture.leagueId === CompetitionType.EL_SF_RETURN
+    firstFixture.leagueId === CompetitionType.CONF_R1Q_RETURN ||
+    firstFixture.leagueId === CompetitionType.CONF_R2Q_RETURN ||
+    firstFixture.leagueId === CompetitionType.CONF_R16_RETURN ||
+    firstFixture.leagueId === CompetitionType.CONF_QF_RETURN ||
+    firstFixture.leagueId === CompetitionType.CONF_SF_RETURN
   );
 
   const getRoundLabel = (): string => {
-    if (!firstFixture) return 'Liga Europy';
+    if (!firstFixture) return 'Liga Konferencji';
     switch (firstFixture.leagueId) {
-      case CompetitionType.EL_R1Q:         return `1. Mecz — 1. Runda Kwalifikacyjna · ${todayPairs.length} par`;
-      case CompetitionType.EL_R1Q_RETURN:  return 'Rewanż — 1. Runda Kwalifikacyjna';
-      case CompetitionType.EL_R2Q:         return `1. Mecz — 2. Runda Kwalifikacyjna · ${todayPairs.length} par`;
-      case CompetitionType.EL_R2Q_RETURN:  return 'Rewanż — 2. Runda Kwalifikacyjna';
-      case CompetitionType.EL_GROUP_STAGE: return `Faza Grupowa · ${todayPairs.length} Meczów`;
-      case CompetitionType.EL_R16:         return `1/8 Finału — 1. Mecz · ${todayPairs.length} par`;
-      case CompetitionType.EL_R16_RETURN:  return '1/8 Finału — Rewanż';
-      case CompetitionType.EL_QF:          return `1/4 Finału — 1. Mecz · ${todayPairs.length} par`;
-      case CompetitionType.EL_QF_RETURN:   return '1/4 Finału — Rewanż';
-      case CompetitionType.EL_SF:          return `1/2 Finału — 1. Mecz · ${todayPairs.length} par`;
-      case CompetitionType.EL_SF_RETURN:   return '1/2 Finału — Rewanż';
-      case CompetitionType.EL_FINAL:       return 'Finał Ligi Europy · 1 Mecz';
-      default:                             return 'Liga Europy';
+      case CompetitionType.CONF_R1Q:         return `1. Mecz — 1. Runda Kwalifikacyjna · ${todayPairs.length} par`;
+      case CompetitionType.CONF_R1Q_RETURN:  return 'Rewanż — 1. Runda Kwalifikacyjna';
+      case CompetitionType.CONF_R2Q:         return `1. Mecz — 2. Runda Kwalifikacyjna · ${todayPairs.length} par`;
+      case CompetitionType.CONF_R2Q_RETURN:  return 'Rewanż — 2. Runda Kwalifikacyjna';
+      case CompetitionType.CONF_GROUP_STAGE: return `Faza Grupowa · ${todayPairs.length} Meczów`;
+      case CompetitionType.CONF_R16:         return `1/8 Finału — 1. Mecz · ${todayPairs.length} par`;
+      case CompetitionType.CONF_R16_RETURN:  return '1/8 Finału — Rewanż';
+      case CompetitionType.CONF_QF:          return `1/4 Finału — 1. Mecz · ${todayPairs.length} par`;
+      case CompetitionType.CONF_QF_RETURN:   return '1/4 Finału — Rewanż';
+      case CompetitionType.CONF_SF:          return `1/2 Finału — 1. Mecz · ${todayPairs.length} par`;
+      case CompetitionType.CONF_SF_RETURN:   return '1/2 Finału — Rewanż';
+      case CompetitionType.CONF_FINAL:       return 'Finał Ligi Konferencji · 1 Mecz';
+      default:                               return 'Liga Konferencji';
     }
   };
 
   const handleSimulate = () => {
     processCLMatchDay();
-    navigateTo(ViewState.POST_MATCH_EL_STUDIO);
+    navigateTo(ViewState.POST_MATCH_CONF_STUDIO);
   };
 
   const userHasMatch = todayPairs.some(f => f.homeTeamId === userTeamId || f.awayTeamId === userTeamId);
 
   useEffect(() => {
     if (userHasMatch) {
-      navigateTo(ViewState.PRE_MATCH_EL_LIVE_STUDIO);
+      navigateTo(ViewState.PRE_MATCH_CONF_LIVE_STUDIO);
     }
   }, [userHasMatch]);
 
@@ -77,7 +77,7 @@ export const PreMatchELStudioView: React.FC = () => {
 
       {/* TŁO */}
       <div className="fixed inset-0 z-0">
-        <img src={ligaEuropaBg} alt="" className="w-full h-full object-cover opacity-30" />
+        <img src={ligaKonferencjiBg} alt="" className="w-full h-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-slate-950/90" />
       </div>
 
@@ -87,11 +87,11 @@ export const PreMatchELStudioView: React.FC = () => {
         <div className={GLASS_CARD + " p-6 flex items-center justify-between shrink-0"}>
           <div className={GLOSS_LAYER} />
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-orange-500/10 border border-orange-500/20">
-              🟠
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-emerald-500/10 border border-emerald-500/20">
+              🟢
             </div>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-orange-400">UEFA Europa League</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-emerald-400">UEFA Conference League</p>
               <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">
                 {getRoundLabel()}
               </h1>
@@ -100,7 +100,7 @@ export const PreMatchELStudioView: React.FC = () => {
           </div>
           {userHasMatch && (
             <button
-              onClick={() => navigateTo(ViewState.PRE_MATCH_EL_LIVE_STUDIO)}
+              onClick={() => navigateTo(ViewState.PRE_MATCH_CONF_LIVE_STUDIO)}
               className="px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm"
             >
               ZAGRAJ NA ŻYWO →
@@ -108,7 +108,7 @@ export const PreMatchELStudioView: React.FC = () => {
           )}
           <button
             onClick={handleSimulate}
-            className="px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm"
+            className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm"
           >
             SYMULUJ MECZE →
           </button>
@@ -128,10 +128,10 @@ export const PreMatchELStudioView: React.FC = () => {
                 if (!home || !away) return null;
                 const isUserMatch = fixture.homeTeamId === userTeamId || fixture.awayTeamId === userTeamId;
                 return (
-                  <div key={fixture.id} className={`flex items-center justify-between px-6 py-4 border rounded-3xl transition-colors group ${isUserMatch ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.05]'}`}>
+                  <div key={fixture.id} className={`flex items-center justify-between px-6 py-4 border rounded-3xl transition-colors group ${isUserMatch ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.05]'}`}>
                     {/* Home */}
                     <div className="flex items-center gap-4 flex-1 justify-end">
-                      <span className="text-sm font-black uppercase italic tracking-tight text-white group-hover:text-orange-200 transition-colors text-right truncate max-w-[180px]">
+                      <span className="text-sm font-black uppercase italic tracking-tight text-white group-hover:text-emerald-200 transition-colors text-right truncate max-w-[180px]">
                         {home.name}
                       </span>
                       <div className="w-3 h-8 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: home.colorsHex[0] }} />
@@ -139,12 +139,12 @@ export const PreMatchELStudioView: React.FC = () => {
                     {/* VS */}
                     <div className="w-24 flex flex-col items-center shrink-0">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">vs</span>
-                      {isUserMatch && <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest mt-1">TWÓJ MECZ</span>}
+                      {isUserMatch && <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest mt-1">TWÓJ MECZ</span>}
                     </div>
                     {/* Away */}
                     <div className="flex items-center gap-4 flex-1 justify-start">
                       <div className="w-3 h-8 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: away.colorsHex[0] }} />
-                      <span className="text-sm font-black uppercase italic tracking-tight text-white group-hover:text-orange-200 transition-colors truncate max-w-[180px]">
+                      <span className="text-sm font-black uppercase italic tracking-tight text-white group-hover:text-emerald-200 transition-colors truncate max-w-[180px]">
                         {away.name}
                       </span>
                     </div>
