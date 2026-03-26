@@ -77,6 +77,7 @@ export enum ViewState {
   POST_MATCH_CL_FINAL = 'POST_MATCH_CL_FINAL',
   EUROPEAN_CLUBS = 'EUROPEAN_CLUBS',
   PRE_MATCH_EL_STUDIO = 'PRE_MATCH_EL_STUDIO',
+  PRE_MATCH_EL_LIVE_STUDIO = 'PRE_MATCH_EL_LIVE_STUDIO',
   MATCH_LIVE_EL = 'MATCH_LIVE_EL',
   POST_MATCH_EL_STUDIO = 'POST_MATCH_EL_STUDIO',
 }
@@ -863,6 +864,7 @@ export interface WeatherSnapshot {
   precipitationChance: number;
   windKmh: number;
   description: string;
+  weatherIntensity?: number; // 0.0 = brak wpływu, 1.0 = ekstremalne warunki
 }
 
 export interface OddsSnapshot {

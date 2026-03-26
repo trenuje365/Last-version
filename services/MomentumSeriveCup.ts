@@ -34,7 +34,7 @@ export const MomentumService = {
    */
    calculateNaturalTarget: (ctx: MatchContext, state: MatchLiveState): number => {
     const isNeutralVenue = ctx.fixture.id.includes("FINAŁ") || ctx.fixture.id.includes("SUPER_CUP");
-    let target = (ctx.homeClub.reputation - ctx.awayClub.reputation) * 2;
+    let target = (ctx.homeClub.reputation - ctx.awayClub.reputation) * 0.4; // Mały czynnik psychologiczny: respekt przed lepszą drużyną
     
     // Jeśli to NIE jest finał, doliczamy 5 pkt bonusu dla gospodarza
     if (ctx.homeAdvantage && !isNeutralVenue) {
@@ -61,8 +61,9 @@ const homeHasGK = ctx.homePlayers.find((p: any) => p.id === state.homeLineup.sta
 
     // ZMIANA PRO: Zastępujemy stałe bonusy "Grawitacją Jakościową"
     // Im większa różnica jakości (powerRatio), tym silniej Momentum chce być po stronie silniejszego.
-    const qualityGravity = (Math.pow(powerRatio, 1.8) - 1) * 45;
-    target = qualityGravity;
+    // Polska piłka: mniejsza grawitacja jakościowa — mecz może być wyrównany nawet przy różnicy OVR
+    const qualityGravity = (Math.pow(powerRatio, 1.15) - 1) * 25;
+    target += qualityGravity; // Dodajemy do reputacji zamiast nadpisywać
 
     // "Czynnik ludzki" w przewidywaniu celu - rzut kością na to, jak zespół czuje mecz
     const perceptionRoll = (Math.random() * 20) - 10;

@@ -181,7 +181,14 @@ const boardConfidence = useMemo(() => {
         case EventKind.MATCH_EURO: {
           const isCLFinal = todayEvent.slot.competition === CompetitionType.CL_FINAL;
           const isELFinal = todayEvent.slot.competition === CompetitionType.EL_FINAL;
-          const isELComp = todayEvent.slot.competition === CompetitionType.EL_QF ||
+          const isELComp = todayEvent.slot.competition === CompetitionType.EL_R1Q ||
+                           todayEvent.slot.competition === CompetitionType.EL_R1Q_RETURN ||
+                           todayEvent.slot.competition === CompetitionType.EL_R2Q ||
+                           todayEvent.slot.competition === CompetitionType.EL_R2Q_RETURN ||
+                           todayEvent.slot.competition === CompetitionType.EL_GROUP_STAGE ||
+                           todayEvent.slot.competition === CompetitionType.EL_R16 ||
+                           todayEvent.slot.competition === CompetitionType.EL_R16_RETURN ||
+                           todayEvent.slot.competition === CompetitionType.EL_QF ||
                            todayEvent.slot.competition === CompetitionType.EL_QF_RETURN ||
                            todayEvent.slot.competition === CompetitionType.EL_SF ||
                            todayEvent.slot.competition === CompetitionType.EL_SF_RETURN ||
@@ -190,7 +197,7 @@ const boardConfidence = useMemo(() => {
             text: isCLFinal ? 'FINAŁ LIGI MISTRZÓW ⭐' : isELFinal ? '🟠 FINAŁ LIGI EUROPY' : isELComp ? '🟠 LIGA EUROPY' : 'LIGA MISTRZÓW ⭐',
             action: () => {
               if (isELFinal) { processCLMatchDay(); navigateTo(ViewState.POST_MATCH_CL_STUDIO); }
-              else { navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_FINAL : ViewState.PRE_MATCH_CL_STUDIO); }
+              else { navigateTo(isCLFinal ? ViewState.PRE_MATCH_CL_FINAL : isELComp ? ViewState.PRE_MATCH_EL_STUDIO : ViewState.PRE_MATCH_CL_STUDIO); }
             },
             isMatch: true,
             disabled: isJumping,

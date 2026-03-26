@@ -1587,7 +1587,31 @@ if (targetPlayer && !prev.isPausedForEvent) {
 }
 
     // --- FAZA 1: WALKA O INICJATYWĘ (6 MIKRO-BITEW) ---
-        const weatherMod = env.weather.description.toLowerCase().includes('deszcz') ? 0.88 : 1.0;
+        // Asymetryczny modifier pogodowy: techniczna drużyna traci więcej na złej pogodzie niż fizyczna
+        const calcTeamWeatherMod = (players: Player[], lineupIds: (string | null)[]): number => {
+            const xi = players.filter(p => lineupIds.includes(p.id));
+            if (xi.length === 0) return 1.0;
+            const avgTech = xi.reduce((s, p) => s + p.attributes.technique, 0) / xi.length;
+            const intensity = env.weather.weatherIntensity ?? 0;
+            if (intensity < 0.1) return 1.0;
+            const desc = env.weather.description.toLowerCase();
+            const isPrecip = desc.includes('deszcz') || desc.includes('śnieg') || desc.includes('burza') || desc.includes('zamieć') || desc.includes('ulewa');
+            if (isPrecip) {
+                // Techniczna drużyna (tech>68): duża kara | fizyczna (tech<50): mała kara
+                const techFactor = avgTech > 68 ? 0.76 : avgTech > 55 ? 0.84 : 0.91;
+                return 1.0 - (1.0 - techFactor) * (0.5 + intensity * 0.5);
+            }
+            if (desc.includes('wiatr') || env.weather.windKmh > 32) {
+                return avgTech > 68 ? 0.91 : 0.96;
+            }
+            if (desc.includes('upał')) return 0.95;
+            if (desc.includes('mróz') || desc.includes('przymrozek')) {
+                return avgTech > 68 ? 0.90 : 0.96;
+            }
+            return 1.0;
+        };
+        const homeWeatherMod = calcTeamWeatherMod(ctx.homePlayers, nextHomeLineup.startingXI);
+        const awayWeatherMod = calcTeamWeatherMod(ctx.awayPlayers, nextAwayLineup.startingXI);
         // humanFactor: deterministyczny chaos — offset rośnie per-wywołanie, więc każda "bitwa" jest inna,
         // ale wyniki są powtarzalne dla tego samego seeda + minuty.
         let _humanFactorCallCount = 0;
@@ -1604,8 +1628,8 @@ if (targetPlayer && !prev.isPausedForEvent) {
         let awayWins = 0;
 
         battleCategories.forEach((attrs, i) => {
-            const hPwr = getFormationPowerPro(nextHomeLineup.startingXI, ctx.homePlayers, localHomeFatigue, attrs, [PlayerPosition.MID, PlayerPosition.DEF], weatherMod, nextHomeInjuries) * humanFactor();
-            const aPwr = getFormationPowerPro(nextAwayLineup.startingXI, ctx.awayPlayers, localAwayFatigue, attrs, [PlayerPosition.MID, PlayerPosition.DEF], weatherMod, nextAwayInjuries) * humanFactor();
+            const hPwr = getFormationPowerPro(nextHomeLineup.startingXI, ctx.homePlayers, localHomeFatigue, attrs, [PlayerPosition.MID, PlayerPosition.DEF], homeWeatherMod, nextHomeInjuries) * humanFactor();
+            const aPwr = getFormationPowerPro(nextAwayLineup.startingXI, ctx.awayPlayers, localAwayFatigue, attrs, [PlayerPosition.MID, PlayerPosition.DEF], awayWeatherMod, nextAwayInjuries) * humanFactor();
             
            // ZMIANA PRO: Rachunek prawdopodobieństwa. Moc to nie gwarancja, to szansa.
             const totalPower = hPwr + aPwr;
@@ -1678,8 +1702,8 @@ const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 445) * 2.0 *
         let successfulPasses = 0;
         
         for (let i = 0; i < diceRolls; i++) {
-            const attPwr = getFormationPowerPro(eventSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI, eventSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers, eventSide === 'HOME' ? localHomeFatigue : localAwayFatigue, ['attacking', 'passing'], [PlayerPosition.MID, PlayerPosition.FWD], weatherMod, eventSide === 'HOME' ? nextHomeInjuries : nextAwayInjuries);
-            const defPwr = getFormationPowerPro(eventSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI, eventSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers, eventSide === 'HOME' ? localAwayFatigue : localHomeFatigue, ['defending', 'positioning'], [PlayerPosition.DEF, PlayerPosition.MID, PlayerPosition.GK], weatherMod, eventSide === 'HOME' ? nextAwayInjuries : nextHomeInjuries);
+            const attPwr = getFormationPowerPro(eventSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI, eventSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers, eventSide === 'HOME' ? localHomeFatigue : localAwayFatigue, ['attacking', 'passing'], [PlayerPosition.MID, PlayerPosition.FWD], eventSide === 'HOME' ? homeWeatherMod : awayWeatherMod, eventSide === 'HOME' ? nextHomeInjuries : nextAwayInjuries);
+            const defPwr = getFormationPowerPro(eventSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI, eventSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers, eventSide === 'HOME' ? localAwayFatigue : localHomeFatigue, ['defending', 'positioning'], [PlayerPosition.DEF, PlayerPosition.MID, PlayerPosition.GK], eventSide === 'HOME' ? awayWeatherMod : homeWeatherMod, eventSide === 'HOME' ? nextAwayInjuries : nextHomeInjuries);
             
             if ((attPwr * humanFactor()) > (defPwr * humanFactor())) {
                 successfulPasses++;
@@ -2010,7 +2034,7 @@ if (keeper.tier === 4 && Math.random() < 0.13) { // 13% szansy na super interwen
                 eventSide === 'HOME' ? localHomeFatigue : localAwayFatigue,
                 ['attacking', 'finishing'],
                 [PlayerPosition.FWD, PlayerPosition.MID],
-                weatherMod,
+                eventSide === 'HOME' ? homeWeatherMod : awayWeatherMod,
                 eventSide === 'HOME' ? nextHomeInjuries : nextAwayInjuries
             );
             const upsetDefPwr = getFormationPowerPro(
@@ -2019,7 +2043,7 @@ if (keeper.tier === 4 && Math.random() < 0.13) { // 13% szansy na super interwen
                 eventSide === 'HOME' ? localAwayFatigue : localHomeFatigue,
                 ['defending', 'positioning'],
                 [PlayerPosition.DEF, PlayerPosition.MID, PlayerPosition.GK],
-                weatherMod,
+                eventSide === 'HOME' ? awayWeatherMod : homeWeatherMod,
                 eventSide === 'HOME' ? nextAwayInjuries : nextHomeInjuries
             );
             const upsetPowerGap = upsetDefPwr / Math.max(1, upsetAttPwr);

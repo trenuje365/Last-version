@@ -117,7 +117,8 @@ export const PreMatchCupStudioView: React.FC = () => {
       return 4;
     };
     const tierGap = Math.abs(getTierVal(data.homeClub.id) - getTierVal(data.awayClub.id));
-    const tierMod = tierGap >= 3 ? 2.8 : tierGap === 2 ? 1.8 : tierGap === 1 ? 1.3 : 1.0;
+    // Polska piłka: tier nie jest przepaścią — mały modifier jakościowy dla silniejszej ligi
+    const tierMod = tierGap >= 3 ? 1.15 : tierGap === 2 ? 1.10 : tierGap === 1 ? 1.05 : 1.0;
 
     const getLeagueRankMod = (cid: string): number => {
       if (getTierVal(cid) >= 4) return 1.0;
@@ -141,9 +142,11 @@ export const PreMatchCupStudioView: React.FC = () => {
       return 0.88 + formScore * 0.24;
     };
 
-    // Formuła Wykładnicza: Jakość rośnie nieliniowo
-    let hPower = Math.pow(hAvg + hRep, 2.6) * (getTierVal(data.homeClub.id) < getTierVal(data.awayClub.id) ? tierMod : 1) * getLeagueRankMod(data.homeClub.id) * getFormMod(data.homeClub.id);
-    let aPower = Math.pow(aAvg + aRep, 2.6) * (getTierVal(data.awayClub.id) < getTierVal(data.homeClub.id) ? tierMod : 1) * getLeagueRankMod(data.awayClub.id) * getFormMod(data.awayClub.id);
+    // Formuła oparta wyłącznie na OVR zawodników — reputacja to mały czynnik psychologiczny (+max ~10%)
+    const repBoostH = 1.0 + (hRep / 1000);
+    const repBoostA = 1.0 + (aRep / 1000);
+    let hPower = Math.pow(hAvg, 2.0) * repBoostH * (getTierVal(data.homeClub.id) < getTierVal(data.awayClub.id) ? tierMod : 1) * getLeagueRankMod(data.homeClub.id) * getFormMod(data.homeClub.id);
+    let aPower = Math.pow(aAvg, 2.0) * repBoostA * (getTierVal(data.awayClub.id) < getTierVal(data.homeClub.id) ? tierMod : 1) * getLeagueRankMod(data.awayClub.id) * getFormMod(data.awayClub.id);
     
     if (!data.fixture.id.includes("FINAŁ")) hPower *= 1.15; // Bonus domowy w potędze
     // KONIEC
@@ -161,22 +164,7 @@ export const PreMatchCupStudioView: React.FC = () => {
     hProb *= scale;
     aProb *= scale;
 
-    // Wymuszamy realistyczne stawki: drużyna z Ekstraklasy vs 2+ poziomy niżej → min kurs ~1.20
-    const homeT = getTierVal(data.homeClub.id);
-    const awayT = getTierVal(data.awayClub.id);
-    const MIN_EKSTRA_PROB = 100 / 1.20; // ~83.33%
-    if (homeT === 1 && awayT >= 3 && hProb < MIN_EKSTRA_PROB) {
-      hProb = MIN_EKSTRA_PROB;
-      const weakMinProb = 4 + Math.random() * 4; // 4%–8% → kurs ~12–25
-      dProb = Math.min(dProb, 100 - hProb - weakMinProb);
-      aProb = 100 - hProb - dProb;
-    } else if (awayT === 1 && homeT >= 3 && aProb < MIN_EKSTRA_PROB) {
-      aProb = MIN_EKSTRA_PROB;
-      const weakMinProb = 4 + Math.random() * 4; // 4%–8% → kurs ~12–25
-      dProb = Math.min(dProb, 100 - aProb - weakMinProb);
-      hProb = 100 - aProb - dProb;
-    }
-
+    // Kursy wynikają wyłącznie z siły drużyn (OVR) — brak sztucznego wymuszania przez tier
     const odds1 = (100 / hProb).toFixed(2);
     const oddsX = (100 / dProb).toFixed(2);
     const odds2 = (100 / aProb).toFixed(2);

@@ -51,6 +51,7 @@ import { ELDrawView } from './LECupEngine/ELDrawView';
 import { ELR2QDrawView } from './LECupEngine/ELR2QDrawView';
 import { ELHistoryView } from './LECupEngine/ELHistoryView';
 import { PreMatchELStudioView } from './LECupEngine/PreMatchELStudioView';
+import { PreMatchELLiveStudioView } from './LECupEngine/PreMatchELLiveStudioView';
 import { ELMatchLiveView } from './LECupEngine/ELMatchLiveView';
 import { PostMatchELStudioView } from './LECupEngine/PostMatchELStudioView';
 import { CONFDrawView } from './LECupEngine/CONFDrawView';
@@ -122,6 +123,9 @@ case ViewState.POST_MATCH_CL_STUDIO:
 
 case ViewState.PRE_MATCH_EL_STUDIO:
   return <PreMatchELStudioView />;
+
+case ViewState.PRE_MATCH_EL_LIVE_STUDIO:
+  return <PreMatchELLiveStudioView />;
 
 case ViewState.MATCH_LIVE_EL:
   return <ELMatchLiveView />;

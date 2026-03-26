@@ -70,7 +70,7 @@ export const PreMatchELStudioView: React.FC = () => {
 
   useEffect(() => {
     if (userHasMatch && !isFinal) {
-      navigateTo(ViewState.MATCH_LIVE_EL);
+      navigateTo(ViewState.PRE_MATCH_EL_LIVE_STUDIO);
     }
   }, [userHasMatch]);
 
@@ -102,7 +102,7 @@ export const PreMatchELStudioView: React.FC = () => {
           </div>
           {userHasMatch && !isFinal && (
             <button
-              onClick={() => navigateTo(ViewState.MATCH_LIVE_EL)}
+              onClick={() => navigateTo(ViewState.PRE_MATCH_EL_LIVE_STUDIO)}
               className="px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 text-sm"
             >
               ZAGRAJ NA ŻYWO →

@@ -2282,7 +2282,8 @@ const finalResult: SimulationOutput = {
           f.leagueId.startsWith('L_PL_') ||
           f.leagueId === 'POLISH_CUP' ||
           f.leagueId === 'SUPER_CUP' ||
-          (f.leagueId.startsWith('CL_') && !f.leagueId.endsWith('_DRAW'))
+          (f.leagueId.startsWith('CL_') && !f.leagueId.endsWith('_DRAW')) ||
+          (f.leagueId.startsWith('EL_') && !f.leagueId.endsWith('_DRAW'))
         ))
       );
 
@@ -2312,6 +2313,18 @@ const finalResult: SimulationOutput = {
               'CL_SF': 'Liga Mistrzów - Półfinał',
               'CL_SF_RETURN': 'LM - Półfinał Rewanż',
               'CL_FINAL': 'Liga Mistrzów - Finał',
+              'EL_R1Q': 'LE - Kwalifikacje R1',
+              'EL_R1Q_RETURN': 'LE - Kwalifikacje R1 Rewanż',
+              'EL_R2Q': 'LE - Kwalifikacje R2',
+              'EL_R2Q_RETURN': 'LE - Kwalifikacje R2 Rewanż',
+              'EL_GROUP_STAGE': 'Liga Europy - Faza Grupowa',
+              'EL_R16': 'Liga Europy - 1/8 Finału',
+              'EL_R16_RETURN': 'LE - 1/8 Finału Rewanż',
+              'EL_QF': 'Liga Europy - Ćwierćfinał',
+              'EL_QF_RETURN': 'LE - Ćwierćfinał Rewanż',
+              'EL_SF': 'Liga Europy - Półfinał',
+              'EL_SF_RETURN': 'LE - Półfinał Rewanż',
+              'EL_FINAL': 'Liga Europy - Finał',
             };
             const leagueName = tomorrowFixture.leagueId === 'L_PL_1' ? 'Ekstraklasa'
               : tomorrowFixture.leagueId === 'L_PL_2' ? '1. Liga'
