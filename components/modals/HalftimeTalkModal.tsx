@@ -124,14 +124,36 @@ export const HalftimeTalkModal = ({
   };
 
   const getMoodLabel = (): string => {
+    if (context === 'LOSING_HIGH') {
+      if (momentumEndOf1st > 15)  return 'Jesteśmy pod presją wyniku';
+      if (momentumEndOf1st < -15) return 'Przeciwnik wyraźnie dominuje nad nami';
+      return 'Tracimy kontrolę';
+    }
+    if (context === 'LOSING_ONE') {
+      if (momentumEndOf1st > 15)  return 'Walczymy o wyrównanie';
+      if (momentumEndOf1st < -15) return 'Jesteśmy pod ciągłą presją';
+      return 'Przegrywamy o bramkę';
+    }
+    if (context === 'WINNING_HIGH') {
+      if (momentumEndOf1st < -15) return 'Utrzymujemy wynik';
+      return 'Dominujemy';
+    }
+    if (context === 'WINNING_ONE') {
+      if (momentumEndOf1st > 15)  return 'Posiadamy lekką przewagę';
+      if (momentumEndOf1st < -15) return 'Bronimy prowadzenia';
+      return 'Prowadzimy';
+    }
     if (momentumEndOf1st > 40)  return 'Dominujemy';
-    if (momentumEndOf1st > 15)  return 'Lekka przewaga';
-    if (momentumEndOf1st < -40) return 'Pod ciągłą presją';
-    if (momentumEndOf1st < -15) return 'Lekka strata';
+    if (momentumEndOf1st > 15)  return 'Posiadamy lekką przewagę';
+    if (momentumEndOf1st < -40) return 'Jesteśmy pod ciągłą presją';
+    if (momentumEndOf1st < -15) return 'Przeciwnik lekko przeważa';
     return 'Wyrównany mecz';
   };
 
   const getMoodColor = (): string => {
+    if (context === 'LOSING_HIGH') return 'text-red-400';
+    if (context === 'LOSING_ONE')  return 'text-orange-400';
+    if (context === 'WINNING_HIGH' || context === 'WINNING_ONE') return 'text-emerald-400';
     if (momentumEndOf1st > 15)  return 'text-emerald-400';
     if (momentumEndOf1st < -15) return 'text-red-400';
     return 'text-slate-300';

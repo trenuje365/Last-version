@@ -585,6 +585,17 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
         let localHomeFatigue = { ...prev.homeFatigue };
         let localAwayFatigue = { ...prev.awayFatigue };
 
+        // ── CONTACT GOAL BOOST: inicjalizacja zmiennych lokalnych ──────────────
+        // Konwencja: >0 = boost dla HOME | <0 = boost dla AWAY | 0 = brak boosta
+        // Wygaszamy boost gdy minął czas jego trwania
+        let nextActiveTacticalBoost: number = prev.activeTacticalBoost ?? 0;
+        let nextTacticalBoostExpiry: number = prev.tacticalBoostExpiry ?? -1;
+        if (nextActiveTacticalBoost !== 0 && nextMinute > nextTacticalBoostExpiry) {
+          nextActiveTacticalBoost = 0;
+          nextTacticalBoostExpiry = -1;
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         
        const engineComment = MatchEngineService.generateCommentary(nextMinute, currentSeed, ctx.homeClub.name, ctx.awayClub.name);
         
@@ -854,6 +865,17 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
         const uPenaltyMod = uInstr.intensity === 'AGGRESSIVE' ? 1.0 + 0.25 * _irf : uInstr.intensity === 'CAUTIOUS' ? 1.0 - 0.30 * _irf : 1.0;
         // ───────────────────────────────────────────────────────────────────────
 
+        // ── CONTACT GOAL BOOST: aplikacja do shotThreshold ─────────────────────
+        // Jeśli atakująca drużyna ma aktywny boost kontaktowy → podnosi próg strzału.
+        // Boost trwa losowo 5-15 min i wygasa automatycznie (zerowanie wyżej).
+        if (nextActiveTacticalBoost !== 0 && nextMinute <= nextTacticalBoostExpiry) {
+          const boostSide = nextActiveTacticalBoost > 0 ? 'HOME' : 'AWAY';
+          if (boostSide === activeSide) {
+            shotThreshold += Math.abs(nextActiveTacticalBoost);
+          }
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         let pauseForEvent = false;
         let newLog: MatchLogEntry | null = null;
         let goalTriggered = false;
@@ -1037,6 +1059,34 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
               }
               newLog = { id: `GOAL_${nextMinute}`, minute: nextMinute, text: `⚽ ${getCommentary(MatchEventType.GOAL, scorer.lastName)}${assistant ? ` (Asystował: ${assistant.lastName})` : ''}`, type: MatchEventType.GOAL, teamSide: activeSide, playerName: scorer.lastName };
               goalTriggered = true; priorityAiTrigger = true; immediateEventType = MatchEventType.GOAL;
+
+              // ── CONTACT GOAL BOOST: detekcja i przyznanie boosta ───────────────
+              // Bramka kontaktowa = strzelająca drużyna była w tyle przed tym golem.
+              // Im bliżej remisu tym silniejszy boost bazowy.
+              // Im lepsza drużyna tym efektywniej wykorzystuje impet (factor 0.75–1.25).
+              // Konwencja zapisu: HOME > 0, AWAY < 0 (jeden number w stanie).
+              {
+                const _prevScoringScore = activeSide === 'HOME' ? prev.homeScore : prev.awayScore;
+                const _prevOppScore     = activeSide === 'HOME' ? prev.awayScore : prev.homeScore;
+                if (_prevScoringScore < _prevOppScore) {
+                  const _newDiff   = (_prevOppScore - _prevScoringScore) - 1; // różnica PO bramce
+                  const _baseBoost = _newDiff === 0 ? 0.020 : _newDiff === 1 ? 0.013 : 0.007;
+                  // Siła drużyny: średni overallRating XI (zakres 55-80 → factor 0.75-1.25)
+                  const _scoringPlayers = activeSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+                  const _scoringXI = (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter((id): id is string => id !== null);
+                  const _avgRating = _scoringXI.length > 0
+                    ? _scoringPlayers.filter(p => _scoringXI.includes(p.id)).reduce((acc, p) => acc + p.overallRating, 0) / _scoringXI.length
+                    : 60;
+                  const _teamFactor  = 0.75 + Math.max(0, Math.min(1, (_avgRating - 55) / 25)) * 0.5;
+                  const _finalBoost  = parseFloat((_baseBoost * _teamFactor).toFixed(4));
+                  // Czas trwania: losowo 5–15 minut (seededRng dla powtarzalności)
+                  const _boostDuration = 5 + Math.floor(seededRng(currentSeed, nextMinute, 9901) * 11);
+                  // Zapis: HOME = +value, AWAY = -value
+                  nextActiveTacticalBoost = activeSide === 'HOME' ? _finalBoost : -_finalBoost;
+                  nextTacticalBoostExpiry = nextMinute + _boostDuration;
+                }
+              }
+              // ────────────────────────────────────────────────────────────────────
           } else {
               const failRng = seededRng(currentSeed, nextMinute, 780);
               let failType = MatchEventType.SHOT_ON_TARGET;
@@ -1351,6 +1401,7 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
             homeInjuryMin: nextHomeInjuryMin, awayInjuryMin: nextAwayInjuryMin,
             homeUpgradeProb: nextHomeUpgradeProb, awayUpgradeProb: nextAwayUpgradeProb,
             userInstructions: nextUserInstructions,
+            activeTacticalBoost: 0, tacticalBoostExpiry: -1,
           };
         }
 
@@ -1388,9 +1439,11 @@ return {
            awayRiskMode: nextAwayRiskMode,
            homeInjuryMin: nextHomeInjuryMin, 
            awayInjuryMin: nextAwayInjuryMin,
-           homeUpgradeProb: nextHomeUpgradeProb, 
+           homeUpgradeProb: nextHomeUpgradeProb,
            awayUpgradeProb: nextAwayUpgradeProb,
-           userInstructions: nextUserInstructions
+           userInstructions: nextUserInstructions,
+           activeTacticalBoost: nextActiveTacticalBoost,
+           tacticalBoostExpiry: nextTacticalBoostExpiry
         };
 
 
