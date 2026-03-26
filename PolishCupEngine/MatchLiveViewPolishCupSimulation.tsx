@@ -569,7 +569,7 @@ useEffect(() => {
       const p = primary.shift();
       if (p) { anyQ = anyQ.filter(x => x.id !== p.id); return p.id; }
       const fb = fallbackPool.find(x => anyQ.some(a => a.id === x.id));
-      if (fb) { anyQ = anyQ.filter(x => x.id !== fb.id); return fb.id; }
+      if (fb) { anyQ = anyQ.filter(x => x.id !== fb.id); defQ = defQ.filter(x => x.id !== fb.id); midQ = midQ.filter(x => x.id !== fb.id); fwdQ = fwdQ.filter(x => x.id !== fb.id); return fb.id; }
       return null;
     };
 
