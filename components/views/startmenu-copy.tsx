@@ -1,41 +1,14 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState } from '../../types';
 import bgImg from '../../Graphic/themes/main_theme.png';
 export const StartMenu: React.FC = () => {
   const { startNewGame, navigateTo } = useGame();
-  const [showDisclaimer, setShowDisclaimer] = useState(true);
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-end bg-slate-950 overflow-hidden relative">
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 overflow-hidden relative">
       
-      {/* DISCLAIMER POPUP */}
-      {showDisclaimer && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative max-w-3xl w-full mx-6 max-h-[80vh] overflow-y-auto bg-slate-900/40 border border-white/10 rounded-[24px] p-8">
-            <button
-              onClick={() => setShowDisclaimer(false)}
-              className="absolute top-4 right-4 text-4xl text-white/40 hover:text-white transition-colors leading-none"
-            >
-              ✕
-            </button>
-            <p className="text-[13px] font-black text-emerald-500 uppercase tracking-widest mb-4">NOTA PRAWNA (DISCLAIMER)</p>
-            <div className="flex flex-col gap-3 text-[12px] font-black italic text-slate-300 tracking-wide leading-relaxed">
-              <p>Niniejsza gra <span className="text-white">„Futbol Manager"</span> jest w całości niekomercyjnym, fanowskim projektem stworzonym dobrowolnie.</p>
-              <p>Gra jest całkowicie bezpłatna i nie służy generowaniu żadnych korzyści finansowych. Twórca nie czerpie i nie zamierza czerpać jakichkolwiek dochodów z jej udostępniania lub użytkowania.</p>
-              <p>Znaki towarowe, loga klubów, nazwy drużyn, barwy oraz wszelkie inne oznaczenia należące do rzeczywistych klubów piłkarskich, federacji, lig lub innych podmiotów trzecich zostały użyte wyłącznie w celach niekomercyjnych i <span className="text-yellow-500">bez uzyskania zgody ich prawowitych właścicieli</span>. Użycie to nie oznacza żadnej afiliacji ani powiązania z tymi podmiotami.</p>
-              <p>Zbieżność imion i nazwisk rzeczywistych osób, jeśli wystąpi, jest całkowicie przypadkowa, ponieważ gra generuje fikcyjne postaci.</p>
-              <p>Kod źródłowy gry jest <span className="text-yellow-500">open-source</span> i może być dowolnie modyfikowany oraz rozbudowywany według potrzeb użytkowników.</p>
-              <p>Gra powstała jako dobrowolna, hobbystyczna inicjatywa i jest w całości bezpłatna.</p>
-              <p className="text-white">Twórca: JayJayBi &nbsp;|&nbsp; Data: marzec 2026</p>
-              <p>Twórca nie ponosi odpowiedzialności za jakiekolwiek szkody wynikające z użytkowania gry.</p>
-              <p>Wszelkie prawa do oryginalnych znaków towarowych, logo, nazw i wizerunków należą do ich prawowitych właścicieli.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 1. CINEMATIC BACKGROUND LAYER */}
       <div className="absolute inset-0 z-0">
         {/* Real Football Background - High Contrast Stadium */}
@@ -56,11 +29,23 @@ export const StartMenu: React.FC = () => {
       </div>
       
       {/* 2. CENTRAL CONTENT */}
-      <div className="relative z-10 flex flex-col items-center max-w-4xl w-full px-6 text-center animate-fade-in pb-8">
+      <div className="relative z-10 flex flex-col items-center max-w-4xl w-full px-6 text-center animate-fade-in">
         
-        
+        {/* Badge */}
+        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-xl shadow-2xl">
+           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,1)]" />
+           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300">Oficjalny Symulator Polskiej Ligi</span>
+        </div>
 
-      
+        {/* Main Title */}
+        <div className="mb-16 relative">
+          <h1 className="text-7xl md:text-9xl font-black italic text-white uppercase tracking-tighter leading-none drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            MANAGER<br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-400 to-slate-600">FUTBOLU 2026</span>
+          </h1>
+          {/* Subtle reflection below */}
+          <div className="absolute -bottom-12 left-0 right-0 h-12 bg-gradient-to-b from-white/10 to-transparent blur-xl opacity-20 scale-y-[-1] pointer-events-none" />
+        </div>
 
         {/* Action Menu */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-5xl mx-auto">
