@@ -1620,28 +1620,33 @@ if (targetPlayer && !prev.isPausedForEvent) {
             return 0.70 + (seededRng(currentSeed, nextMinute, _humanFactorCallCount * 137) * 0.60);
         };
 
-        const battleCategories: (keyof PlayerAttributes)[][] = [
-            ['stamina'], ['strength'], ['technique'], ['pace'], ['passing'], ['vision']
+        const battleCategories: { attrs: (keyof PlayerAttributes)[]; positions: PlayerPosition[] }[] = [
+            { attrs: ['stamina'],   positions: [PlayerPosition.MID, PlayerPosition.DEF, PlayerPosition.FWD] },
+            { attrs: ['strength'],  positions: [PlayerPosition.DEF, PlayerPosition.MID] },
+            { attrs: ['technique'], positions: [PlayerPosition.MID, PlayerPosition.FWD] },
+            { attrs: ['pace'],      positions: [PlayerPosition.FWD, PlayerPosition.MID] },
+            { attrs: ['passing'],   positions: [PlayerPosition.MID, PlayerPosition.DEF] },
+            { attrs: ['vision'],    positions: [PlayerPosition.MID, PlayerPosition.FWD] }
         ];
 
         let homeWins = 0;
         let awayWins = 0;
 
-        battleCategories.forEach((attrs, i) => {
-            const hPwr = getFormationPowerPro(nextHomeLineup.startingXI, ctx.homePlayers, localHomeFatigue, attrs, [PlayerPosition.MID, PlayerPosition.DEF], homeWeatherMod, nextHomeInjuries) * humanFactor();
-            const aPwr = getFormationPowerPro(nextAwayLineup.startingXI, ctx.awayPlayers, localAwayFatigue, attrs, [PlayerPosition.MID, PlayerPosition.DEF], awayWeatherMod, nextAwayInjuries) * humanFactor();
+        battleCategories.forEach(({ attrs, positions }, i) => {
+            const hPwr = getFormationPowerPro(nextHomeLineup.startingXI, ctx.homePlayers, localHomeFatigue, attrs, positions, homeWeatherMod, nextHomeInjuries) * humanFactor();
+            const aPwr = getFormationPowerPro(nextAwayLineup.startingXI, ctx.awayPlayers, localAwayFatigue, attrs, positions, awayWeatherMod, nextAwayInjuries) * humanFactor();
             
            // ZMIANA PRO: Rachunek prawdopodobieństwa. Moc to nie gwarancja, to szansa.
             const totalPower = hPwr + aPwr;
             const homeWinProb = hPwr / totalPower;
             const matchChaos = 0.80 + (seededRng(currentSeed, nextMinute, i) * 0.40); // chaos: 0.80–1.20 (mniejsza deklasacja silniejszego)
 
-            if (seededRng(currentSeed, nextMinute, i + 100) * matchChaos < homeWinProb) { 
-                homeWins++; 
-                nextMomentum += (1.8 + Math.random() * 2.2); 
-            } else { 
-                awayWins++; 
-                nextMomentum -= (1.8 + Math.random() * 2.2); 
+            if (seededRng(currentSeed, nextMinute, i + 100) * matchChaos < homeWinProb) {
+                homeWins++;
+                nextMomentum += (1.8 + seededRng(currentSeed, nextMinute, i + 200) * 2.2);
+            } else {
+                awayWins++;
+                nextMomentum -= (1.8 + seededRng(currentSeed, nextMinute, i + 300) * 2.2);
             }
         });
 
@@ -1846,7 +1851,7 @@ dynamicThreshold *= undedogThresholdMultiplier;
 
             const isRealKeeper = keeper.position === PlayerPosition.GK;
 
-            const randomShot = 0.85 + Math.random() * 0.3; // zakres 0.85–1.15
+            const randomShot = 0.85 + seededRng(currentSeed, nextMinute, 8801) * 0.3; // zakres 0.85–1.15
             // Zmęczenie napastnika obniża celność strzału: cond=100→1.0, cond=80→0.87, cond=50→0.65
             const scorerFatigue = (eventSide === 'HOME' ? localHomeFatigue : localAwayFatigue)[scorer.id] ?? scorer.condition;
             // Floor 0.38 zamiast 0.50: kontuzjowany strzelec nie strzela pełną siłą
@@ -1951,8 +1956,8 @@ dynamicThreshold *= undedogThresholdMultiplier;
                                      (eventSide === 'AWAY' && prev.homeScore - prev.awayScore >= 2 && hScore - aScore === 1);
 
                 if (isComebackGoal) {
-                   nextComebackPower = 2 + (Math.random() * 8);
-                   nextComebackExpiry = nextMinute + 2 + Math.floor(Math.random() * 6);
+                   nextComebackPower = 2 + (seededRng(currentSeed, nextMinute, 8803) * 8);
+                   nextComebackExpiry = nextMinute + 2 + Math.floor(seededRng(currentSeed, nextMinute, 8804) * 6);
                    nextComebackSide = eventSide;
                    updatedLogs = [{ id: `comeback_${nextMinute}`, minute: nextMinute, text: `BRAMKA KONTAKTOWA! ${eventSide === 'HOME' ? ctx.homeClub.shortName : ctx.awayClub.shortName} łapie wiatr w żagle!`, type: MatchEventType.PRESSURE, teamSide: eventSide }, ...updatedLogs];
                 }
@@ -1974,7 +1979,7 @@ dynamicThreshold *= undedogThresholdMultiplier;
            } else {
 
 // HEROIC SAVE TIER 4
-if (keeper.tier === 4 && Math.random() < 0.13) { // 13% szansy na super interwencję
+if (keeper.tier === 4 && seededRng(currentSeed, nextMinute, 8802) < 0.13) { // 13% szansy na super interwencję
     eventType = MatchEventType.ONE_ON_ONE_SAVE;
     nextMomentum += (eventSide === 'HOME' ? -15 : 15);
 }
@@ -2121,14 +2126,14 @@ if (keeper.tier === 4 && Math.random() < 0.13) { // 13% szansy na super interwen
         
         if (instructionChanged) {
             // Obliczamy siłę impulsu (losowo 5-15 pkt)
-            const impulsePower = 5 + (Math.random() * 10);
+            const impulsePower = 5 + (seededRng(currentSeed, nextMinute, 8805) * 10);
             const direction = prev.userInstructions.mindset === 'OFFENSIVE' ? 1 : (prev.userInstructions.mindset === 'DEFENSIVE' ? -1 : 0);
-            
+
             if (direction !== 0) {
                 tacticalBoostAmt = impulsePower * direction;
                 nextTacticalBoost += tacticalBoostAmt;
                 // Czas trwania efektu: 5-20 minut
-                nextTacticalExpiry = nextMinute + 5 + Math.floor(Math.random() * 16);
+                nextTacticalExpiry = nextMinute + 5 + Math.floor(seededRng(currentSeed, nextMinute, 8806) * 16);
                 nextMomentum += tacticalBoostAmt; // Natychmiastowy skok
                updatedLogs = [{ id: `impulse_${nextMinute}`, minute: nextMinute, text: `Przeciwnik gwałtownie zmienia rytm gry!`, type: MatchEventType.GENERIC, teamSide: userSide }, ...updatedLogs];
             }
@@ -2259,13 +2264,6 @@ if (activePlayerTempo === 'SLOW') {
                 if (currentTempo === 'FAST') drain *= 1.25;
                 if (currentIntensity === 'AGGRESSIVE') drain *= 1.35;
                 if (currentIntensity === 'CAUTIOUS') drain *= 0.75; // ostrożna gra → mniej biegu → wolniejsze zmęczenie
-                
-                const isAiTeam = teamPlayers === (userSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers);
-                if (isAiTeam && currentAiShout) {
-                   if (currentAiShout.intensity === 'AGGRESSIVE') drain *= 1.35;
-                   if (currentAiShout.intensity === 'CAUTIOUS') drain *= 0.75;
-                   if (currentAiShout.tempo === 'FAST') drain *= 1.25;
-                }
 
                 fatigueMap[id] = Math.max(0, current - drain);
             });
@@ -2356,7 +2354,7 @@ if (activePlayerTempo === 'SLOW') {
            // --- KROK 1: Podpięcie instrukcji operacyjnych serwisu decyzyjnego ---
            // AiMatchDecisionCupService może zwrócić tempo/mindset/intensity (kontra-tempo, red card itp.).
            // Aplikujemy je jako krótki shout nadpisując aktualny stan — serwis jest bardziej reaktywny niż Brain.
-           if (canShoutNow && (decision.newIntensity || decision.newTempo || decision.newMindset)) {
+           if (decision.newIntensity || decision.newTempo || decision.newMindset) {
               const svcShoutDuration = 8 + Math.floor((aiCoach?.attributes.experience || 50) / 15);
               currentAiShout = {
                  id: `SVC_${nextMinute}`,
@@ -2377,23 +2375,43 @@ if (activePlayerTempo === 'SLOW') {
            if (decision.subRecord || decision.newTacticId || decision.newTempo || decision.newMindset || decision.newIntensity) {
               nextLastAiActionMinute = nextMinute;
            }
+        // --- AKTUALIZACJA LIVESTATYSTYK ---
+        const nextLiveStats = {
+          home: { ...prev.liveStats.home },
+          away: { ...prev.liveStats.away }
+        };
+        if (eventType === MatchEventType.GOAL || eventType === MatchEventType.SHOT_ON_TARGET || eventType === MatchEventType.ONE_ON_ONE_SAVE) {
+          nextLiveStats[eventSide].shots += 1;
+          nextLiveStats[eventSide].shotsOnTarget += 1;
+        } else if (eventType === MatchEventType.SHOT_POST || eventType === MatchEventType.SHOT_BAR) {
+          nextLiveStats[eventSide].shots += 1;
+        }
+        updatedLogs.forEach(l => {
+          if (l.minute === nextMinute && l.teamSide) {
+            if (l.type === MatchEventType.CORNER)      nextLiveStats[l.teamSide].corners  += 1;
+            if (l.type === MatchEventType.FOUL)        nextLiveStats[l.teamSide].fouls    += 1;
+            if (l.type === MatchEventType.OFFSIDE)     nextLiveStats[l.teamSide].offsides += 1;
+            if (l.type === MatchEventType.YELLOW_CARD) nextLiveStats[l.teamSide].fouls    += 1;
+          }
+        });
+
         return {
-          ...prev, 
+          ...prev,
           homeFatigue: localHomeFatigue,
           awayFatigue: localAwayFatigue,
-          minute: nextMinute, 
-          homeScore: hScore, 
-          awayScore: aScore, 
-          logs: updatedLogs, 
+          minute: nextMinute,
+          homeScore: hScore,
+          awayScore: aScore,
+          logs: updatedLogs,
           momentum: nextMomentum,
           homeGoals: updatedHomeGoals,
           awayGoals: updatedAwayGoals,
           homeLineup: nextHomeLineup,
           awayLineup: nextAwayLineup,
-          playerYellowCards: nextPlayerYellowCards, 
-          sentOffIds: nextSentOffIds,             
-          homeInjuries: nextHomeInjuries,         
-          awayInjuries: nextAwayInjuries,         
+          playerYellowCards: nextPlayerYellowCards,
+          sentOffIds: nextSentOffIds,
+          homeInjuries: nextHomeInjuries,
+          awayInjuries: nextAwayInjuries,
           homeSubsHistory: nextHomeSubsHistory,
           awaySubsHistory: nextAwaySubsHistory,
           subsCountHome: nextSubsCountHome,
@@ -2413,7 +2431,8 @@ if (activePlayerTempo === 'SLOW') {
           comebackSide: nextComebackSide,
           // Aktualizacja długoterminowego momentum — potrzebne przez AiMatchDecisionCupService
           momentumSum: (prev.momentumSum || 0) + nextMomentum,
-          momentumTicks: (prev.momentumTicks || 0) + 1
+          momentumTicks: (prev.momentumTicks || 0) + 1,
+          liveStats: nextLiveStats
         };
       });
     }, matchState.speed === 5 ? 80 : matchState.speed === 2.5 ? 240 : 600);

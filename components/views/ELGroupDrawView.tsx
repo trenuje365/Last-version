@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from '../../resources/static_db/clubs/EuropeLeagueTeams';
+import LigaEuropaBg from '../../Graphic/themes/LigaEuropa.png';
 
 const GROUP_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
@@ -23,17 +24,20 @@ export const ELGroupDrawView: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-950 flex flex-col animate-fade-in overflow-hidden relative">
+    <div className="h-screen w-full bg-transparent flex flex-col animate-fade-in overflow-hidden relative">
 
       {/* Tło LE */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[200px] opacity-10 bg-orange-600" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-8 bg-orange-500" />
-        <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(249,115,22,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.15) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <img
+          src={LigaEuropaBg}
+          alt=""
+          className="w-full h-full object-cover"
+          style={{ filter: 'brightness(0.5)' }}
+        />
       </div>
 
       {/* Header */}
-      <div className="bg-slate-900/60 border-b border-orange-500/20 p-8 backdrop-blur-3xl shrink-0 flex items-center justify-between shadow-2xl relative z-10">
+      <div className="bg-black/30 border-b border-orange-500/20 p-8 backdrop-blur-md shrink-0 flex items-center justify-between shadow-2xl relative z-10">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-3xl shadow-inner">
             🟠
@@ -69,7 +73,7 @@ export const ELGroupDrawView: React.FC = () => {
           {activeELGroupDraw.groups.map((group, gi) => (
             <div
               key={gi}
-              className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 flex flex-col gap-3"
+              className="rounded-[24px] border border-white/20 bg-black/40 backdrop-blur-md p-5 flex flex-col gap-3"
             >
               {/* Nagłówek grupy */}
               <div className="flex items-center gap-3 mb-1">
@@ -87,7 +91,7 @@ export const ELGroupDrawView: React.FC = () => {
                 return (
                   <div
                     key={teamId}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-orange-500/20 hover:bg-white/[0.06] transition-all"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.08] border border-white/10 hover:border-orange-500/20 hover:bg-white/[0.15] transition-all"
                   >
                     {/* Koszyk (1-4) */}
                     <div className="w-5 h-5 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[9px] font-black text-slate-500 shrink-0">
