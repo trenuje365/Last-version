@@ -1285,9 +1285,9 @@ const aiGoalThresholdBoost = pRiskMod * (aiClubRep >= playerClubRep ? 0.06 : 0.0
         // Poprzedni warunek || otherIntensity powodował że mnożnik 1.2-1.7 był aktywny niemal zawsze.
         let injuryIntensityMult = 1.0;
         if (sideIntensity === 'AGGRESSIVE' && otherIntensity === 'AGGRESSIVE')
-            injuryIntensityMult = 1.2 + seededRng(currentSeed, nextMinute, 7777) * 0.3; // obie agresywne: ×1.2–1.5
+            injuryIntensityMult = 1.05 + seededRng(currentSeed, nextMinute, 7777) * 0.25; // obie agresywne: ×1.05–1.30
         else if (sideIntensity === 'AGGRESSIVE')
-            injuryIntensityMult = 1.1 + seededRng(currentSeed, nextMinute, 7777) * 0.15; // tylko incidentSide agresywna: ×1.1–1.25
+            injuryIntensityMult = 1.0 + seededRng(currentSeed, nextMinute, 7777) * 0.1; // tylko incidentSide agresywna: ×1.0–1.10
         else if (sideIntensity === 'CAUTIOUS' && otherIntensity === 'CAUTIOUS')
             injuryIntensityMult = 0.4; // obie ostrożne → −60% kontuzji
         else if (sideIntensity === 'CAUTIOUS' || otherIntensity === 'CAUTIOUS')
@@ -2381,17 +2381,18 @@ if (activePlayerTempo === 'SLOW') {
           away: { ...prev.liveStats.away }
         };
         if (eventType === MatchEventType.GOAL || eventType === MatchEventType.SHOT_ON_TARGET || eventType === MatchEventType.ONE_ON_ONE_SAVE) {
-          nextLiveStats[eventSide].shots += 1;
-          nextLiveStats[eventSide].shotsOnTarget += 1;
+          nextLiveStats[eventSide.toLowerCase() as 'home' | 'away'].shots += 1;
+          nextLiveStats[eventSide.toLowerCase() as 'home' | 'away'].shotsOnTarget += 1;
         } else if (eventType === MatchEventType.SHOT_POST || eventType === MatchEventType.SHOT_BAR) {
-          nextLiveStats[eventSide].shots += 1;
+          nextLiveStats[eventSide.toLowerCase() as 'home' | 'away'].shots += 1;
         }
         updatedLogs.forEach(l => {
           if (l.minute === nextMinute && l.teamSide) {
-            if (l.type === MatchEventType.CORNER)      nextLiveStats[l.teamSide].corners  += 1;
-            if (l.type === MatchEventType.FOUL)        nextLiveStats[l.teamSide].fouls    += 1;
-            if (l.type === MatchEventType.OFFSIDE)     nextLiveStats[l.teamSide].offsides += 1;
-            if (l.type === MatchEventType.YELLOW_CARD) nextLiveStats[l.teamSide].fouls    += 1;
+            const side = l.teamSide.toLowerCase() as 'home' | 'away';
+            if (l.type === MatchEventType.CORNER)      nextLiveStats[side].corners  += 1;
+            if (l.type === MatchEventType.FOUL)        nextLiveStats[side].fouls    += 1;
+            if (l.type === MatchEventType.OFFSIDE)     nextLiveStats[side].offsides += 1;
+            if (l.type === MatchEventType.YELLOW_CARD) nextLiveStats[side].fouls    += 1;
           }
         });
 
