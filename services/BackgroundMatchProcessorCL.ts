@@ -507,14 +507,7 @@ export const BackgroundMatchProcessorCL = {
        f.leagueId === CompetitionType.CONF_SF || f.leagueId === CompetitionType.CONF_SF_RETURN ||
        f.leagueId === CompetitionType.CONF_FINAL) &&
       (
-        // EL i CONF: ZAWSZE symulowane w tle (nawet jeśli gra drużyna gracza)
-        f.leagueId === CompetitionType.EL_R1Q      || f.leagueId === CompetitionType.EL_R1Q_RETURN ||
-        f.leagueId === CompetitionType.EL_R2Q      || f.leagueId === CompetitionType.EL_R2Q_RETURN ||
-        f.leagueId === CompetitionType.EL_GROUP_STAGE ||
-        f.leagueId === CompetitionType.EL_R16      || f.leagueId === CompetitionType.EL_R16_RETURN ||
-        f.leagueId === CompetitionType.EL_QF       || f.leagueId === CompetitionType.EL_QF_RETURN  ||
-        f.leagueId === CompetitionType.EL_SF       || f.leagueId === CompetitionType.EL_SF_RETURN  ||
-        f.leagueId === CompetitionType.EL_FINAL    ||
+        // CONF: ZAWSZE symulowane w tle (nawet jeśli gra drużyna gracza)
         f.leagueId === CompetitionType.CONF_R1Q    || f.leagueId === CompetitionType.CONF_R1Q_RETURN ||
         f.leagueId === CompetitionType.CONF_R2Q    || f.leagueId === CompetitionType.CONF_R2Q_RETURN ||
         f.leagueId === CompetitionType.CONF_GROUP_STAGE ||
@@ -522,9 +515,10 @@ export const BackgroundMatchProcessorCL = {
         f.leagueId === CompetitionType.CONF_QF     || f.leagueId === CompetitionType.CONF_QF_RETURN  ||
         f.leagueId === CompetitionType.CONF_SF     || f.leagueId === CompetitionType.CONF_SF_RETURN  ||
         f.leagueId === CompetitionType.CONF_FINAL  ||
-        // CL FINAŁ: zawsze symulowany
+        // CL i EL FINAŁ: zawsze symulowany (mecz 1-mecz finałowy, brak live)
         f.leagueId === CompetitionType.CL_FINAL    ||
-        // CL pozostałe rundy: pomijamy mecze drużyny gracza (on gra live)
+        f.leagueId === CompetitionType.EL_FINAL    ||
+        // CL i EL pozostałe rundy: pomijamy mecze drużyny gracza (on gra live)
         (f.homeTeamId !== userTeamId && f.awayTeamId !== userTeamId)
       )
     );

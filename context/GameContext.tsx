@@ -1419,7 +1419,7 @@ setMessages([welcomeMail, fanMail]);
           );
           if (!alreadyPlayedELQF) {
             if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
-            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+            navigateTo(ViewState.PRE_MATCH_EL_STUDIO);
             skipDayAdvance = true; break;
           }
           break;
@@ -1443,7 +1443,7 @@ setMessages([welcomeMail, fanMail]);
           );
           if (!alreadyPlayedELSF) {
             if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
-            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+            navigateTo(ViewState.PRE_MATCH_EL_STUDIO);
             skipDayAdvance = true; break;
           }
           if (slot.competition === CompetitionType.EL_SF_RETURN) {
@@ -1497,7 +1497,7 @@ setMessages([welcomeMail, fanMail]);
           const alreadyPlayedELFinal = elFinalFixture.status === MatchStatus.FINISHED;
           if (!alreadyPlayedELFinal) {
             if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
-            navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+            navigateTo(ViewState.PRE_MATCH_EL_STUDIO);
             skipDayAdvance = true; break;
           }
           if (userTeamId) {
@@ -1762,6 +1762,19 @@ setMessages([welcomeMail, fanMail]);
         case CompetitionType.CL_R2Q_RETURN: {
           if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
           navigateTo(ViewState.PRE_MATCH_CL_STUDIO);
+          skipDayAdvance = true; break;
+        }
+
+        // ── LE: Mecze (gracz uczestniczy) ───────────────────────────────────
+        case CompetitionType.EL_R1Q:
+        case CompetitionType.EL_R1Q_RETURN:
+        case CompetitionType.EL_R2Q:
+        case CompetitionType.EL_R2Q_RETURN:
+        case CompetitionType.EL_GROUP_STAGE:
+        case CompetitionType.EL_R16:
+        case CompetitionType.EL_R16_RETURN: {
+          if (isAutoJumping) { setTargetJumpTime(null); navigateTo(ViewState.DASHBOARD); skipDayAdvance = true; break; }
+          navigateTo(ViewState.PRE_MATCH_EL_STUDIO);
           skipDayAdvance = true; break;
         }
 

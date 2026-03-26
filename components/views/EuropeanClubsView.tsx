@@ -406,7 +406,7 @@ export const EuropeanClubsView: React.FC = () => {
   const handleBack = () => {
     if (selectedNT) { setSelectedNT(null); return; }
     if (selectedCountry) { setSelectedCountry(null); return; }
-    navigateTo(previousViewState && previousViewState !== ViewState.EUROPEAN_CLUBS ? previousViewState : ViewState.DASHBOARD);
+    navigateTo(ViewState.DASHBOARD);
   };
 
   const clubsForCountry = selectedCountry ? (COUNTRY_CLUB_MAP[selectedCountry] || []) : [];

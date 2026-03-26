@@ -317,37 +317,66 @@ export const CalendarEngine = {
       // ── LE: MECZE PREELIMINACYJNE R1Q ─────────────────────────────────────
       case CompetitionType.EL_R1Q:
       case CompetitionType.EL_R1Q_RETURN: {
-        // Polskie drużyny nie uczestniczą — zawsze background
-        const hasAnyScheduled = allFixtures.some(
+        const leagueIdELR1Q = slot.competition as string;
+        const fixtureELR1Q = allFixtures.find(
+          f =>
+            f.date.toDateString() === dateStr &&
+            f.leagueId === leagueIdELR1Q &&
+            (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        const hasAnyELR1Q = allFixtures.some(
           f =>
             f.date.toDateString() === dateStr &&
             (f.leagueId === CompetitionType.EL_R1Q || f.leagueId === CompetitionType.EL_R1Q_RETURN) &&
             f.status === MatchStatus.SCHEDULED,
         );
-        if (!hasAnyScheduled) return null;
+        if (!fixtureELR1Q && !hasAnyELR1Q) return null;
         return {
           slot,
           kind: EventKind.MATCH_EURO,
-          participation: 'background',
-          targetView: ViewState.DASHBOARD,
+          participation: fixtureELR1Q ? 'player' : 'background',
+          targetView: ViewState.PRE_MATCH_EL_STUDIO,
+          fixture: fixtureELR1Q,
+          opponentClubId: fixtureELR1Q
+            ? fixtureELR1Q.homeTeamId === userTeamId
+              ? fixtureELR1Q.awayTeamId
+              : fixtureELR1Q.homeTeamId
+            : undefined,
+          isHome: fixtureELR1Q ? fixtureELR1Q.homeTeamId === userTeamId : undefined,
         };
       }
 
       // ── LE: MECZE PREELIMINACYJNE R2Q ─────────────────────────────────────
       case CompetitionType.EL_R2Q:
       case CompetitionType.EL_R2Q_RETURN: {
-        const hasAnyScheduledR2Q = allFixtures.some(
+        const leagueIdELR2Q = slot.competition as string;
+        const fixtureELR2Q = allFixtures.find(
+          f =>
+            f.date.toDateString() === dateStr &&
+            f.leagueId === leagueIdELR2Q &&
+            (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        const hasAnyELR2Q = allFixtures.some(
           f =>
             f.date.toDateString() === dateStr &&
             (f.leagueId === CompetitionType.EL_R2Q || f.leagueId === CompetitionType.EL_R2Q_RETURN) &&
             f.status === MatchStatus.SCHEDULED,
         );
-        if (!hasAnyScheduledR2Q) return null;
+        if (!fixtureELR2Q && !hasAnyELR2Q) return null;
         return {
           slot,
           kind: EventKind.MATCH_EURO,
-          participation: 'background',
-          targetView: ViewState.DASHBOARD,
+          participation: fixtureELR2Q ? 'player' : 'background',
+          targetView: ViewState.PRE_MATCH_EL_STUDIO,
+          fixture: fixtureELR2Q,
+          opponentClubId: fixtureELR2Q
+            ? fixtureELR2Q.homeTeamId === userTeamId
+              ? fixtureELR2Q.awayTeamId
+              : fixtureELR2Q.homeTeamId
+            : undefined,
+          isHome: fixtureELR2Q ? fixtureELR2Q.homeTeamId === userTeamId : undefined,
         };
       }
 
@@ -363,18 +392,32 @@ export const CalendarEngine = {
 
       // ── LE: FAZA GRUPOWA ──────────────────────────────────────────────────
       case CompetitionType.EL_GROUP_STAGE: {
-        const hasAnyScheduledELGS = allFixtures.some(
+        const fixtureELGS = allFixtures.find(
+          f =>
+            f.date.toDateString() === dateStr &&
+            f.leagueId === CompetitionType.EL_GROUP_STAGE &&
+            (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        const hasAnyELGS = allFixtures.some(
           f =>
             f.date.toDateString() === dateStr &&
             f.leagueId === CompetitionType.EL_GROUP_STAGE &&
             f.status === MatchStatus.SCHEDULED,
         );
-        if (!hasAnyScheduledELGS) return null;
+        if (!fixtureELGS && !hasAnyELGS) return null;
         return {
           slot,
           kind: EventKind.MATCH_EURO,
-          participation: 'background',
-          targetView: ViewState.DASHBOARD,
+          participation: fixtureELGS ? 'player' : 'background',
+          targetView: ViewState.PRE_MATCH_EL_STUDIO,
+          fixture: fixtureELGS,
+          opponentClubId: fixtureELGS
+            ? fixtureELGS.homeTeamId === userTeamId
+              ? fixtureELGS.awayTeamId
+              : fixtureELGS.homeTeamId
+            : undefined,
+          isHome: fixtureELGS ? fixtureELGS.homeTeamId === userTeamId : undefined,
         };
       }
 
@@ -391,18 +434,33 @@ export const CalendarEngine = {
       // ── LE: 1/8 FINAŁU ───────────────────────────────────────────────────
       case CompetitionType.EL_R16:
       case CompetitionType.EL_R16_RETURN: {
-        const hasAnyScheduledELR16 = allFixtures.some(
+        const leagueIdELR16 = slot.competition as string;
+        const fixtureELR16 = allFixtures.find(
+          f =>
+            f.date.toDateString() === dateStr &&
+            f.leagueId === leagueIdELR16 &&
+            (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
+            f.status === MatchStatus.SCHEDULED,
+        );
+        const hasAnyELR16 = allFixtures.some(
           f =>
             f.date.toDateString() === dateStr &&
             (f.leagueId === CompetitionType.EL_R16 || f.leagueId === CompetitionType.EL_R16_RETURN) &&
             f.status === MatchStatus.SCHEDULED,
         );
-        if (!hasAnyScheduledELR16) return null;
+        if (!fixtureELR16 && !hasAnyELR16) return null;
         return {
           slot,
           kind: EventKind.MATCH_EURO,
-          participation: 'background',
-          targetView: ViewState.DASHBOARD,
+          participation: fixtureELR16 ? 'player' : 'background',
+          targetView: ViewState.PRE_MATCH_EL_STUDIO,
+          fixture: fixtureELR16,
+          opponentClubId: fixtureELR16
+            ? fixtureELR16.homeTeamId === userTeamId
+              ? fixtureELR16.awayTeamId
+              : fixtureELR16.homeTeamId
+            : undefined,
+          isHome: fixtureELR16 ? fixtureELR16.homeTeamId === userTeamId : undefined,
         };
       }
 
@@ -461,7 +519,7 @@ export const CalendarEngine = {
           slot,
           kind: EventKind.MATCH_EURO,
           participation: fixtureEL ? 'player' : 'background',
-          targetView: ViewState.PRE_MATCH_CL_STUDIO,
+          targetView: ViewState.PRE_MATCH_EL_STUDIO,
           fixture: fixtureEL,
           opponentClubId: fixtureEL
             ? fixtureEL.homeTeamId === userTeamId
@@ -485,7 +543,7 @@ export const CalendarEngine = {
           slot,
           kind: EventKind.MATCH_EURO,
           participation: 'player',
-          targetView: ViewState.PRE_MATCH_CL_STUDIO,
+          targetView: ViewState.PRE_MATCH_EL_STUDIO,
           fixture: fixtureELFinal,
           opponentClubId: fixtureELFinal
             ? fixtureELFinal.homeTeamId === userTeamId

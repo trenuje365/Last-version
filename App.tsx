@@ -50,6 +50,9 @@ import { EuropeanClubsView } from './components/views/EuropeanClubsView';
 import { ELDrawView } from './LECupEngine/ELDrawView';
 import { ELR2QDrawView } from './LECupEngine/ELR2QDrawView';
 import { ELHistoryView } from './LECupEngine/ELHistoryView';
+import { PreMatchELStudioView } from './LECupEngine/PreMatchELStudioView';
+import { ELMatchLiveView } from './LECupEngine/ELMatchLiveView';
+import { PostMatchELStudioView } from './LECupEngine/PostMatchELStudioView';
 import { CONFDrawView } from './LECupEngine/CONFDrawView';
 import { CONFR2QDrawView } from './LECupEngine/CONFR2QDrawView';
 import { CONFHistoryView } from './LECupEngine/CONFHistoryView';
@@ -116,6 +119,16 @@ case ViewState.MATCH_LIVE_CL:
 
 case ViewState.POST_MATCH_CL_STUDIO:
   return <PostMatchCLStudioView />;
+
+case ViewState.PRE_MATCH_EL_STUDIO:
+  return <PreMatchELStudioView />;
+
+case ViewState.MATCH_LIVE_EL:
+  return <ELMatchLiveView />;
+
+case ViewState.POST_MATCH_EL_STUDIO:
+  return <PostMatchELStudioView />;
+
   case ViewState.PRE_MATCH_CL_FINAL:
   return <PreMatchCLFinalView />;
 case ViewState.POST_MATCH_CL_FINAL:
