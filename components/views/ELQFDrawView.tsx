@@ -4,7 +4,7 @@ import { CompetitionType } from '../../types';
 import { ELDrawService } from '../../LECupEngine/ELDrawService';
 import LigaEuropaBg from '../../Graphic/themes/LigaEuropa.png';
 
-const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
+const GLASS_CARD = "bg-slate-950/40 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
 export const ELQFDrawView: React.FC = () => {
@@ -42,9 +42,18 @@ export const ELQFDrawView: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden relative">
-      <div className="fixed inset-0 z-0">
-        <img src={LigaEuropaBg} alt="" className="w-full h-full object-cover opacity-30" />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-slate-950/90" />
+      {/* TŁO */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${LigaEuropaBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.4)'
+          }}
+        />
+        <div className="absolute inset-0 bg-slate-950/60" />
       </div>
 
       <div className="relative z-10 flex flex-col h-full p-6 gap-4">

@@ -51,12 +51,15 @@ export const ELR2QDrawView: React.FC = () => {
     <div className="h-screen w-full flex flex-col animate-fade-in overflow-hidden relative">
 
       {/* Tło – Liga Europa */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <img 
-          src={LigaEuropaBg} 
-          alt="" 
-          className="w-full h-full object-cover"
-          style={{ filter: 'brightness(0.5)' }}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${LigaEuropaBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.4)'
+          }}
         />
         <div className="absolute inset-0 bg-slate-950/60" />
       </div>

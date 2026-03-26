@@ -2,8 +2,9 @@ import React, { useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { CompetitionType } from '../types';
 import { CONFDrawService } from './CONFDrawService';
+import LigaKonferencjiBg from '../Graphic/themes/Liga_konferencji.png';
 
-const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
+const GLASS_CARD = "bg-slate-950/40 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
 
 export const CONFQFDrawView: React.FC = () => {
@@ -42,9 +43,17 @@ export const CONFQFDrawView: React.FC = () => {
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden relative">
       {/* TŁO */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-950" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(16,185,129,0.15),transparent_60%)]" />
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${LigaKonferencjiBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.4)'
+          }}
+        />
+        <div className="absolute inset-0 bg-slate-950/60" />
       </div>
 
       <div className="relative z-10 flex flex-col h-full p-6 gap-4">
