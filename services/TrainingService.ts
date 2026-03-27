@@ -71,6 +71,10 @@ export const TrainingService = {
            if (teamGoalsAgainst === 0) pGrowth += 0.05;
         }
 
+        // Modyfikator talentu — wyższy talent przyspiesza rozwój
+        const _talentMod = 0.70 + (player.attributes.talent / 100) * 0.60;
+        pGrowth *= _talentMod;
+
         // FINALNY ROLL NA WZROST
         if (Math.random() < pGrowth) {
           const currentChange = seasonalChanges[key] || 0;

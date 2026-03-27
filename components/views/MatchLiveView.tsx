@@ -922,7 +922,11 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
           }
         };
 
-        const uFoulThreshold = 0.043 * (isUserAttacking ? uFoulMod : 1.0);
+        const _activeTeam = activeSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+        const _activeXI = (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter((id): id is string => id !== null);
+        const _avgAggression = _activeXI.length > 0 ? _activeTeam.filter(p => _activeXI.includes(p.id)).reduce((acc, p) => acc + p.attributes.aggression, 0) / _activeXI.length : 50;
+        const _aggrFoulMod = 0.70 + (_avgAggression / 100) * 0.60;
+        const uFoulThreshold = 0.043 * (isUserAttacking ? uFoulMod : 1.0) * _aggrFoulMod;
         if (rngEvent < uFoulThreshold) { 
            const xi = activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI;
            const validXi = xi.filter(id => id !== null) as string[];
@@ -940,7 +944,8 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
               const keeperTeam = defendingSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
               const keeperXI = (defendingSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter(id => id !== null) as string[];
 
-              const kicker = GoalAttributionService.pickScorer(kickerTeam, kickerXI, false, () => seededRng(currentSeed, nextMinute, 1800));
+              const _designatedPK = attackingSide === 'HOME' ? ctx.homeClub.penaltyTakerId : ctx.awayClub.penaltyTakerId;
+              const kicker = (_designatedPK ? kickerTeam.find(p => p.id === _designatedPK && kickerXI.includes(p.id)) : null) ?? GoalAttributionService.pickScorer(kickerTeam, kickerXI, false, () => seededRng(currentSeed, nextMinute, 1800));
               const keeper = keeperTeam.find(p => p.id === keeperXI[0]) || keeperTeam[0];
 
               if (!kicker || !keeper || !kicker.attributes || !keeper.attributes) return prev;
@@ -1141,8 +1146,11 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
             if (activeSide === 'HOME') nextLiveStats.home.corners++;
             else nextLiveStats.away.corners++;
 
-            // Krok 5: Rzut rożny → szansa 25% na strzał głową (heading ma teraz znaczenie)
-            if (seededRng(currentSeed, nextMinute, 3300) < 0.25) {
+            // Krok 5: Rzut rożny → szansa na strzał głową zależy od atrybutu corners wykonawcy
+            const _cornerTakers = (activeSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers).filter(p => (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).includes(p.id));
+            const _bestCornerAttr = _cornerTakers.length > 0 ? Math.max(..._cornerTakers.map(p => p.attributes.corners)) : 50;
+            const _cornerShotChance = 0.10 + (_bestCornerAttr / 100) * 0.30;
+            if (seededRng(currentSeed, nextMinute, 3300) < _cornerShotChance) {
               const cornerTeam   = activeSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
               const cornerXI     = (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter(id => id !== null) as string[];
               const cornerOppTeam = activeSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers;
@@ -1181,6 +1189,39 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
                   if (activeSide === 'HOME') nextLiveStats.home.shots++;
                   else nextLiveStats.away.shots++;
                 }
+              }
+            }
+          }
+          if (type === MatchEventType.FREE_KICK && seededRng(currentSeed, nextMinute, 5100) < 0.18) {
+            const fkTeam = activeSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
+            const fkXI = (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter(id => id !== null) as string[];
+            const fkOppTeam = activeSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers;
+            const fkOppXI = (activeSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI).filter(id => id !== null) as string[];
+            const _designatedFK = ctx.homeClub && ctx.awayClub ? (activeSide === 'HOME' ? ctx.homeClub.freeKickTakerId : ctx.awayClub.freeKickTakerId) : null;
+            const fkTaker = (_designatedFK ? fkTeam.find(p => p.id === _designatedFK && fkXI.includes(p.id)) : null) ?? fkTeam.filter(p => fkXI.includes(p.id)).sort((a, b) => b.attributes.freeKicks - a.attributes.freeKicks)[0];
+            if (fkTaker) {
+              const fkGk = fkOppTeam.find(p => p.id === fkOppXI[0]);
+              const fkGkAttr = fkGk?.attributes.goalkeeping ?? 50;
+              const fkGoalProb = Math.max(0.05, Math.min(0.30, 0.50 + ((fkTaker.attributes.freeKicks * 1.05) - (fkGkAttr * 1.20)) / 300));
+              if (seededRng(currentSeed, nextMinute, 5200) < fkGoalProb) {
+                if (activeSide === 'HOME') {
+                  nextHomeScore++;
+                  newHomeGoals.push({ playerName: fkTaker.lastName, scorerId: fkTaker.id, minute: nextMinute, isPenalty: false });
+                  nextLiveStats.home.shots++;
+                  nextLiveStats.home.shotsOnTarget++;
+                } else {
+                  nextAwayScore++;
+                  newAwayGoals.push({ playerName: fkTaker.lastName, scorerId: fkTaker.id, minute: nextMinute, isPenalty: false });
+                  nextLiveStats.away.shots++;
+                  nextLiveStats.away.shotsOnTarget++;
+                }
+                newLog = { id: `FK_GOAL_${nextMinute}`, minute: nextMinute, text: `⚽ Gol z rzutu wolnego! ${fkTaker.lastName} nie daje szans bramkarzowi!`, type: MatchEventType.GOAL, teamSide: activeSide, playerName: fkTaker.lastName };
+                goalTriggered = true;
+                priorityAiTrigger = true;
+                immediateEventType = MatchEventType.GOAL;
+              } else {
+                if (activeSide === 'HOME') nextLiveStats.home.shots++;
+                else nextLiveStats.away.shots++;
               }
             }
           }

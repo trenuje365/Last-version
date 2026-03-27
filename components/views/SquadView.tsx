@@ -10,12 +10,13 @@ import szatnia from '../../Graphic/themes/szatnia.png';
 import { getClubLogo } from '../../resources/ClubLogoAssets';
 
 export const SquadView: React.FC = () => {
-  const { players, userTeamId, clubs, navigateTo, lineups, updateLineup, viewPlayerDetails } = useGame();
+  const { players, userTeamId, clubs, setClubs, navigateTo, lineups, updateLineup, viewPlayerDetails } = useGame();
   
   const myClub = useMemo(() => clubs.find(c => c.id === userTeamId), [clubs, userTeamId]);
   const myPlayers = userTeamId ? players[userTeamId] : [];
   const myLineup = userTeamId ? lineups[userTeamId] : null;
 
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; playerId: string; loc: 'START' | 'BENCH' | 'RES' } | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{ id: string | null, index?: number, loc: 'START' | 'BENCH' | 'RES' } | null>(null);
 
   const currentTactic = useMemo(() => {
@@ -147,14 +148,16 @@ export const SquadView: React.FC = () => {
     const isSuspended = (player.suspensionMatches || 0) > 0;
     const isSevereInjured = player.health.status === HealthStatus.INJURED && player.health.injury?.severity === InjurySeverity.SEVERE;
     const isOverfatigued = player.condition < 60;
-    
+    const isOutOfPosition = loc === 'START' && getPositionGroup(player.position) !== getPositionGroup(label);
+
     return (
-      <tr 
-        key={player.id} 
+      <tr
+        key={player.id}
         onClick={() => handlePlayerClick(player.id, loc, index)}
         onDoubleClick={() => handlePlayerDoubleClick(player.id)}
+        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, playerId: player.id, loc }); }}
         className={`group relative h-14 border-b border-white/5 transition-all cursor-pointer
-          ${isSelected ? 'bg-blue-600/20 ring-1 ring-inset ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : isHighlighted ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-400/60 shadow-[0_0_16px_rgba(52,211,153,0.15)]' : 'hover:bg-white/[0.03]'}
+          ${isSelected ? 'bg-blue-600/20 ring-1 ring-inset ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : isHighlighted ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-400/60 shadow-[0_0_16px_rgba(52,211,153,0.15)]' : isOutOfPosition ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/40' : 'hover:bg-white/[0.03]'}
           ${(isSuspended || isSevereInjured || isOverfatigued) ? 'opacity-30 grayscale' : ''}`}
       >
         <td className="pl-6 w-12 relative z-10">
@@ -163,7 +166,7 @@ export const SquadView: React.FC = () => {
         <td className={`w-14 font-mono font-black text-[11px] relative z-10 ${PlayerPresentationService.getPositionColorClass(player.position)}`}>
           {player.position}
         </td>
-        <td className="relative z-10">
+        <td className="relative z-10 w-52">
            <div className="flex items-center gap-3">
               <div className="flex flex-col">
                 <span className={`text-sm font-black uppercase italic tracking-tight transition-colors ${(isSuspended || isSevereInjured || isOverfatigued) ? 'text-slate-500' : 'text-white group-hover:text-blue-400'}`}>
@@ -171,6 +174,15 @@ export const SquadView: React.FC = () => {
                 </span>
                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{player.firstName}</span>
               </div>
+              {myClub?.captainId === player.id && (
+                <span className="w-5 h-5 rounded-full bg-blue-900 border border-blue-400 flex items-center justify-center text-[9px] font-black text-white shrink-0" title="Kapitan">C</span>
+              )}
+              {myClub?.penaltyTakerId === player.id && (
+                <span className="px-1.5 py-0.5 bg-emerald-900/60 text-emerald-400 text-[8px] font-black rounded border border-emerald-500/40 shrink-0 leading-none" title="Egzekutor karnych">PK</span>
+              )}
+              {myClub?.freeKickTakerId === player.id && (
+                <span className="px-1.5 py-0.5 bg-amber-900/60 text-amber-400 text-[8px] font-black rounded border border-amber-500/40 shrink-0 leading-none" title="Egzekutor wolnych">FK</span>
+              )}
               {player.isOnTransferList && (
                 <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[8px] font-black rounded border border-amber-500/30 shadow-sm shrink-0 leading-none">
                      LISTA
@@ -186,6 +198,41 @@ export const SquadView: React.FC = () => {
                 </span>
               )}
            </div>
+        </td>
+        <td className="relative z-10 px-2 w-36">
+          <div className="flex gap-[6px]">
+            <div className="flex flex-col items-center w-[22px]">
+              <span className="text-[12px] font-black font-mono text-slate-300 leading-none">{player.stats.matchesPlayed}</span>
+            </div>
+            <div className="flex flex-col items-center w-[22px]">
+              <span className="text-[12px] font-black font-mono text-emerald-400 leading-none">{player.stats.goals}</span>
+            </div>
+            <div className="flex flex-col items-center w-[22px]">
+              <span className="text-[12px] font-black font-mono text-blue-400 leading-none">{player.stats.assists}</span>
+            </div>
+            <div className="flex flex-col items-center w-[22px]">
+              <span className="text-[12px] font-black font-mono text-yellow-400 leading-none">{player.stats.yellowCards}</span>
+            </div>
+            <div className="flex flex-col items-center w-[22px]">
+              <span className="text-[12px] font-black font-mono text-red-500 leading-none">{player.stats.redCards}</span>
+            </div>
+          </div>
+        </td>
+        <td className="relative z-10 px-3">
+          <div className="flex gap-[6px]">
+            {([
+              player.attributes.pace,
+              player.attributes.passing,
+              player.attributes.defending,
+              player.attributes.attacking,
+              player.attributes.leadership,
+              player.attributes.aggression,
+            ] as number[]).map((val, i) => (
+              <div key={i} className="flex items-center justify-center w-[22px]">
+                <span className={`text-[12px] font-black font-mono leading-none ${val >= 75 ? 'text-emerald-400' : val >= 55 ? 'text-amber-400' : 'text-red-400'}`}>{val}</span>
+              </div>
+            ))}
+          </div>
         </td>
         <td className="w-24 text-center relative z-10">
            <span className={`text-[10px] font-black uppercase tracking-widest ${healthInfo.colorClass}`}>{healthInfo.text}</span>
@@ -219,6 +266,17 @@ export const SquadView: React.FC = () => {
         </td>
       </tr>
     );
+  };
+
+  const handleContextAction = (action: 'captain' | 'penalty' | 'freekick') => {
+    if (!contextMenu || !userTeamId || !myClub) return;
+    setClubs(prev => prev.map(c => c.id !== userTeamId ? c : {
+      ...c,
+      captainId:       action === 'captain'   ? contextMenu.playerId : c.captainId,
+      penaltyTakerId:  action === 'penalty'   ? contextMenu.playerId : c.penaltyTakerId,
+      freeKickTakerId: action === 'freekick'  ? contextMenu.playerId : c.freeKickTakerId,
+    }));
+    setContextMenu(null);
   };
 
   return (
@@ -399,15 +457,43 @@ export const SquadView: React.FC = () => {
            
            {/* STARTING XI LIST */}
            <div className="shrink-0 bg-slate-900/40 rounded-[50px] border border-white/10 backdrop-blur-3xl shadow-2xl flex flex-col overflow-hidden relative">
-              <div className="px-8 py-5 border-b border-white/10 flex justify-between items-center bg-white/5 relative z-10">
-                 <div className="flex items-center gap-4">
-                    <div className="w-1.5 h-6 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                    <h3 className="text-xs font-black uppercase tracking-[0.5em] text-white">PIERWSZY SKŁAD <span className="text-slate-500 font-normal ml-2">/ Aktuálne Ustawienie</span></h3>
-                 </div>
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Protokół Meczowy v4.9</span>
+              <div className="px-8 py-3 border-b border-white/10 flex items-center bg-white/5 relative z-10">
+                 <div className="w-1.5 h-5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
               </div>
               <div className="overflow-hidden relative z-10">
                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-white/[0.02]">
+                        <th className="pl-6 w-12 py-2" />
+                        <th className="w-14 py-2" />
+                        <th className="w-52 py-2">
+                          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Zawodnik</span>
+                        </th>
+                        <th className="px-2 w-36 py-2">
+                          <div className="flex gap-[6px]">
+                            {([['M','text-slate-400'],['G','text-emerald-600'],['A','text-blue-600'],['ŻK','text-yellow-600'],['CK','text-red-700']] as [string,string][]).map(([lbl,cls]) => (
+                              <div key={lbl} className={`w-[22px] text-center text-[8px] font-black uppercase tracking-tighter ${cls}`}>{lbl}</div>
+                            ))}
+                          </div>
+                        </th>
+                        <th className="px-3 py-2">
+                          <div className="flex gap-[6px]">
+                            {(['PAC','PAS','DEF','ATK','LDR','AGR'] as const).map(lbl => (
+                              <div key={lbl} className="w-[22px] text-center text-[8px] font-black uppercase tracking-tighter text-slate-400">{lbl}</div>
+                            ))}
+                          </div>
+                        </th>
+                        <th className="w-24 text-center py-2">
+                          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">Zdrowie</span>
+                        </th>
+                        <th className="w-16 text-center py-2">
+                          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">Ocena</span>
+                        </th>
+                        <th className="pr-6 w-32 py-2">
+                          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">Kondycja</span>
+                        </th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-white/[0.03]">
                        {myLineup.startingXI.map((pid, idx) => renderPlayerRow(pid, currentTactic.slots[idx].role, 'START', idx))}
                     </tbody>
@@ -425,6 +511,24 @@ export const SquadView: React.FC = () => {
               </div>
               <div className="overflow-hidden relative z-10">
                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="pl-6 w-12" />
+                        <th className="w-14" />
+                        <th className="w-52" />
+                        <th className="px-2 w-36" />
+                        <th className="px-3 py-1">
+                          <div className="flex gap-[6px]">
+                            {(['PAC','PAS','DEF','ATK','LDR','AGR'] as const).map(lbl => (
+                              <div key={lbl} className="w-[22px] text-center text-[8px] font-black uppercase tracking-tighter text-slate-600">{lbl}</div>
+                            ))}
+                          </div>
+                        </th>
+                        <th className="w-24" />
+                        <th className="w-16" />
+                        <th className="pr-6 w-32" />
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-white/[0.03]">
                       {benchPlayers.map(pid => renderPlayerRow(pid, 'SUB', 'BENCH'))}
                       {benchPlayers.length === 0 && (
@@ -443,6 +547,24 @@ export const SquadView: React.FC = () => {
               </div>
               <div className="overflow-hidden relative z-10">
                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="pl-6 w-12" />
+                        <th className="w-14" />
+                        <th className="w-52" />
+                        <th className="px-2 w-36" />
+                        <th className="px-3 py-1">
+                          <div className="flex gap-[6px]">
+                            {(['PAC','PAS','DEF','ATK','LDR','AGR'] as const).map(lbl => (
+                              <div key={lbl} className="w-[22px] text-center text-[8px] font-black uppercase tracking-tighter text-slate-600">{lbl}</div>
+                            ))}
+                          </div>
+                        </th>
+                        <th className="w-24" />
+                        <th className="w-16" />
+                        <th className="pr-6 w-32" />
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-white/[0.03]">
                       {reservePlayersSorted.map(pid => renderPlayerRow(pid, 'RES', 'RES'))}
                       {reservePlayersSorted.length === 0 && (
@@ -467,6 +589,26 @@ export const SquadView: React.FC = () => {
          <div className="text-[8px] font-black text-blue-500 uppercase tracking-widest relative z-10 italic">PZPN</div>
       </footer>
 
+      {contextMenu && (
+        <div
+          className="fixed z-[9999] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-1 min-w-[220px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          {contextMenu.loc === 'START' && (
+            <button onClick={() => handleContextAction('captain')} className="w-full px-4 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-colors flex items-center gap-3">
+              <span className="w-5 h-5 rounded-full bg-blue-900 border border-blue-400 flex items-center justify-center text-[9px] font-black text-white shrink-0">C</span>
+              Mianuj Kapitana
+            </button>
+          )}
+          <button onClick={() => handleContextAction('penalty')} className="w-full px-4 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-colors flex items-center gap-3">
+            <span className="text-base">⚽</span> Wyznacz do karnych
+          </button>
+          <button onClick={() => handleContextAction('freekick')} className="w-full px-4 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-colors flex items-center gap-3">
+            <span className="text-base">🎯</span> Wyznacz do wolnych
+          </button>
+        </div>
+      )}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

@@ -76,9 +76,12 @@ export const PlayerPresentationService = {
       return { text: `ZAWIESZONY (${player.suspensionMatches} m.)`, colorClass: 'text-rose-600 font-black' };
     }
    if (player.health.status === HealthStatus.HEALTHY) {
-      return { text: '100%', colorClass: 'text-emerald-500 font-bold' };
+      if (player.condition < 60) {
+        return { text: 'PRZEMĘCZONY', colorClass: 'text-yellow-400 font-bold' };
+      }
+      return { text: 'ZDROWY', colorClass: 'text-emerald-500 font-bold' };
     }
-    
+
     const days = player.health.injury?.daysRemaining || 0;
     const severity = player.health.injury?.severity;
 
@@ -89,7 +92,7 @@ export const PlayerPresentationService = {
 
     // Pomarańczowy dla lekkich kontuzji, szczególnie gdy zostało mało dni
     const color = days < 5 ? 'text-orange-500' : 'text-amber-500';
-    return { text: `URAZ (${days} dni)`, colorClass: `${color} font-bold` };
+    return { text: `LEKKI URAZ (${days} dni)`, colorClass: `${color} font-bold` };
   },
 
   /**

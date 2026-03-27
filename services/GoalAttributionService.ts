@@ -24,7 +24,7 @@ export const GoalAttributionService = {
     if (isPenalty) {
       const baseProb = 0.94;
       // Minimalny wpływ statystyk (zachowanie 10:1 przewagi strzelca)
-      const statInfluence = ((attacker.attributes.finishing * attMod) - (goalkeeper.attributes.goalkeeping * gkMod)) / 400;
+      const statInfluence = ((attacker.attributes.penalties * attMod) - (goalkeeper.attributes.goalkeeping * gkMod)) / 400;
       return rng() < Math.max(0.88, Math.min(0.97, baseProb + statInfluence));
     }
 
@@ -123,7 +123,7 @@ export const GoalAttributionService = {
         case PlayerPosition.DEF: w = 0.6; break;
         case PlayerPosition.GK: w = 0.1; break;
       }
-      w *= (p.attributes.passing / 50) * (p.attributes.vision / 50);
+      w *= (p.attributes.passing / 50) * (p.attributes.vision / 50) * Math.pow(p.attributes.crossing / 50, 0.5);
       return Math.max(0.05, w);
     });
 

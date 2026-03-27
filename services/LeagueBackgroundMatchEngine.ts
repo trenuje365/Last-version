@@ -211,7 +211,8 @@ const fatigueDebtMap: Record<string, number> = {};
         // Teraz: 5.0.0 + RNG + stamEff(pow 1.2 * 10) + 2.0 (Suma ok. 11-16%)
         const stamina = p.attributes.stamina || 50;
        const stamEff = Math.pow((100 - stamina) / 100, 1.2) * 10;
-         let drain = 2.5 + seededRng(offset + idx) * 1.5 + (stamEff * 0.5) + 1.5;
+         const _wrMod = 0.85 + (p.attributes.workRate / 100) * 0.30;
+         let drain = (2.5 + seededRng(offset + idx) * 1.5 + (stamEff * 0.5) + 1.5) * _wrMod;
         
         // --- GK FATIGUE MITIGATION (STAGE 1 PRO) ---
         if (p.position === PlayerPosition.GK) {
@@ -223,10 +224,11 @@ const fatigueDebtMap: Record<string, number> = {};
         // Mapujemy dług do wyniku symulacji
       fatigueDebtMap[pId] = matchDebt;
         // Faza 3: Synchronizacja wykluczenia z Fazą 1 (używamy identycznego offsetu +1500)
-        const isDirectRed = seededRng(offset + idx + 1500) < 0.0033;
+        const _pAggrMod = 0.70 + (p.attributes.aggression / 100) * 0.60;
+        const isDirectRed = seededRng(offset + idx + 1500) < (0.0033 * _pAggrMod);
         const yellowRoll = seededRng(offset + idx + 1000);
-        const isSecondYellow = yellowRoll < 0.0104 && seededRng(offset + idx + 1200) < 0.05;
-        const isNormalYellow = yellowRoll < 0.0104 && !isSecondYellow;
+        const isSecondYellow = yellowRoll < (0.0104 * _pAggrMod) && seededRng(offset + idx + 1200) < 0.05;
+        const isNormalYellow = yellowRoll < (0.0104 * _pAggrMod) && !isSecondYellow;
 
         if (isDirectRed) {
        // Używamy offsetu, aby minuta była unikalna dla strony (Home/Away) i meczu

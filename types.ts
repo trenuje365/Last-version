@@ -330,6 +330,15 @@ export interface PlayerAttributes {
   heading: number;
   positioning: number;
   goalkeeping: number;
+  freeKicks: number;
+  talent: number;
+  penalties: number;
+  corners: number;
+  aggression: number;
+  crossing: number;
+  leadership: number;
+  mentality: number;
+  workRate: number;
 }
 
 export interface PlayerStats {
@@ -455,7 +464,10 @@ export interface Club {
   budget: number; 
   boardStrictness: number;
   signingBonusPool: number; // Pula pieniędzy zarezerwowana tylko na bonusy za podpis
-  squadNeeds?: Record<string, number>; 
+  squadNeeds?: Record<string, number>;
+  captainId?: string | null;
+  penaltyTakerId?: string | null;
+  freeKickTakerId?: string | null;
   financeHistory?: FinanceLog[];
 }
 

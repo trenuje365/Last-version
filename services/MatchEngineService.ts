@@ -52,6 +52,8 @@ export const MatchEngineService = {
         const efficiency = 1.3 - (staminaBonus * 0.6); 
         
         drain *= efficiency;
+        const workRateMod = 0.85 + (p.attributes.workRate / 100) * 0.30;
+        drain *= workRateMod;
         drain *= pressingMod;
         drain *= redFatigueMod;
 

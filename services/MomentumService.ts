@@ -136,6 +136,15 @@ export const MomentumService = {
       // Bonus HOME przesuwa cel w górę (+), bonus AWAY przesuwa w dół (-)
       target += homeDefBonus - awayDefBonus;
 
+    const _homeCaptain = ctx.homeClub.captainId ? ctx.homePlayers.find(p => p.id === ctx.homeClub.captainId) : null;
+    const _awayCaptain = ctx.awayClub.captainId ? ctx.awayPlayers.find(p => p.id === ctx.awayClub.captainId) : null;
+    const _homeCaptainOnPitch = _homeCaptain ? state.homeLineup.startingXI.includes(_homeCaptain.id) : false;
+    const _awayCaptainOnPitch = _awayCaptain ? state.awayLineup.startingXI.includes(_awayCaptain.id) : false;
+    const _homeCaptainLeadership = _homeCaptainOnPitch ? _homeCaptain!.attributes.leadership : 50;
+    const _awayCaptainLeadership = _awayCaptainOnPitch ? _awayCaptain!.attributes.leadership : 50;
+    const _leadershipBonus = ((_homeCaptainLeadership - _awayCaptainLeadership) / 100) * 6;
+    target += _leadershipBonus;
+
     return Math.max(lowerBound, Math.min(upperBound, target));
   },
 
@@ -156,7 +165,11 @@ export const MomentumService = {
 
     // 2b. Losowy "ludzki błąd" / gorszy dzień (~1.5% szans per minutę ≈ 1-2x mecz)
     // Symuluje nagły błąd bramkarza, słaby pass obrońcy, utratę koncentracji
-    const humanError = Math.random() < 0.015 ? (Math.random() - 0.5) * 16 : 0;
+    const _homeAvgMentality = state.homeLineup.startingXI.filter((id): id is string => id !== null).reduce((acc, id) => { const p = ctx.homePlayers.find(x => x.id === id); return acc + (p?.attributes.mentality ?? 50); }, 0) / Math.max(1, state.homeLineup.startingXI.filter(id => id !== null).length);
+    const _awayAvgMentality = state.awayLineup.startingXI.filter((id): id is string => id !== null).reduce((acc, id) => { const p = ctx.awayPlayers.find(x => x.id === id); return acc + (p?.attributes.mentality ?? 50); }, 0) / Math.max(1, state.awayLineup.startingXI.filter(id => id !== null).length);
+    const _activeMentality = lastEventSide === 'HOME' ? _homeAvgMentality : _awayAvgMentality;
+    const _mentalityErrorMod = 1.0 - ((_activeMentality - 50) / 100) * 0.40;
+    const humanError = Math.random() < (0.015 * _mentalityErrorMod) ? (Math.random() - 0.5) * 16 * _mentalityErrorMod : 0;
 
     // 3. Bonus momentum za zmęczenie rywala
     // Zmęczona drużyna traci inicjatywę → pasek dryfuje w stronę świeższego rywala

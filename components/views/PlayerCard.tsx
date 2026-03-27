@@ -56,12 +56,12 @@ const [showHistory, setShowHistory] = React.useState(false);
     else if (value > 0) { colorClass = "bg-red-500"; }
     
     return (
-      <div className="group flex flex-col gap-1 mb-1.5">
+      <div className="group flex flex-col gap-[2px] mb-1">
         <div className="flex justify-between items-center px-1">
-           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">{label}</span>
-           <span className={`text-xs font-black font-mono ${value >= 80 ? 'text-emerald-400' : 'text-white'}`}>{value}</span>
+           <span className="text-[8px] font-black text-white uppercase tracking-widest drop-shadow">{label}</span>
+           <span className={`text-[11px] font-black font-mono drop-shadow ${value >= 80 ? 'text-emerald-400' : 'text-white'}`}>{value}</span>
         </div>
-        <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
+        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
            <div className={`h-full transition-all duration-1000 ${colorClass} ${glowClass}`} style={{ width: `${value}%` }} />
         </div>
       </div>
@@ -73,21 +73,22 @@ const [showHistory, setShowHistory] = React.useState(false);
 
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-2 animate-fade-in overflow-y-auto custom-scrollbar">
-      
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 animate-fade-in overflow-y-auto custom-scrollbar" style={{ backgroundImage: "url('graphic/themes/playercard.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: '#020617' }}>
+      <div className="fixed inset-0 bg-black/70 pointer-events-none" />
+
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-10" style={{ background: club.colorsHex[0] }} />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] opacity-5" style={{ background: club.colorsHex[1] }} />
       </div>
 
-      <div className="max-w-5xl w-full bg-slate-900 rounded-[32px] border border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row" style={{maxHeight:'calc(100vh - 1rem)'}}>
+      <div className="w-fit bg-slate-900/[0.35] rounded-none border border-transparent overflow-hidden flex flex-col md:flex-row md:items-center" style={{maxHeight:'925px'}}>
         
-           <div className="w-full md:w-[40%] relative flex flex-col items-center justify-between p-6 border-r border-white/5 overflow-hidden overflow-y-auto custom-scrollbar">
+           <div className="w-full md:w-[305px] relative flex flex-col items-center justify-between p-6 border-r border-white/5 overflow-hidden overflow-y-auto custom-scrollbar">
            <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
               <span className="text-[30rem] font-black italic select-none">{player.position}</span>
            </div>
 
-           <div className="relative z-10 text-center w-full">
+           <div className="relative z-10 text-center w-full bg-slate-900/[0.15] rounded-xl p-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-3">
                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60">Profil Zawodnika PZPN</span>
@@ -126,7 +127,7 @@ const [showHistory, setShowHistory] = React.useState(false);
            </div>
 
            <div className="relative z-10 w-full flex flex-col gap-2">
-            <div className="flex items-center justify-between p-3 bg-black/40 rounded-[20px] border border-white/5">
+            <div className="flex items-center justify-between p-3 bg-black/25 rounded-[20px] border border-white/5">
                  <div className="flex flex-col gap-1">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Status Kontraktu</span>
                     <span className="text-xs font-black text-white italic uppercase tracking-tight">
@@ -165,284 +166,276 @@ const [showHistory, setShowHistory] = React.useState(false);
 
        
 
-        <div className="flex-1 bg-black/20 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
-           
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-              <div className="col-span-2 mb-2">
-                 <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-3 flex items-center gap-3">
-                    <span className="w-8 h-px bg-blue-500/30" /> Atrybuty Techniczne
-                 </h3>
-              </div>
-              
-              <div className="space-y-1.5">
-                 <AttrBar label="Szybkość" value={attrs.pace} />
-                 <AttrBar label="Siła" value={attrs.strength} />
-                 <AttrBar label="Kondycja" value={attrs.stamina} />
-                 <AttrBar label="Obrona" value={attrs.defending} />
-                 <AttrBar label="Podania" value={attrs.passing} />
-              </div>
+        <div className="flex-1 p-4 overflow-hidden flex gap-4">
 
-              <div className="space-y-1.5">
-                 <AttrBar label="Atak" value={attrs.attacking} />
-                 <AttrBar label="Wykończenie" value={attrs.finishing} />
-                 <AttrBar label="Technika" value={attrs.technique} />
-                 <AttrBar label="Drybling" value={attrs.dribbling} />
-                 <AttrBar label="Wizja" value={attrs.vision} />
-              </div>
+          {/* ŚRODKOWY PANEL: atrybuty + statystyki + zdrowie */}
+          <div className="w-[480px] flex-shrink-0 flex flex-col gap-3 overflow-hidden">
 
-              <div className="col-span-2 grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-white/5">
-                 <AttrBar label="Ustawianie się" value={attrs.positioning} />
-                 {player.position === 'GK'
-                   ? <AttrBar label="Bramkarstwo" value={attrs.goalkeeping} />
-                   : <AttrBar label="Główki" value={attrs.heading} />
-                 }
-              </div>
-           </div>
-
-           <div className="flex flex-col gap-3">
-              <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
-                 <span className="w-8 h-px bg-emerald-500/30" /> Statystyki Sezonowe
-              </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-                 {[
-                   { label: 'Mecze', val: player.stats.matchesPlayed, icon: '📅' },
-                   { label: 'Gole', val: player.stats.goals, icon: '⚽', color: 'text-emerald-400' },
-                   { label: 'Asysty', val: player.stats.assists, icon: '👟', color: 'text-blue-400' },
-                   { label: 'Żółte', val: player.stats.yellowCards, icon: '🟨', color: 'text-amber-400' },
-                   { label: 'Czerwone', val: player.stats.redCards, icon: '🟥', color: 'text-red-500' },
-                 ].map((s, i) => (
-                    <div key={i} className="bg-slate-900/40 p-3 rounded-2xl border border-white/5 text-center group hover:border-white/10 transition-all">
-                       <span className="text-base mb-1 block transform group-hover:scale-125 transition-transform">{s.icon}</span>
-                       <span className={`text-xl font-black font-mono block ${s.color || 'text-white'}`}>{s.val}</span>
-                       <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">{s.label}</span>
-                    </div>
-                 ))}
-              </div>
-           </div>
-
-           <div className="flex flex-col gap-3">
-              <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
-                 <span className="w-8 h-px bg-rose-500/30" /> Stan Zdrowia
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex items-center justify-between">
-                    <div>
-                       <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Dostępność</span>
-                       <span className={`text-xs font-black uppercase italic ${healthInfo.colorClass}`}>{healthInfo.text}</span>
-                    </div>
-
-                    {player.health.status === HealthStatus.INJURED && player.health.injury?.injuryDate && (
-                      <div className="text-right border-l border-white/5 pl-4">
-                        <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Data urazu</span>
-                        <span className="text-[10px] font-black text-slate-300 font-mono italic">
-                          {new Date(player.health.injury.injuryDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}
-                        </span>
-                      </div>
-                    )}
-
-                    {player.health.status === HealthStatus.INJURED && (
-                      <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse border border-red-500/20">🏥</div>
-                    )}
-                 </div>
-
-                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex flex-col justify-center">
-                    <div className="flex justify-between items-center mb-2 px-1">
-                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Kondycja / Limit Energii</span>
-                       <div className="flex items-center gap-2">
-                          {player.fatigueDebt > 0 && (
-                            <span className="text-[10px] font-black text-red-500 uppercase italic">SPADEK {Math.round(player.fatigueDebt)}%</span>
-                          )}
-                          <span className="text-xs font-black font-mono text-white">{Math.round(player.condition)}%</span>
-                       </div>
-                    </div>
-                    <div className="h-1.5 w-full bg-red-900/20 rounded-full overflow-hidden border border-white/5 relative">
-                       {/* Czerwona strefa długu */}
-                       <div className="absolute inset-0 bg-black/60" style={{ left: `${100 - (player.fatigueDebt || 0)}%` }} />
-                       {/* Pasek kondycji */}
-                       <div className={`h-full ${condColor} transition-all duration-1000 relative z-10`} style={{ width: `${player.condition}%` }} />
-                    </div>
-                 </div>
-              </div>
-           </div>
-
-           {/* ── ZAINTERESOWANIE TRANSFEROWE ────────────────────────────────────
-               Wyświetla kluby AI, które aktualnie obserwują tego zawodnika.
-               Lista jest aktualizowana raz na miesiąc przez AiScoutingService.
-               W przyszłości: kliknięcie klubu → złożenie/odrzucenie oferty transferowej.
-           ────────────────────────────────────────────────────────────────────── */}
-           {player.interestedClubs && player.interestedClubs.length > 0 && (
-             <div className="flex flex-col gap-3">
-               <h3 className="text-[10px] font-black text-violet-400 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
-                 <span className="w-8 h-px bg-violet-400/30" /> Zainteresowanie Transferowe
-               </h3>
-               <div className="bg-slate-900/40 p-4 rounded-[24px] border border-violet-500/20">
-                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3">
-                   Kluby obserwujące zawodnika ({player.interestedClubs.length})
-                 </p>
-                 <div className="flex flex-wrap gap-2">
-                   {player.interestedClubs.map(clubId => {
-                     const interestedClub = clubs.find(c => c.id === clubId);
-                     if (!interestedClub) return null;
-                     return (
-                       <div
-                         key={clubId}
-                         className="flex items-center gap-2 px-3 py-1.5 rounded-[12px] bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all"
-                         // TODO: Po implementacji ofert transferowych — wnawigateTo(ViewState.TRANSFER_OFFER) lub podobne
-                       >
-                         {/* Mini podgląd barw klubu */}
-                         <div className="w-5 h-5 rounded-md overflow-hidden border border-white/10 flex-shrink-0 flex flex-col">
-                           <div className="flex-1" style={{ backgroundColor: interestedClub.colorsHex[0] }} />
-                           <div className="flex-1" style={{ backgroundColor: interestedClub.colorsHex[1] || interestedClub.colorsHex[0] }} />
-                         </div>
-                         <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight">
-                           {interestedClub.shortName}
-                         </span>
-                         {/* Placeholder na przyszły przycisk akcji (oferta transferowa) */}
-                         <span className="text-[8px] text-violet-400 opacity-60">👁️</span>
-                       </div>
-                     );
-                   })}
-                 </div>
-               </div>
-             </div>
-           )}
-
-           <div className="flex flex-col gap-3">
-              <h3 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.4em] mb-1 flex items-center gap-3">
-                 <span className="w-8 h-px bg-amber-400/30" /> Kontrakt i Wynagrodzenie
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex items-center justify-between group hover:border-emerald-500/30 transition-colors">
-                    <div>
-                       <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Roczne Wynagrodzenie</span>
-                       <span className="text-sm font-black text-emerald-400 font-mono italic">
-                          {player.annualSalary ? player.annualSalary.toLocaleString('pl-PL') : '0'} <span className="text-[10px] opacity-60 ml-1">PLN</span>
-                       </span>
-                    </div>
-
-
-         
-
-
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shadow-inner">💰</div>
-                 </div>
-
-                 <div className="bg-slate-900/40 p-4 rounded-[24px] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-colors">
-                    <div>
-                       <span className="block text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">
-                          {club.id === 'FREE_AGENTS' ? 'Status' : 'Kontrakt DO'}
-                       </span>
-                       <span className="text-sm font-black text-white italic uppercase">
-                          {club.id === 'FREE_AGENTS'
-                            ? 'Brak Kontraktu'
-                            : player.contractEndDate
-                              ? new Date(player.contractEndDate).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })
-                              : 'Brak danych'}
-                       </span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-inner">
-                       {club.id === 'FREE_AGENTS' ? '🚫' : '📅'}
-                    </div>
-                 </div>
-
-<div className="bg-slate-900/40 p-4 rounded-[24px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-all col-span-1 md:col-span-2 shadow-lg">
-                    <div>
-                       <span className="block text-[8px] font-black text-emerald-500/60 uppercase tracking-widest mb-1">Cena Rynkowa</span>
-                       <span className="text-xl font-black text-emerald-400 font-mono italic tabular-nums leading-none">
-                          {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} <span className="text-xs opacity-60 ml-1">PLN</span>
-                       </span>
-                       <p className="text-[7px] text-slate-600 uppercase mt-2 font-bold tracking-tighter">* Wycena na podstawie formy, wieku oraz reputacji ligi</p>
-                    </div>
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-3xl text-emerald-500 border border-emerald-500/20 shadow-inner">
-                       🏷️
-                    </div>
-                 </div>
-                
-
-
-              </div>
-
-              {player.clubId === userTeamId && !isMatchContext && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <button 
-                    onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
-                    className="group relative h-12 bg-red-600/10 border border-red-500/20 rounded-[18px] flex items-center justify-center gap-3 transition-all hover:bg-red-600/20 hover:border-red-500/40 active:scale-95 shadow-xl"
-                  >
-                    <span className="text-xl group-hover:rotate-12 transition-transform">📄</span>
-                    <div className="text-left">
-                      <span className="block text-[8px] font-black text-red-500 uppercase tracking-widest">ZAKOŃCZ WSPÓŁPRACĘ</span>
-                      <span className="text-[11px] font-black text-white italic uppercase">ROZWIĄŻ KONTRAKT</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    disabled={isContractLocked}
-                    onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
-                    className={`group relative h-12 rounded-[18px] flex items-center justify-center gap-3 transition-all 
-                      ${isContractLocked 
-                        ? 'bg-slate-800 border-slate-700 opacity-50 cursor-not-allowed' 
-                        : 'bg-blue-600/10 border-blue-500/20 hover:bg-blue-600/20 hover:border-blue-500/40 active:scale-95 shadow-xl'
-                      }`}
-                  >
-                    <span className="text-xl group-hover:scale-110 transition-transform">
-                      {isContractLocked ? '⏳' : '✍️'}
-                    </span>
-                    <div className="text-left">
-                      <span className="block text-[8px] font-black uppercase tracking-widest">
-                        {isContractLocked ? 'BLOKADA CZASOWA' : 'NOWE WARUNKI'}
-                      </span>
-                      <span className="text-[11px] font-black text-white italic uppercase">
-                        {isContractLocked ? 'UMOWA NIEDAWNO PODPISANA' : 'PRZEDŁUŻ UMOWĘ'}
-                      </span>
-                    </div>
-                  </button>
+            {/* BOX ATRYBUTÓW */}
+            <div className="flex-1 bg-transparent rounded-[24px] border border-white/5 p-5 flex flex-col justify-center">
+              <div className="grid grid-cols-2 gap-x-8">
+                <div>
+                  <AttrBar label="Szybkość" value={attrs.pace} />
+                  <AttrBar label="Siła" value={attrs.strength} />
+                  <AttrBar label="Kondycja" value={attrs.stamina} />
+                  <AttrBar label="Obrona" value={attrs.defending} />
+                  <AttrBar label="Podania" value={attrs.passing} />
+                  <AttrBar label="Atak" value={attrs.attacking} />
+                  <AttrBar label="Wykończenie" value={attrs.finishing} />
+                  <AttrBar label="Technika" value={attrs.technique} />
+                  <AttrBar label="Drybling" value={attrs.dribbling} />
+                  <AttrBar label="Wizja" value={attrs.vision} />
+                  <AttrBar label="Ustawianie się" value={attrs.positioning} />
                 </div>
-              )}
-              
-        {player.clubId === userTeamId && !isMatchContext && (
-                <button 
-                  onClick={() => toggleTransferList(player.id)}
-                  className={`w-full mt-2 py-2.5 rounded-[18px] font-black italic uppercase tracking-widest text-[10px] transition-all border-2 active:scale-95
-                    ${player.isOnTransferList 
-                      ? 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700' 
-                      : 'bg-amber-600/20 border-amber-500/40 text-amber-500 hover:bg-amber-600/30'}`}
-                >
-                  {player.isOnTransferList ? '❌ Zdejmij z listy transferowej' : '📥 Wystaw na listę transferową'}
-                </button>
-              )}
+                <div>
+                  {player.position === 'GK'
+                    ? <AttrBar label="Bramkarstwo" value={attrs.goalkeeping} />
+                    : <AttrBar label="Główki" value={attrs.heading} />
+                  }
+                  <AttrBar label="Talent" value={attrs.talent} />
+                  <AttrBar label="Liderstwo" value={attrs.leadership} />
+                  <AttrBar label="Mentalność" value={attrs.mentality} />
+                  <AttrBar label="Pracowitość" value={attrs.workRate} />
+                  <AttrBar label="Agresja" value={attrs.aggression} />
+                  <AttrBar label="Rzuty Wolne" value={attrs.freeKicks} />
+                  <AttrBar label="Rzuty Karne" value={attrs.penalties} />
+                  <AttrBar label="Rzuty Rożne" value={attrs.corners} />
+                  <AttrBar label="Dośrodkowania" value={attrs.crossing} />
+                </div>
+              </div>
+            </div>
 
-           {player.clubId !== userTeamId && !isMatchContext && (
-                <div className="mt-2">
-                  {player.clubId === 'FREE_AGENTS' ? (
-                    <button 
-                      disabled={!!(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))}
-                      onClick={() => {
-                        navigateTo(ViewState.FREE_AGENT_NEGOTIATION);
-                      }}
-                      className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4 
-                        ${(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))
-                          ? 'bg-slate-800 border-slate-900 text-slate-500 opacity-70 cursor-not-allowed' 
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-800 hover:scale-[1.02] active:scale-95'}`}
-                    >
-                      {player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil)
-                        ? "Jestem zajęty. Proszę o kontakt w innym terminie."
-                        : "OTWÓRZ BIURO NEGOCJACJI 🤝"}
-                    </button>
+            {/* STATYSTYKI SEZONOWE */}
+            <div className="flex-shrink-0 flex flex-col gap-2">
+              <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] flex items-center gap-3 drop-shadow">
+                <span className="w-8 h-px bg-emerald-500/30" /> Statystyki Sezonowe
+              </h3>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { label: 'Mecze', val: player.stats.matchesPlayed, icon: '📅' },
+                  { label: 'Gole', val: player.stats.goals, icon: '⚽', color: 'text-emerald-400' },
+                  { label: 'Asysty', val: player.stats.assists, icon: '👟', color: 'text-blue-400' },
+                  { label: 'Żółte', val: player.stats.yellowCards, icon: '🟨', color: 'text-amber-400' },
+                  { label: 'Czerwone', val: player.stats.redCards, icon: '🟥', color: 'text-red-500' },
+                ].map((s, i) => (
+                  <div key={i} className="bg-transparent p-2 rounded-2xl border border-white/5 text-center group hover:border-white/10 transition-all">
+                    <span className="text-sm mb-0.5 block transform group-hover:scale-125 transition-transform">{s.icon}</span>
+                    <span className={`text-lg font-black font-mono block drop-shadow ${s.color || 'text-white'}`}>{s.val}</span>
+                    <span className="text-[7px] font-black text-white uppercase tracking-widest drop-shadow">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-
-
-                  ) : (
-                    <button 
-                      className="w-full py-3 rounded-[20px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl border-b-4 border-blue-800"
-                    >
-                      ZŁÓŻ OFERTĘ TRANSFEROWĄ 💰
-                    </button>
+            {/* STAN ZDROWIA */}
+            <div className="flex-shrink-0 flex flex-col gap-2">
+              <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] flex items-center gap-3 drop-shadow">
+                <span className="w-8 h-px bg-rose-500/30" /> Stan Zdrowia
+              </h3>
+              <div className="flex gap-2">
+                <div className="bg-transparent p-3 rounded-[20px] border border-white/5 flex items-center justify-between flex-1">
+                  <div>
+                    <span className="block text-[8px] font-black text-white uppercase tracking-widest mb-1 drop-shadow">Dostępność</span>
+                    <span className={`text-xs font-black uppercase italic drop-shadow ${healthInfo.colorClass}`}>{healthInfo.text}</span>
+                  </div>
+                  {player.health.status === HealthStatus.INJURED && player.health.injury?.injuryDate && (
+                    <div className="text-right border-l border-white/5 pl-3">
+                      <span className="block text-[8px] font-black text-white uppercase tracking-widest mb-1 drop-shadow">Data urazu</span>
+                      <span className="text-[10px] font-black text-white font-mono italic drop-shadow">
+                        {new Date(player.health.injury.injuryDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}
+                      </span>
+                    </div>
+                  )}
+                  {player.health.status === HealthStatus.INJURED && (
+                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse border border-red-500/20">🏥</div>
                   )}
                 </div>
-              )}
-           
-           
-           </div>
+                <div className="bg-transparent p-3 rounded-[20px] border border-white/5 flex flex-col justify-center flex-1">
+                  <div className="flex justify-between items-center mb-1.5 px-1">
+                    <span className="text-[8px] font-black text-white uppercase tracking-widest drop-shadow">Kondycja / Limit Energii</span>
+                    <div className="flex items-center gap-2">
+                      {player.fatigueDebt > 0 && (
+                        <span className="text-[10px] font-black text-red-500 uppercase italic drop-shadow">SPADEK {Math.round(player.fatigueDebt)}%</span>
+                      )}
+                      <span className="text-xs font-black font-mono text-white drop-shadow">{Math.round(player.condition)}%</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-red-900/20 rounded-full overflow-hidden border border-white/5 relative">
+                    {/* Czerwona strefa długu */}
+                    <div className="absolute inset-0 bg-black/60" style={{ left: `${100 - (player.fatigueDebt || 0)}%` }} />
+                    {/* Pasek kondycji */}
+                    <div className={`h-full ${condColor} transition-all duration-1000 relative z-10`} style={{ width: `${player.condition}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* PRAWY PANEL: kontrakt i wynagrodzenie */}
+          <div className="w-[300px] flex-shrink-0 flex flex-col gap-2 overflow-y-auto custom-scrollbar">
+            <h3 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.4em] flex items-center gap-3 drop-shadow">
+              <span className="w-8 h-px bg-amber-400/30" /> Kontrakt i Wynagrodzenie
+            </h3>
+            <div className="grid grid-cols-1 gap-2">
+              <div className="bg-transparent p-3 rounded-[20px] border border-white/5 flex items-center justify-between group hover:border-emerald-500/30 transition-colors">
+                <div>
+                  <span className="block text-[8px] font-black text-white uppercase tracking-widest mb-1 drop-shadow">Roczne Wynagrodzenie</span>
+                  <span className="text-sm font-black text-emerald-400 font-mono italic drop-shadow">
+                    {player.annualSalary ? player.annualSalary.toLocaleString('pl-PL') : '0'} <span className="text-[10px] opacity-60 ml-1">PLN</span>
+                  </span>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shadow-inner">💰</div>
+              </div>
+              <div className="bg-transparent p-3 rounded-[20px] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-colors">
+                <div>
+                  <span className="block text-[8px] font-black text-white uppercase tracking-widest mb-1 drop-shadow">
+                    {club.id === 'FREE_AGENTS' ? 'Status' : 'Kontrakt DO'}
+                  </span>
+                  <span className="text-sm font-black text-white italic uppercase drop-shadow">
+                    {club.id === 'FREE_AGENTS'
+                      ? 'Brak Kontraktu'
+                      : player.contractEndDate
+                        ? new Date(player.contractEndDate).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })
+                        : 'Brak danych'}
+                  </span>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-inner">
+                  {club.id === 'FREE_AGENTS' ? '🚫' : '📅'}
+                </div>
+              </div>
+              <div className="bg-transparent p-3 rounded-[20px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-all shadow-lg">
+                <div>
+                  <span className="block text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-1 drop-shadow">Cena Rynkowa</span>
+                  <span className="text-lg font-black text-emerald-400 font-mono italic tabular-nums leading-none drop-shadow">
+                    {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} <span className="text-xs opacity-60 ml-1">PLN</span>
+                  </span>
+                  <p className="text-[7px] text-white uppercase mt-1 font-bold tracking-tighter drop-shadow">* Wycena na podstawie formy, wieku oraz reputacji ligi</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl text-emerald-500 border border-emerald-500/20 shadow-inner">
+                  🏷️
+                </div>
+              </div>
+            </div>
+
+            {/* ── ZAINTERESOWANIE TRANSFEROWE ────────────────────────────────────
+                Wyświetla kluby AI, które aktualnie obserwują tego zawodnika.
+                Lista jest aktualizowana raz na miesiąc przez AiScoutingService.
+                W przyszłości: kliknięcie klubu → złożenie/odrzucenie oferty transferowej.
+            ────────────────────────────────────────────────────────────────────── */}
+            {player.interestedClubs && player.interestedClubs.length > 0 && (
+              <div className="flex flex-col gap-2 mt-1">
+                <h3 className="text-[10px] font-black text-violet-400 uppercase tracking-[0.4em] flex items-center gap-3 drop-shadow">
+                  <span className="w-8 h-px bg-violet-400/30" /> Zainteresowanie Transferowe
+                </h3>
+                <div className="bg-slate-900/20 p-3 rounded-[20px] border border-violet-500/20">
+                  <p className="text-[8px] font-black text-white uppercase tracking-widest mb-2 drop-shadow">
+                    Kluby obserwujące zawodnika ({player.interestedClubs.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {player.interestedClubs.map(clubId => {
+                      const interestedClub = clubs.find(c => c.id === clubId);
+                      if (!interestedClub) return null;
+                      return (
+                        <div
+                          key={clubId}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-[12px] bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all"
+                          // TODO: Po implementacji ofert transferowych — wnawigateTo(ViewState.TRANSFER_OFFER) lub podobne
+                        >
+                          {/* Mini podgląd barw klubu */}
+                          <div className="w-5 h-5 rounded-md overflow-hidden border border-white/10 flex-shrink-0 flex flex-col">
+                            <div className="flex-1" style={{ backgroundColor: interestedClub.colorsHex[0] }} />
+                            <div className="flex-1" style={{ backgroundColor: interestedClub.colorsHex[1] || interestedClub.colorsHex[0] }} />
+                          </div>
+                          <span className="text-[9px] font-black text-white uppercase tracking-tight drop-shadow">
+                            {interestedClub.shortName}
+                          </span>
+                          {/* Placeholder na przyszły przycisk akcji (oferta transferowa) */}
+                          <span className="text-[8px] text-violet-400 opacity-60">👁️</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {player.clubId === userTeamId && !isMatchContext && (
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
+                  className="group relative h-12 bg-red-600/10 border border-red-500/20 rounded-[18px] flex items-center justify-center gap-3 transition-all hover:bg-red-600/20 hover:border-red-500/40 active:scale-95 shadow-xl"
+                >
+                  <span className="text-xl group-hover:rotate-12 transition-transform">📄</span>
+                  <div className="text-left">
+                  
+                    <span className="text-[11px] font-black text-white italic uppercase">ROZWIĄŻ KONTRAKT</span>
+                  </div>
+                </button>
+                <button
+                  disabled={isContractLocked}
+                  onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
+                  className={`group relative h-12 rounded-[18px] flex items-center justify-center gap-3 transition-all
+                    ${isContractLocked
+                      ? 'bg-slate-800 border-slate-700 opacity-50 cursor-not-allowed'
+                      : 'bg-blue-600/10 border-blue-500/20 hover:bg-blue-600/20 hover:border-blue-500/40 active:scale-95 shadow-xl'
+                    }`}
+                >
+                  <span className="text-xl group-hover:scale-110 transition-transform">
+                    {isContractLocked ? '⏳' : '✍️'}
+                  </span>
+                  <div className="text-left">
+                    <span className="block text-[8px] font-black uppercase tracking-widest drop-shadow">
+                      {isContractLocked ? 'BLOKADA CZASOWA' : 'NOWE WARUNKI'}
+                    </span>
+                    <span className="text-[11px] font-black text-white italic uppercase drop-shadow">
+                      {isContractLocked ? 'UMOWA NIEDAWNO PODPISANA' : 'PRZEDŁUŻ UMOWĘ'}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {player.clubId === userTeamId && !isMatchContext && (
+              <button
+                onClick={() => toggleTransferList(player.id)}
+                className={`w-full mt-1 py-2.5 rounded-[18px] font-black italic uppercase tracking-widest text-[10px] transition-all border-2 active:scale-95 drop-shadow
+                  ${player.isOnTransferList
+                    ? 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                    : 'bg-amber-600/20 border-amber-500/40 text-amber-500 hover:bg-amber-600/30'}`}
+              >
+                {player.isOnTransferList ? '❌ Zdejmij z listy transferowej' : '📥 Wystaw na listę transferową'}
+              </button>
+            )}
+
+            {player.clubId !== userTeamId && !isMatchContext && (
+              <div className="mt-1">
+                {player.clubId === 'FREE_AGENTS' ? (
+                  <button
+                    disabled={!!(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))}
+                    onClick={() => {
+                      navigateTo(ViewState.FREE_AGENT_NEGOTIATION);
+                    }}
+                    className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4
+                      ${(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))
+                        ? 'bg-slate-800 border-slate-900 text-slate-500 opacity-70 cursor-not-allowed'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-800 hover:scale-[1.02] active:scale-95'}`}
+                  >
+                    {player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil)
+                      ? "Jestem zajęty. Proszę o kontakt w innym terminie."
+                      : "OTWÓRZ BIURO NEGOCJACJI 🤝"}
+                  </button>
+                ) : (
+                  <button
+                    className="w-full py-3 rounded-[20px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl border-b-4 border-blue-800"
+                  >
+                    ZŁÓŻ OFERTĘ TRANSFEROWĄ 💰
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
         </div>
 
 {showHistory && (

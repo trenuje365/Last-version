@@ -71,21 +71,29 @@ export const REGION_PROFILE: Partial<Record<Region, { baseOffset: number; starCh
 const PROFILES: Record<PlayerPosition, Partial<Record<keyof PlayerAttributes, number>>> = {
   [PlayerPosition.GK]: {
     goalkeeping: 1.0, positioning: 0.8, strength: 0.7, passing: 0.4,
-    pace: 0.3, finishing: 0.1, attacking: 0.1, defending: 0.2
+    pace: 0.3, finishing: 0.1, attacking: 0.1, defending: 0.2,
+    freeKicks: 0.1, talent: 0.5, penalties: 0.4, corners: 0.1,
+    aggression: 0.5, crossing: 0.1, leadership: 0.5, mentality: 0.8, workRate: 0.7
   },
   [PlayerPosition.DEF]: {
     defending: 1.0, strength: 0.9, stamina: 0.8, positioning: 0.8, heading: 0.8,
-    pace: 0.6, passing: 0.5, technique: 0.4, vision: 0.3, 
+    pace: 0.6, passing: 0.5, technique: 0.4, vision: 0.3,
     finishing: 0.15, attacking: 0.1,
-    goalkeeping: 0.05
+    goalkeeping: 0.05,
+    freeKicks: 0.3, talent: 0.5, penalties: 0.3, corners: 0.3,
+    aggression: 0.8, crossing: 0.4, leadership: 0.6, mentality: 0.7, workRate: 0.8
   },
   [PlayerPosition.MID]: {
     passing: 1.0, vision: 0.9, technique: 0.9, stamina: 0.9, dribbling: 0.8,
-    positioning: 0.7, attacking: 0.7, pace: 0.6, defending: 0.5, finishing: 0.5, goalkeeping: 0.05
+    positioning: 0.7, attacking: 0.7, pace: 0.6, defending: 0.5, finishing: 0.5, goalkeeping: 0.05,
+    freeKicks: 0.7, talent: 0.7, penalties: 0.5, corners: 0.7,
+    aggression: 0.6, crossing: 0.8, leadership: 0.7, mentality: 0.8, workRate: 0.9
   },
   [PlayerPosition.FWD]: {
     finishing: 1.0, attacking: 0.9, pace: 0.9, dribbling: 0.8, heading: 0.7, technique: 0.7,
-    positioning: 0.8, stamina: 0.6, strength: 0.6, passing: 0.5, defending: 0.2, goalkeeping: 0.05
+    positioning: 0.8, stamina: 0.6, strength: 0.6, passing: 0.5, defending: 0.2, goalkeeping: 0.05,
+    freeKicks: 0.6, talent: 0.8, penalties: 0.8, corners: 0.4,
+    aggression: 0.7, crossing: 0.4, leadership: 0.5, mentality: 0.7, workRate: 0.7
   }
 };
 
@@ -116,8 +124,9 @@ export const PlayerAttributesGenerator = {
     const generated: any = {};
     
     const allKeys: (keyof PlayerAttributes)[] = [
-      'strength', 'stamina', 'pace', 'defending', 'passing', 'attacking', 
-      'finishing', 'technique', 'vision', 'dribbling', 'heading', 'positioning', 'goalkeeping'
+      'strength', 'stamina', 'pace', 'defending', 'passing', 'attacking',
+      'finishing', 'technique', 'vision', 'dribbling', 'heading', 'positioning', 'goalkeeping',
+      'freeKicks', 'talent', 'penalties', 'corners', 'aggression', 'crossing', 'leadership', 'mentality', 'workRate'
     ];
 
     allKeys.forEach(key => {
