@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState, CompetitionType, MatchStatus } from '../../types';
-import ligaMistrzowBg from '../../Graphic/themes/liga_mistrzow.png';
+import ligaMistrzowBg from '../../Graphic/themes/Liga_mistrzow.png';
 
 const GLASS_CARD = "bg-slate-950/40 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[40px] relative overflow-hidden";
 const GLOSS_LAYER = "absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none";
