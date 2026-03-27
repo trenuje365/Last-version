@@ -900,7 +900,22 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
           ownShortHandedPenalty = attackingMissing * 0.016 * offensiveRisk;
         }
 
-        shotThreshold = Math.max(0.04, shotThreshold - defBiasPenalty + strikerBonus + activeFatPenalty + openBacksBonus - ownShortHandedPenalty + noGkBonus);
+        // ─── KARA: KRYTYCZNA KONDYCJA INDYWIDUALNYCH GRACZY ───────────────────
+        // Średnia kondycji całej jedenastki rozmywa wpływ 1-2 krytycznie zmęczonych graczy.
+        // Dlatego: każdy zawodnik atakującej drużyny z fatigue < 30 nakłada dodatkową karę.
+        // Każdy świeży zawodnik broniącej drużyny (fatigue > 70) przy krytycznym rywalu daje bonus.
+        // 1 krytyczny gracz atakujący → -0.012 | 2 → -0.024 itd.
+        // 1 świeży obrońca przy ≥1 krytycznym atakującym → +0.007 itd.
+        const attackingFatigueMap = activeSide === 'HOME' ? localHomeFatigue : localAwayFatigue;
+        const defendingFatigueMap = activeSide === 'HOME' ? localAwayFatigue : localHomeFatigue;
+        const attackingXIIds = (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter((id): id is string => id !== null);
+        const defendingXIIds = (activeSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI).filter((id): id is string => id !== null);
+        const criticalAttackers = attackingXIIds.filter(id => (attackingFatigueMap[id] ?? 100) < 30).length;
+        const freshDefenders = defendingXIIds.filter(id => (defendingFatigueMap[id] ?? 100) > 70).length;
+        const criticalFatPenalty = criticalAttackers * 0.012;
+        const freshDefBonus = criticalAttackers >= 1 ? freshDefenders * 0.007 : 0;
+
+        shotThreshold = Math.max(0.04, shotThreshold - defBiasPenalty + strikerBonus + activeFatPenalty + openBacksBonus - ownShortHandedPenalty + noGkBonus - criticalFatPenalty - freshDefBonus);
 
         // Momentum bonus do shotThreshold - tylko gdy aktywna drużyna ma impet po swojej stronie
         // max +0.015 przy momentum 100, przy momentum 50 → +0.0075
