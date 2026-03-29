@@ -576,17 +576,17 @@ export const GameManual: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-emerald-500/20">
                       <div className="text-emerald-400 font-black text-2xl mb-2">0-29</div>
-                      <h5 className="text-white font-black uppercase text-xs">APPROVED</h5>
+                      <h5 className="text-white font-black uppercase text-xs">ZATWIERDZONO</h5>
                       <p className="text-[9px] text-slate-500 mt-2">Zarząd akceptuje decyzję</p>
                    </div>
                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-amber-500/20">
                       <div className="text-amber-400 font-black text-2xl mb-2">30-59</div>
-                      <h5 className="text-white font-black uppercase text-xs">WARNING</h5>
+                      <h5 className="text-white font-black uppercase text-xs">OSTRZEŻENIE</h5>
                       <p className="text-[9px] text-slate-500 mt-2">Wątpliwości, ale zgoda</p>
                    </div>
                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-orange-500/20">
                       <div className="text-orange-400 font-black text-2xl mb-2">60-84</div>
-                      <h5 className="text-white font-black uppercase text-xs">SOFT BLOCK</h5>
+                      <h5 className="text-white font-black uppercase text-xs">ODRZUCONO</h5>
                       <p className="text-[9px] text-slate-500 mt-2">Odrzucone, spróbuj za 3 miesiące</p>
                    </div>
                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-red-500/20">

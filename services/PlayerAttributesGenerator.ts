@@ -80,7 +80,7 @@ const PROFILES: Record<PlayerPosition, Partial<Record<keyof PlayerAttributes, nu
     pace: 0.6, passing: 0.5, technique: 0.4, vision: 0.3,
     finishing: 0.15, attacking: 0.1,
     goalkeeping: 0.05,
-    freeKicks: 0.3, talent: 0.5, penalties: 0.3, corners: 0.3,
+    freeKicks: 0.45, talent: 0.5, penalties: 0.4, corners: 0.3,
     aggression: 0.8, crossing: 0.4, leadership: 0.6, mentality: 0.7, workRate: 0.8
   },
   [PlayerPosition.MID]: {
@@ -122,6 +122,12 @@ export const PlayerAttributesGenerator = {
     // 2. Generate individual attributes based on Profile
     const profile = PROFILES[position];
     const generated: any = {};
+    // Rare defender archetypes: most defenders stay average on set pieces,
+    // but a small subset can spawn as genuine specialists.
+    const isDefFreeKickSpecialist =
+      position === PlayerPosition.DEF && Math.random() < 0.10;
+    const isDefPenaltySpecialist =
+      position === PlayerPosition.DEF && Math.random() < 0.05;
     
     const allKeys: (keyof PlayerAttributes)[] = [
       'strength', 'stamina', 'pace', 'defending', 'passing', 'attacking',
@@ -159,6 +165,16 @@ export const PlayerAttributesGenerator = {
          return;
       }
 
+      if (position === PlayerPosition.DEF && key === 'freeKicks' && isDefFreeKickSpecialist) {
+         generated[key] = Math.floor(60 + Math.random() * 26); // 60-85
+         return;
+      }
+
+      if (position === PlayerPosition.DEF && key === 'penalties' && isDefPenaltySpecialist) {
+         generated[key] = Math.floor(55 + Math.random() * 31); // 55-85
+         return;
+      }
+
       // STANDARD ATTRIBUTE GENERATION
       const weight = profile[key] !== undefined ? profile[key]! : 0.5;
       let value = tierBase;
@@ -174,7 +190,12 @@ export const PlayerAttributesGenerator = {
          value = (tierBase * multiplier) + ((Math.random() * 10) - 5);
       }
       
-      value = Math.max(1, Math.min(Math.floor(value), config.hardCap));
+      const attrCap =
+        position === PlayerPosition.DEF && (key === 'freeKicks' || key === 'penalties')
+          ? 85
+          : config.hardCap;
+
+      value = Math.max(1, Math.min(Math.floor(value), attrCap));
       
       if (Math.random() < (regionProfile?.starChance ?? 0.04)) {
           value = Math.min(99, value + Math.floor(Math.random() * 12) + 3);

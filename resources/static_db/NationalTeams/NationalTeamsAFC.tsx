@@ -27,6 +27,16 @@ export const NATIONAL_TEAMS_AFC = [
   { name: "Korea PŁN", continent: "Asia", tier: 5, colors: ['#024FA2','#ED1C27','#024FA2'], stadium: "Kim Il-sung Stadium", capacity: 50000, reputation: 9, region: Region.KOREA },
   { name: "Laos", continent: "Asia", tier: 5, colors: ['#CE1126','#002868','#CE1126'], stadium: "New Laos National Stadium", capacity: 25000, reputation: 4, region: Region.JAPAN },
   { name: "Malezja", continent: "Asia", tier: 5, colors: ['#010066','#FFCC00','#CE1126'], stadium: "Bukit Jalil National Stadium", capacity: 87411, reputation: 8, region: Region.JAPAN },
+  {
+  name: "Macau",
+  continent: "Asia",
+  tier: 4,
+  colors: ['#006600', '#FFD700', '#FFFFFF'],
+  stadium: "Centro Desportivo Olímpico - Estádio",
+  capacity: 16272,
+  reputation: 8,
+  region: Region.JAPAN
+},
   { name: "Mjanma", continent: "Asia", tier: 5, colors: ['#FECB00','#34B233','#EA2839'], stadium: "Thuwunna Stadium", capacity: 32000, reputation: 6, region: Region.JAPAN },
   { name: "Singapur", continent: "Asia", tier: 5, colors: ['#EF3340','#FFFFFF','#EF3340'], stadium: "National Stadium", capacity: 55000, reputation: 8, region: Region.JAPAN },
   { name: "Tajlandia", continent: "Asia", tier: 5, colors: ['#CE1126','#002868','#CE1126'], stadium: "Rajamangala Stadium", capacity: 49000, reputation: 9, region: Region.JAPAN },

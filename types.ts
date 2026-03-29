@@ -31,6 +31,8 @@ export enum ViewState {
   EDITOR = 'EDITOR',
   CONTRACT_MANAGEMENT = 'CONTRACT_MANAGEMENT',
   FREE_AGENT_NEGOTIATION = 'FREE_AGENT_NEGOTIATION',
+  TRANSFER_OFFER = 'TRANSFER_OFFER',
+  TRANSFER_PLAYER_NEGOTIATION = 'TRANSFER_PLAYER_NEGOTIATION',
 
 
   CL_DRAW = 'CL_DRAW',
@@ -378,6 +380,63 @@ export interface PendingNegotiation {
   years: number;
   responseDate: string; // Data ISO, kiedy agent odpowie
   status: NegotiationStatus;
+}
+
+export enum TransferOfferStatus {
+  SELLER_REVIEW = 'SELLER_REVIEW',
+  SELLER_REJECTED = 'SELLER_REJECTED',
+  SELLER_COUNTERED = 'SELLER_COUNTERED',
+  SELLER_ACCEPTED = 'SELLER_ACCEPTED',
+  PLAYER_NEGOTIATION = 'PLAYER_NEGOTIATION',
+  PLAYER_REJECTED = 'PLAYER_REJECTED',
+  READY_TO_FINALIZE = 'READY_TO_FINALIZE',
+  AGREED_PRECONTRACT = 'AGREED_PRECONTRACT',
+  COMPLETED = 'COMPLETED'
+}
+
+export enum TransferTiming {
+  IMMEDIATE = 'IMMEDIATE',
+  IN_SIX_MONTHS = 'IN_SIX_MONTHS',
+  IN_TWELVE_MONTHS = 'IN_TWELVE_MONTHS',
+  CONTRACT_END = 'CONTRACT_END'
+}
+
+export interface TransferOffer {
+  id: string;
+  playerId: string;
+  sellerClubId: string;
+  buyerClubId: string;
+  fee: number;
+  timing: TransferTiming;
+  salary?: number;
+  bonus?: number;
+  years?: number;
+  createdAt: string;
+  status: TransferOfferStatus;
+  effectiveDate?: string;
+  askingPrice?: number;
+  sellerReason?: string;
+  playerReason?: string;
+  attemptNumber: number;
+  maxAttempts: number;
+}
+
+export interface TransferClubBidInput {
+  fee: number;
+  timing: TransferTiming;
+}
+
+export interface TransferContractInput {
+  salary: number;
+  bonus: number;
+  years: number;
+}
+
+export interface TransferOfferSubmissionResult {
+  ok: boolean;
+  status: TransferOfferStatus | 'VALIDATION_ERROR';
+  message: string;
+  offer?: TransferOffer;
 }
 
 export interface Player {

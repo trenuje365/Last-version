@@ -49,6 +49,7 @@ export const REGION_NATIONALITY_LABEL: Record<Region, string> = {
   [Region.AZERBAIJANI]: 'Azerbejdżan',
   [Region.KAZAKH]:      'Kazachstan',
   [Region.SOUTH_AMERICAN]: 'Ameryka Południowa',
+ 
 };
 
 const generateNTId = (name: string) => `NT_${name.toUpperCase().replace(/\s+/g, '_')}`;

@@ -6,7 +6,8 @@ import {
 Coach, TrainingIntensity,
 PendingNegotiation, NegotiationStatus,
 HealthStatus,
-PlayerPosition, EuropeanStatus, NationalTeam
+PlayerPosition, EuropeanStatus, NationalTeam,
+TransferOffer, TransferClubBidInput, TransferContractInput, TransferOfferStatus, TransferOfferSubmissionResult, TransferTiming
 } from '../types';
 import { NationalTeamService } from '../services/NationalTeamService';
 import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from '../resources/static_db/clubs/ChampionsLeagueTeams';
@@ -42,6 +43,10 @@ import { BackgroundMatchProcessorCL } from '../services/BackgroundMatchProcessor
 import { MatchHistoryService } from '../services/MatchHistoryService';
 import { ScoutAssistantService } from '../services/ScoutAssistantService';
 import { ChampionshipHistoryService } from '../data/championship_history';
+import { TransferBuyerLogicService } from '../services/TransferBuyerLogicService';
+import { TransferSellerLogicService } from '../services/TransferSellerLogicService';
+import { TransferPlayerDecisionService } from '../services/TransferPlayerDecisionService';
+import { TransferExecutionService } from '../services/TransferExecutionService';
 
 interface SimulationOutput {
   updatedFixtures: Fixture[];
@@ -105,6 +110,7 @@ interface GameContextType {
   jumpToDate: (date: Date) => void;
   jumpToNextEvent: () => void;
   navigateTo: (view: ViewState) => void;
+  navigateWithoutHistory: (view: ViewState) => void;
   updateLineup: (clubId: string, lineup: Lineup) => void;
   viewClubDetails: (clubId: string) => void;
   viewPlayerDetails: (playerId: string) => void;
@@ -152,6 +158,9 @@ interface GameContextType {
   pendingNegotiations: PendingNegotiation[];
 setPendingNegotiations: React.Dispatch<React.SetStateAction<PendingNegotiation[]>>;
 finalizeFreeAgentContract: (mailId: string) => void;
+  transferOffers: TransferOffer[];
+  submitTransferOffer: (playerId: string, offer: TransferClubBidInput) => TransferOfferSubmissionResult;
+  finalizeTransferNegotiation: (offerId: string, contract: TransferContractInput) => TransferOfferSubmissionResult;
 
  europeanStatus: Record<string, EuropeanStatus>;
   setEuropeanStatus: React.Dispatch<React.SetStateAction<Record<string, EuropeanStatus>>>;
@@ -196,6 +205,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(TrainingIntensity.NORMAL);
  const [pendingNegotiations, setPendingNegotiations] = useState<PendingNegotiation[]>([]);
+ const [transferOffers, setTransferOffers] = useState<TransferOffer[]>([]);
  const [europeanStatus, setEuropeanStatus] = useState<Record<string, EuropeanStatus>>({});
   const [nationalTeams, setNationalTeams] = useState<NationalTeam[]>([]);
   const [europeanViewTab, setEuropeanViewTab] = useState<'clubs' | 'nt'>('clubs');
@@ -325,6 +335,10 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
     setPreviousViewState(viewState);
     setViewState(view);
   }, [viewState]);
+
+  const navigateWithoutHistory = useCallback((view: ViewState) => {
+    setViewState(view);
+  }, []);
 
   const generateSchedules = (template: SeasonTemplate, currentClubs: Club[]): Record<number, LeagueSchedule> => {
     const schedules: Record<number, LeagueSchedule> = {};
@@ -3429,6 +3443,578 @@ const finalResult: SimulationOutput = {
     }
   };
 
+  const submitTransferOffer = useCallback((playerId: string, offerInput: TransferClubBidInput): TransferOfferSubmissionResult => {
+    if (!userTeamId) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Najpierw musisz wybrać klub użytkownika.' };
+    }
+
+    const buyerClub = clubs.find(c => c.id === userTeamId);
+    if (!buyerClub) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Nie znaleziono danych twojego klubu.' };
+    }
+
+    let sellerClubId: string | null = null;
+    let targetPlayer: Player | null = null;
+    for (const clubId in players) {
+      const found = players[clubId].find(p => p.id === playerId);
+      if (found) {
+        sellerClubId = clubId;
+        targetPlayer = found;
+        break;
+      }
+    }
+
+    if (!sellerClubId || !targetPlayer) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Nie znaleziono wskazanego zawodnika.' };
+    }
+
+    const sellerClub = clubs.find(c => c.id === sellerClubId);
+    if (!sellerClub) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Nie znaleziono klubu sprzedającego.' };
+    }
+
+    const buyerSquad = players[userTeamId] || [];
+    const sellerSquad = players[sellerClubId] || [];
+    const sellerOpeningStance = TransferSellerLogicService.getNegotiationStance(
+      targetPlayer,
+      sellerClub,
+      buyerClub,
+      sellerSquad,
+      currentDate,
+      offerInput.timing
+    );
+    const latestClubOffer = transferOffers.find(
+      offer =>
+        offer.playerId === playerId &&
+        offer.buyerClubId === userTeamId &&
+        offer.timing === offerInput.timing &&
+        (
+          offer.status === TransferOfferStatus.SELLER_COUNTERED ||
+          offer.status === TransferOfferStatus.SELLER_REJECTED ||
+          offer.status === TransferOfferStatus.PLAYER_NEGOTIATION
+        )
+    ) || null;
+
+    const existingNegotiation = transferOffers.find(
+      offer =>
+        offer.playerId === playerId &&
+        offer.buyerClubId === userTeamId &&
+        (
+          offer.status === TransferOfferStatus.PLAYER_NEGOTIATION ||
+          offer.status === TransferOfferStatus.AGREED_PRECONTRACT
+        )
+    );
+    if (existingNegotiation) {
+      return {
+        ok: false,
+        status: 'VALIDATION_ERROR',
+        message: existingNegotiation.status === TransferOfferStatus.AGREED_PRECONTRACT
+          ? 'Masz juz podpisane porozumienie z tym zawodnikiem.'
+          : 'Kwota z klubem jest juz uzgodniona. Przejdz do rozmowy z zawodnikiem.'
+      };
+    }
+
+    if (targetPlayer.transferLockoutUntil && new Date(currentDate) < new Date(targetPlayer.transferLockoutUntil)) {
+      return {
+        ok: false,
+        status: 'VALIDATION_ERROR',
+        message: `Ten klub nie chce wracac do rozmow w sprawie tego zawodnika przed ${new Date(targetPlayer.transferLockoutUntil).toLocaleDateString('pl-PL')}.`
+      };
+    }
+
+    if (offerInput.timing !== TransferTiming.CONTRACT_END && !sellerOpeningStance.allowTalks) {
+      return {
+        ok: false,
+        status: 'VALIDATION_ERROR',
+        message: sellerOpeningStance.reason
+      };
+    }
+
+    const buyerDecision = TransferBuyerLogicService.validateClubBid(
+      targetPlayer,
+      buyerClub,
+      buyerSquad,
+      offerInput,
+      currentDate
+    );
+
+    if (!buyerDecision.approved) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: buyerDecision.reason };
+    }
+
+    const createdOffer: TransferOffer = {
+      id: `TRANSFER_${Date.now()}_${playerId}`,
+      playerId,
+      sellerClubId,
+      buyerClubId: userTeamId,
+      fee: Math.round(offerInput.fee),
+      timing: offerInput.timing,
+      createdAt: currentDate.toISOString(),
+      status: TransferOfferStatus.SELLER_REVIEW,
+      attemptNumber: latestClubOffer?.status === TransferOfferStatus.SELLER_COUNTERED
+        ? latestClubOffer.attemptNumber + 1
+        : 1,
+      maxAttempts: latestClubOffer?.maxAttempts || TransferSellerLogicService.generateNegotiationAttemptLimit()
+    };
+
+    const resolveEffectiveDate = () => {
+      const effectiveDate = new Date(currentDate);
+
+      if (offerInput.timing === TransferTiming.IN_SIX_MONTHS) {
+        effectiveDate.setMonth(effectiveDate.getMonth() + 6);
+        return effectiveDate.toISOString();
+      }
+
+      if (offerInput.timing === TransferTiming.IN_TWELVE_MONTHS) {
+        effectiveDate.setFullYear(effectiveDate.getFullYear() + 1);
+        return effectiveDate.toISOString();
+      }
+
+      return targetPlayer.contractEndDate;
+    };
+
+    if (offerInput.timing === TransferTiming.CONTRACT_END) {
+      const preContractOffer: TransferOffer = {
+        ...createdOffer,
+        fee: 0,
+        status: TransferOfferStatus.PLAYER_NEGOTIATION,
+        effectiveDate: resolveEffectiveDate(),
+        sellerReason: `Zawodnik moze podpisac umowe obowiazujaca od ${new Date(targetPlayer.contractEndDate).toLocaleDateString('pl-PL')}. Klub nie otrzyma odstepnego.`
+      };
+
+      setTransferOffers(prev => [preContractOffer, ...prev].slice(0, 100));
+      setMessages(prev => [{
+        id: `MAIL_TRANSFER_PRECONTRACT_${preContractOffer.id}`,
+        sender: 'Dzial prawny',
+        role: 'Rejestr kontraktow',
+        subject: `Mozesz rozmawiac z ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: `${preContractOffer.sellerReason}\n\nJesli uzgodnisz warunki z zawodnikiem, dolaczy do twojego klubu po wygasnieciu obecnej umowy.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 95
+      }, ...prev]);
+
+      return {
+        ok: true,
+        status: TransferOfferStatus.PLAYER_NEGOTIATION,
+        message: `${preContractOffer.sellerReason}\n\nMozesz przejsc bezposrednio do rozmowy z zawodnikiem.`,
+        offer: preContractOffer
+      };
+    }
+
+    const sellerDecision = TransferSellerLogicService.evaluateSellerDecision(
+      offerInput,
+      targetPlayer,
+      sellerClub,
+      buyerClub,
+      sellerSquad,
+      currentDate,
+      {
+        currentAskingPrice: latestClubOffer?.status === TransferOfferStatus.SELLER_COUNTERED
+          ? latestClubOffer.askingPrice
+          : sellerOpeningStance.askingPrice,
+        attemptNumber: createdOffer.attemptNumber,
+        maxAttempts: createdOffer.maxAttempts
+      }
+    );
+
+    if (sellerDecision.verdict === 'REJECT') {
+      const transferLockoutDate = new Date(currentDate);
+      transferLockoutDate.setMonth(transferLockoutDate.getMonth() + 3);
+      setPlayers(prev => ({
+        ...prev,
+        [sellerClubId]: (prev[sellerClubId] || []).map(player =>
+          player.id === targetPlayer.id
+            ? { ...player, transferLockoutUntil: transferLockoutDate.toISOString() }
+            : player
+        )
+      }));
+
+      const rejectedOffer: TransferOffer = {
+        ...createdOffer,
+        status: TransferOfferStatus.SELLER_REJECTED,
+        askingPrice: sellerDecision.askingPrice,
+        sellerReason: sellerDecision.reason
+      };
+      setTransferOffers(prev => [rejectedOffer, ...prev].slice(0, 100));
+      setMessages(prev => [{
+        id: `MAIL_TRANSFER_REJECT_${rejectedOffer.id}`,
+        sender: sellerClub.name,
+        role: 'Zarząd klubu',
+        subject: `Oferta odrzucona: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: `${sellerDecision.reason}\n\nKlub zamyka rozmowy w sprawie tego zawodnika do ${transferLockoutDate.toLocaleDateString('pl-PL')}.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 92
+      }, ...prev]);
+
+      return {
+        ok: false,
+        status: TransferOfferStatus.SELLER_REJECTED,
+        message: `${sellerDecision.reason}\n\nKolejna oferta bedzie mozliwa dopiero po ${transferLockoutDate.toLocaleDateString('pl-PL')}.`,
+        offer: rejectedOffer
+      };
+    }
+
+    if (sellerDecision.verdict === 'COUNTER') {
+      const counterOffer: TransferOffer = {
+        ...createdOffer,
+        status: TransferOfferStatus.SELLER_COUNTERED,
+        askingPrice: sellerDecision.askingPrice,
+        sellerReason: sellerDecision.reason
+      };
+      setTransferOffers(prev => [counterOffer, ...prev].slice(0, 100));
+      setMessages(prev => [{
+        id: `MAIL_TRANSFER_COUNTER_${counterOffer.id}`,
+        sender: sellerClub.name,
+        role: 'Zarzad klubu',
+        subject: `Klub przedstawia oczekiwania za ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: sellerDecision.reason,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 94
+      }, ...prev]);
+
+      return { ok: false, status: TransferOfferStatus.SELLER_COUNTERED, message: sellerDecision.reason, offer: counterOffer };
+    }
+
+    /* const playerDecision = TransferPlayerDecisionService.evaluateMove(
+      offerInput,
+      targetPlayer,
+      sellerClub,
+      buyerClub,
+      sellerSquad,
+      buyerSquad,
+      currentDate
+    );
+
+    if (!playerDecision.accepted) {
+      const playerRejectedOffer = {
+        ...createdOffer,
+        status: TransferOfferStatus.PLAYER_REJECTED,
+        sellerReason: sellerDecision.reason,
+        playerReason: playerDecision.reason
+      };
+      setTransferOffers(prev => [playerRejectedOffer, ...prev].slice(0, 100));
+      setMessages(prev => [{
+        id: `MAIL_TRANSFER_PLAYER_REJECT_${playerRejectedOffer.id}`,
+        sender: `Agent gracza ${targetPlayer.lastName}`,
+        role: 'Agencja menadżerska',
+        subject: `Zawodnik odrzucił transfer: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: playerDecision.reason,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 94
+      }, ...prev]);
+
+      return { ok: false, status: TransferOfferStatus.PLAYER_REJECTED, message: playerDecision.reason, offer: playerRejectedOffer };
+    }
+
+    const readyOffer: TransferOffer = {
+      ...createdOffer,
+      status: TransferOfferStatus.READY_TO_FINALIZE,
+      sellerReason: sellerDecision.reason,
+      playerReason: playerDecision.reason
+    };
+
+    const execution = TransferExecutionService.finalizeTransfer(
+      readyOffer,
+      clubs,
+      players,
+      currentDate
+    );
+
+    setClubs(execution.updatedClubs);
+    setPlayers(execution.updatedPlayers);
+    setLineups(prev => {
+      const next = { ...prev };
+      const updatedSellerSquad = execution.updatedPlayers[sellerClub.id] || [];
+      const updatedBuyerSquad = execution.updatedPlayers[buyerClub.id] || [];
+
+      if (next[sellerClub.id]) {
+        next[sellerClub.id] = LineupService.repairLineup(next[sellerClub.id], updatedSellerSquad);
+      }
+
+      if (next[buyerClub.id]) {
+        const buyerLineup = next[buyerClub.id];
+        const allKnownIds = new Set([
+          ...buyerLineup.bench,
+          ...buyerLineup.reserves,
+          ...(buyerLineup.startingXI.filter(Boolean) as string[])
+        ]);
+
+        if (!allKnownIds.has(playerId)) {
+          next[buyerClub.id] = {
+            ...buyerLineup,
+            reserves: [...buyerLineup.reserves, playerId]
+          };
+        }
+      }
+
+      return next;
+    });
+
+    const completedOffer = { ...readyOffer, status: TransferOfferStatus.COMPLETED };
+    setTransferOffers(prev => [completedOffer, ...prev].slice(0, 100));
+    setMessages(prev => [{
+      id: `MAIL_TRANSFER_DONE_${completedOffer.id}`,
+      sender: 'Centrum transferowe',
+      role: 'System rejestracji transferów',
+      subject: `Transfer potwierdzony: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+      body: `${targetPlayer.firstName} ${targetPlayer.lastName} dołącza do ${buyerClub.name}. Klub ${sellerClub.name} zaakceptował ofertę ${offerInput.fee.toLocaleString()} PLN, a zawodnik podpisał kontrakt na ${offerInput.years} lata.`,
+      date: new Date(currentDate),
+      isRead: false,
+      type: MailType.SYSTEM,
+      priority: 98
+    }, ...prev]);
+
+    return {
+      ok: true,
+      status: TransferOfferStatus.COMPLETED,
+      message: `${targetPlayer.firstName} ${targetPlayer.lastName} zaakceptował transfer do ${buyerClub.name}.`,
+      offer: completedOffer
+    };
+    */
+
+    const acceptedOffer: TransferOffer = {
+      ...createdOffer,
+      status: TransferOfferStatus.PLAYER_NEGOTIATION,
+      askingPrice: sellerDecision.askingPrice,
+      sellerReason: sellerDecision.reason
+    };
+
+    setTransferOffers(prev => [acceptedOffer, ...prev].slice(0, 100));
+    setMessages(prev => [{
+      id: `MAIL_TRANSFER_ACCEPT_${acceptedOffer.id}`,
+      sender: sellerClub.name,
+      role: 'Zarzad klubu',
+      subject: `Kluby uzgodnily kwote za ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+      body: `${sellerDecision.reason}\n\nMozesz teraz przejsc do rozmowy z zawodnikiem i ustalic warunki kontraktu.`,
+      date: new Date(currentDate),
+      isRead: false,
+      type: MailType.SYSTEM,
+      priority: 96
+    }, ...prev]);
+
+    return {
+      ok: true,
+      status: TransferOfferStatus.PLAYER_NEGOTIATION,
+      message: `${sellerDecision.reason}\n\nKluby uzgodnily warunki transferu. Teraz musisz porozmawiac z zawodnikiem.`,
+      offer: acceptedOffer
+    };
+  }, [userTeamId, clubs, players, currentDate, transferOffers]);
+
+  const finalizeTransferNegotiation = useCallback((offerId: string, contractInput: TransferContractInput): TransferOfferSubmissionResult => {
+    if (!userTeamId) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Najpierw musisz wybrac klub uzytkownika.' };
+    }
+
+    const transferOffer = transferOffers.find(offer => offer.id === offerId);
+    if (!transferOffer) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Nie znaleziono aktywnej oferty transferowej.' };
+    }
+
+    if (transferOffer.buyerClubId !== userTeamId) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Ta oferta nie nalezy do twojego klubu.' };
+    }
+
+    if (transferOffer.status !== TransferOfferStatus.PLAYER_NEGOTIATION) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Najpierw musisz uzgodnic kwote z klubem sprzedajacym.' };
+    }
+
+    const buyerClub = clubs.find(c => c.id === transferOffer.buyerClubId);
+    const sellerClub = clubs.find(c => c.id === transferOffer.sellerClubId);
+    if (!buyerClub || !sellerClub) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Brakuje danych jednego z klubow.' };
+    }
+
+    const buyerSquad = players[buyerClub.id] || [];
+    const sellerSquad = players[sellerClub.id] || [];
+    const targetPlayer = sellerSquad.find(p => p.id === transferOffer.playerId);
+    if (!targetPlayer) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: 'Zawodnik nie jest juz dostepny w klubie sprzedajacym.' };
+    }
+
+    const buyerBidValidation = TransferBuyerLogicService.validateClubBid(
+      targetPlayer,
+      buyerClub,
+      buyerSquad,
+      { fee: transferOffer.fee, timing: transferOffer.timing },
+      currentDate
+    );
+    if (!buyerBidValidation.approved) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: buyerBidValidation.reason };
+    }
+
+    const contractValidation = TransferBuyerLogicService.validateContractTerms(
+      targetPlayer,
+      buyerClub,
+      buyerSquad,
+      contractInput
+    );
+    if (!contractValidation.approved) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: contractValidation.reason };
+    }
+
+    const playerDecision = TransferPlayerDecisionService.evaluateMove(
+      contractInput,
+      targetPlayer,
+      sellerClub,
+      buyerClub,
+      sellerSquad,
+      buyerSquad,
+      currentDate
+    );
+
+    if (!playerDecision.accepted) {
+      const transferLockoutDate = new Date(currentDate);
+      transferLockoutDate.setMonth(transferLockoutDate.getMonth() + 3);
+      setPlayers(prev => ({
+        ...prev,
+        [sellerClub.id]: (prev[sellerClub.id] || []).map(player =>
+          player.id === targetPlayer.id
+            ? { ...player, transferLockoutUntil: transferLockoutDate.toISOString() }
+            : player
+        )
+      }));
+
+      const rejectedOffer: TransferOffer = {
+        ...transferOffer,
+        salary: Math.round(contractInput.salary),
+        bonus: Math.round(contractInput.bonus),
+        years: contractInput.years,
+        status: TransferOfferStatus.PLAYER_REJECTED,
+        playerReason: playerDecision.reason
+      };
+
+      setTransferOffers(prev => prev.map(offer => offer.id === offerId ? rejectedOffer : offer));
+      setMessages(prev => [{
+        id: `MAIL_TRANSFER_PLAYER_REJECT_${rejectedOffer.id}`,
+        sender: `Agent gracza ${targetPlayer.lastName}`,
+        role: 'Agencja menadzerska',
+        subject: `Zawodnik odrzucil transfer: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: `${playerDecision.reason}\n\nZawodnik nie chce wracac do rozmow przed ${transferLockoutDate.toLocaleDateString('pl-PL')}.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 95
+      }, ...prev]);
+
+      return {
+        ok: false,
+        status: TransferOfferStatus.PLAYER_REJECTED,
+        message: `${playerDecision.reason}\n\nKolejna proba bedzie mozliwa dopiero po ${transferLockoutDate.toLocaleDateString('pl-PL')}.`,
+        offer: rejectedOffer
+      };
+    }
+
+    const readyOffer: TransferOffer = {
+      ...transferOffer,
+      salary: Math.round(contractInput.salary),
+      bonus: Math.round(contractInput.bonus),
+      years: contractInput.years,
+      status: TransferOfferStatus.READY_TO_FINALIZE,
+      playerReason: playerDecision.reason
+    };
+
+    if (transferOffer.timing !== TransferTiming.IMMEDIATE) {
+      const agreedOffer: TransferOffer = {
+        ...readyOffer,
+        status: TransferOfferStatus.AGREED_PRECONTRACT,
+        effectiveDate: transferOffer.effectiveDate || targetPlayer.contractEndDate
+      };
+
+      setTransferOffers(prev => prev.map(offer => offer.id === offerId ? agreedOffer : offer));
+      setMessages(prev => [{
+        id: `MAIL_TRANSFER_PRECONTRACT_DONE_${agreedOffer.id}`,
+        sender: `Agent gracza ${targetPlayer.lastName}`,
+        role: 'Agencja menadzerska',
+        subject: `Umowa podpisana: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: transferOffer.timing === TransferTiming.CONTRACT_END
+          ? `${targetPlayer.firstName} ${targetPlayer.lastName} zaakceptowal warunki kontraktu. Dolaczy do ${buyerClub.name} od ${new Date(agreedOffer.effectiveDate || targetPlayer.contractEndDate).toLocaleDateString('pl-PL')} po wygasnieciu obecnej umowy.`
+          : `${targetPlayer.firstName} ${targetPlayer.lastName} zaakceptowal warunki kontraktu. Transfer do ${buyerClub.name} zostal uzgodniony z data ${new Date(agreedOffer.effectiveDate || currentDate).toLocaleDateString('pl-PL')}.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 98
+      }, ...prev]);
+
+      return {
+        ok: true,
+        status: TransferOfferStatus.AGREED_PRECONTRACT,
+        message: transferOffer.timing === TransferTiming.CONTRACT_END
+          ? `${targetPlayer.firstName} ${targetPlayer.lastName} podpisal umowe z data obowiazywania od ${new Date(agreedOffer.effectiveDate || targetPlayer.contractEndDate).toLocaleDateString('pl-PL')}.`
+          : `${targetPlayer.firstName} ${targetPlayer.lastName} zaakceptowal transfer z data wejscia w zycie ${new Date(agreedOffer.effectiveDate || currentDate).toLocaleDateString('pl-PL')}.`,
+        offer: agreedOffer
+      };
+    }
+
+    const execution = TransferExecutionService.finalizeTransfer(
+      readyOffer,
+      clubs,
+      players,
+      currentDate
+    );
+
+    setClubs(execution.updatedClubs);
+    setPlayers(execution.updatedPlayers);
+    setLineups(prev => {
+      const next = { ...prev };
+      const updatedSellerSquad = execution.updatedPlayers[sellerClub.id] || [];
+
+      if (next[sellerClub.id]) {
+        next[sellerClub.id] = LineupService.repairLineup(next[sellerClub.id], updatedSellerSquad);
+      }
+
+      if (next[buyerClub.id]) {
+        const buyerLineup = next[buyerClub.id];
+        const allKnownIds = new Set([
+          ...buyerLineup.bench,
+          ...buyerLineup.reserves,
+          ...(buyerLineup.startingXI.filter(Boolean) as string[])
+        ]);
+
+        if (!allKnownIds.has(readyOffer.playerId)) {
+          next[buyerClub.id] = {
+            ...buyerLineup,
+            reserves: [...buyerLineup.reserves, readyOffer.playerId]
+          };
+        }
+      }
+
+      return next;
+    });
+
+    const completedOffer: TransferOffer = {
+      ...readyOffer,
+      status: TransferOfferStatus.COMPLETED
+    };
+
+    setTransferOffers(prev => prev.map(offer => offer.id === offerId ? completedOffer : offer));
+    setMessages(prev => [{
+      id: `MAIL_TRANSFER_DONE_${completedOffer.id}`,
+      sender: 'Centrum transferowe',
+      role: 'System rejestracji transferow',
+      subject: `Transfer potwierdzony: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+      body: `${targetPlayer.firstName} ${targetPlayer.lastName} dolacza do ${buyerClub.name}. Klub ${sellerClub.name} zaakceptowal kwote ${readyOffer.fee.toLocaleString()} PLN, a zawodnik podpisal kontrakt na ${contractInput.years} lata.`,
+      date: new Date(currentDate),
+      isRead: false,
+      type: MailType.SYSTEM,
+      priority: 98
+    }, ...prev]);
+
+    return {
+      ok: true,
+      status: TransferOfferStatus.COMPLETED,
+      message: `${targetPlayer.firstName} ${targetPlayer.lastName} zaakceptowal transfer do ${buyerClub.name}.`,
+      offer: completedOffer
+    };
+  }, [userTeamId, transferOffers, clubs, players, currentDate]);
+
 const finalizeFreeAgentContract = useCallback((mailId: string) => {
     const mail = messages.find(m => m.id === mailId);
     // TUTAJ WSTAW TEN KOD (Weryfikacja typu metadanych)
@@ -3506,6 +4092,86 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
     alert(`Transfer sfinalizowany! ${playerToSign.firstName} ${playerToSign.lastName} dołączył do kadry.`);
   }, [messages, players, userTeamId, currentDate]);
 
+  useEffect(() => {
+    const duePreContracts = transferOffers.filter(offer =>
+      offer.status === TransferOfferStatus.AGREED_PRECONTRACT &&
+      offer.effectiveDate &&
+      new Date(currentDate).setHours(0, 0, 0, 0) >= new Date(offer.effectiveDate).setHours(0, 0, 0, 0)
+    );
+
+    if (duePreContracts.length === 0) return;
+
+    let nextClubs = clubs;
+    let nextPlayers = players;
+    let nextLineups = { ...lineups };
+    const completedIds = new Set<string>();
+    const completionMessages: MailMessage[] = [];
+
+    duePreContracts.forEach(offer => {
+      const sellerClub = nextClubs.find(club => club.id === offer.sellerClubId);
+      const buyerClub = nextClubs.find(club => club.id === offer.buyerClubId);
+      const sellerSquad = nextPlayers[offer.sellerClubId] || [];
+      const targetPlayer = sellerSquad.find(player => player.id === offer.playerId);
+
+      if (!sellerClub || !buyerClub || !targetPlayer) return;
+
+      const execution = TransferExecutionService.finalizeTransfer(
+        offer,
+        nextClubs,
+        nextPlayers,
+        new Date(offer.effectiveDate || currentDate)
+      );
+
+      nextClubs = execution.updatedClubs;
+      nextPlayers = execution.updatedPlayers;
+
+      const updatedSellerSquad = execution.updatedPlayers[sellerClub.id] || [];
+      if (nextLineups[sellerClub.id]) {
+        nextLineups[sellerClub.id] = LineupService.repairLineup(nextLineups[sellerClub.id], updatedSellerSquad);
+      }
+
+      if (nextLineups[buyerClub.id]) {
+        const buyerLineup = nextLineups[buyerClub.id];
+        const allKnownIds = new Set([
+          ...buyerLineup.bench,
+          ...buyerLineup.reserves,
+          ...(buyerLineup.startingXI.filter(Boolean) as string[])
+        ]);
+
+        if (!allKnownIds.has(offer.playerId)) {
+          nextLineups[buyerClub.id] = {
+            ...buyerLineup,
+            reserves: [...buyerLineup.reserves, offer.playerId]
+          };
+        }
+      }
+
+      completedIds.add(offer.id);
+      completionMessages.push({
+        id: `MAIL_TRANSFER_PRECONTRACT_EXEC_${offer.id}`,
+        sender: 'Centrum transferowe',
+        role: 'System rejestracji transferow',
+        subject: `Transfer wszedl w zycie: ${targetPlayer.firstName} ${targetPlayer.lastName}`,
+        body: `${targetPlayer.firstName} ${targetPlayer.lastName} dolaczyl do ${buyerClub.name} zgodnie z podpisana wczesniej umowa obowiazujaca od ${new Date(offer.effectiveDate || currentDate).toLocaleDateString('pl-PL')}.`,
+        date: new Date(currentDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 97
+      });
+    });
+
+    if (completedIds.size === 0) return;
+
+    setClubs(nextClubs);
+    setPlayers(nextPlayers);
+    setLineups(nextLineups);
+    setTransferOffers(prev => prev.map(offer =>
+      completedIds.has(offer.id)
+        ? { ...offer, status: TransferOfferStatus.COMPLETED }
+        : offer
+    ));
+    setMessages(prev => [...completionMessages, ...prev]);
+  }, [currentDate, transferOffers, clubs, players, lineups]);
 
   useEffect(() => {
     if (targetJumpTime !== null && viewState !== ViewState.CUP_DRAW) {
@@ -3713,9 +4379,9 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       lastRecoveryDate,
       managerProfile, seasonNumber, activeMatchState, messages, activeTrainingId, cupParticipants, activeCupDraw,
       activeIntensity, setTrainingIntensity: setActiveIntensity,
-      startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
+      startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, navigateWithoutHistory, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
-      setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, europeanStatus, setEuropeanStatus,
+      setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, transferOffers, submitTransferOffer, finalizeTransferNegotiation, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
     confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmCONFFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound,
     nationalTeams, setNationalTeams,
@@ -3731,5 +4397,3 @@ export const useGame = () => {
   if (context === undefined) throw new Error('useGame must be used within a GameProvider');
   return context;
 };
-
-

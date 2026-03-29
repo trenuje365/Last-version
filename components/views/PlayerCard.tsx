@@ -1,13 +1,11 @@
 import React, { useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, HealthStatus, PlayerAttributes } from '../../types';
+import { ViewState, HealthStatus, PlayerAttributes, TransferOfferStatus } from '../../types';
 import { REGION_NATIONALITY_LABEL } from '../../constants';     
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
-import { FreeAgentNegotiationService } from '../../services/FreeAgentNegotiationService';
-import { NegotiationStatus } from '../../types';
 
 export const PlayerCard: React.FC = () => {
- const { viewedPlayerId, players, clubs, navigateTo, previousViewState, userTeamId, toggleTransferList, currentDate, setPendingNegotiations  } = useGame();
+ const { viewedPlayerId, players, clubs, navigateTo, navigateWithoutHistory, previousViewState, userTeamId, toggleTransferList, currentDate, transferOffers } = useGame();
 
   const data = useMemo(() => {
     if (!viewedPlayerId) return null;
@@ -43,6 +41,24 @@ export const PlayerCard: React.FC = () => {
   const { player, club } = data;
 const [showHistory, setShowHistory] = React.useState(false);
   const isContractLocked = player.contractLockoutUntil && new Date(currentDate) < new Date(player.contractLockoutUntil);
+  const isTransferLocked = player.transferLockoutUntil && new Date(currentDate) < new Date(player.transferLockoutUntil);
+  const hasUserTransferAgreement = !!(userTeamId && transferOffers.find(offer =>
+    offer.playerId === player.id &&
+    offer.buyerClubId === userTeamId &&
+    (
+      offer.status === TransferOfferStatus.PLAYER_NEGOTIATION ||
+      offer.status === TransferOfferStatus.AGREED_PRECONTRACT
+    )
+  ));
+  const blockedReturnViews = new Set<ViewState>([
+    ViewState.PLAYER_CARD,
+    ViewState.TRANSFER_OFFER,
+    ViewState.TRANSFER_PLAYER_NEGOTIATION,
+    ViewState.FREE_AGENT_NEGOTIATION
+  ]);
+  const closeTarget = previousViewState && !blockedReturnViews.has(previousViewState)
+    ? previousViewState
+    : ViewState.DASHBOARD;
 
   const healthInfo = PlayerPresentationService.getHealthDisplay(player);
   const condColor = PlayerPresentationService.getConditionColorClass(player.condition);
@@ -154,7 +170,7 @@ const [showHistory, setShowHistory] = React.useState(false);
               </button>
 
               <button 
-                onClick={() => navigateTo(previousViewState || ViewState.DASHBOARD)}
+                onClick={() => navigateWithoutHistory(closeTarget)}
                 className="w-full py-2.5 rounded-[20px] bg-white text-slate-900 font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl"
               >
                 Zamknij Kartę &times;
@@ -414,7 +430,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                   <button
                     disabled={!!(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))}
                     onClick={() => {
-                      navigateTo(ViewState.FREE_AGENT_NEGOTIATION);
+                      navigateWithoutHistory(ViewState.FREE_AGENT_NEGOTIATION);
                     }}
                     className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4
                       ${(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))
@@ -427,7 +443,13 @@ const [showHistory, setShowHistory] = React.useState(false);
                   </button>
                 ) : (
                   <button
-                    className="w-full py-3 rounded-[20px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-2xl border-b-4 border-blue-800"
+                    disabled={!!isTransferLocked || hasUserTransferAgreement}
+                    onClick={() => navigateWithoutHistory(ViewState.TRANSFER_OFFER)}
+                    className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4 ${
+                      (isTransferLocked || hasUserTransferAgreement)
+                        ? 'bg-slate-800 border-slate-900 text-slate-500 opacity-70 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-800 hover:scale-[1.02] active:scale-95'
+                    }`}
                   >
                     ZŁÓŻ OFERTĘ TRANSFEROWĄ 💰
                   </button>
