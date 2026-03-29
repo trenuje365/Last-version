@@ -461,6 +461,12 @@ export const PreMatchELLiveStudioView: React.FC = () => {
               >
                 ZAGRAJ NA ŻYWO 🟠
               </button>
+              <button
+                onClick={() => navigateTo(ViewState.SQUAD_VIEW)}
+                className="px-10 py-2.5 rounded-[20px] bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white font-black text-[11px] uppercase tracking-widest transition-all"
+              >
+                ZMIEŃ SKŁAD →
+              </button>
             </div>
           </div>
 

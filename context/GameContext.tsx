@@ -641,7 +641,8 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
         budget: club.budget + nextSeasonInjection,
         financeHistory: [...financeLogsToAdd, ...(club.financeHistory || [])].slice(0, 50),
         stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
-        isInPolishCup: false 
+        europeanBonusPoints: 0,
+        isInPolishCup: false
       };
     });
 
@@ -2415,7 +2416,8 @@ const finalResult: SimulationOutput = {
 
     setProcessedDrawIds(prev => [...prev, activeGroupDraw.id]);
     setActiveGroupDraw(null);
-    if (userTeamId) {
+    if (userTeamId && activeGroupDraw.groups.some(g => g.includes(userTeamId))) {
+      const userClub = clubs.find(c => c.id === userTeamId);
       const mail: MailMessage = {
         id: `CL_GROUP_DRAW_${Date.now()}`,
         sender: 'UEFA',
@@ -2427,7 +2429,9 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 85
       };
-      setMessages(prev => [mail, ...prev]);
+      const congratsMail = MailService.createFromTemplate('board_european_advance_group_cl', { 'CLUB': userClub?.name ?? '' });
+      setMessages(prev => [mail, congratsMail, ...prev]);
+      setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 4 } : c));
     }
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
@@ -2457,7 +2461,8 @@ const finalResult: SimulationOutput = {
 
     setProcessedDrawIds(prev => [...prev, activeELGroupDraw.id]);
     setActiveELGroupDraw(null);
-    if (userTeamId) {
+    if (userTeamId && activeELGroupDraw.groups.some(g => g.includes(userTeamId))) {
+      const userClub = clubs.find(c => c.id === userTeamId);
       const mail: MailMessage = {
         id: `EL_GROUP_DRAW_${Date.now()}`,
         sender: 'UEFA',
@@ -2469,7 +2474,9 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 82
       };
-      setMessages(prev => [mail, ...prev]);
+      const congratsMail = MailService.createFromTemplate('board_european_advance_group_el', { 'CLUB': userClub?.name ?? '' });
+      setMessages(prev => [mail, congratsMail, ...prev]);
+      setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 3 } : c));
     }
     const nextDayEL = new Date(currentDate);
     nextDayEL.setDate(nextDayEL.getDate() + 1);
@@ -2493,7 +2500,8 @@ const finalResult: SimulationOutput = {
     setGlobalFixtures(prev => [...prev, ...groupFixtures]);
     setProcessedDrawIds(prev => [...prev, activeConfGroupDraw.id]);
     setActiveConfGroupDraw(null);
-    if (userTeamId) {
+    if (userTeamId && activeConfGroupDraw.groups.some(g => g.includes(userTeamId))) {
+      const userClub = clubs.find(c => c.id === userTeamId);
       const mail: MailMessage = {
         id: `CONF_GROUP_DRAW_${Date.now()}`,
         sender: 'UEFA',
@@ -2505,7 +2513,9 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 84
       };
-      setMessages(prev => [mail, ...prev]);
+      const congratsMail = MailService.createFromTemplate('board_european_advance_group_conf', { 'CLUB': userClub?.name ?? '' });
+      setMessages(prev => [mail, congratsMail, ...prev]);
+      setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 2 } : c));
     }
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
@@ -2543,7 +2553,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 87,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_r16_conf', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 2 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2584,7 +2601,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 86,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_qf_conf', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 3 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2625,7 +2649,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 88,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_sf_conf', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 4 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2664,7 +2695,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 88,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_r16_el', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 3 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2704,7 +2742,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 90,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_r16_cl', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 4 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
         const nextDay = new Date(currentDate);
@@ -2745,7 +2790,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 90,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_qf_cl', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 5 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2786,7 +2838,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 90,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_sf_cl', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 6 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2827,7 +2886,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 88,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_qf_el', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 4 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2868,7 +2934,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 88,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_sf_el', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 5 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2908,7 +2981,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 90,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_final_el', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 6 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
 
     const nextDay = new Date(currentDate);
@@ -2947,7 +3027,14 @@ const finalResult: SimulationOutput = {
         type: MailType.SYSTEM,
         priority: 90,
       };
-      setMessages(prev => [mail, ...prev]);
+      if (isUserIn) {
+        const userClub = clubs.find(c => c.id === userTeamId);
+        const congratsMail = MailService.createFromTemplate('board_european_advance_final_conf', { 'CLUB': userClub?.name ?? '' });
+        setMessages(prev => [mail, congratsMail, ...prev]);
+        setClubs(prev => prev.map(c => c.id === userTeamId ? { ...c, europeanBonusPoints: (c.europeanBonusPoints ?? 0) + 5 } : c));
+      } else {
+        setMessages(prev => [mail, ...prev]);
+      }
     }
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);

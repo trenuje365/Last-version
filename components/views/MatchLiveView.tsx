@@ -59,7 +59,8 @@ import { InjuryUpgradeService } from '../../services/InjuryUpgradeService';
 import { AttendanceService } from '../../services/AttendanceService';
 import { FinanceService } from '@/services/FinanceService';
 import { HalftimeTalkModal } from '../modals/HalftimeTalkModal';
-import { TalkEffect } from '../../services/HalftimeTalkService';
+import { TalkEffect, calculateOpponentCoachTalkEffect, getScoreContext } from '../../services/HalftimeTalkService';
+import { AiCoachTacticsService } from '../../services/AiCoachTacticsService';
 
 const BigJerseyIcon = ({ primary, secondary, size = "w-16 h-16" }: { primary: string, secondary: string, size?: string }) => (
   <div className="relative group">
@@ -187,7 +188,17 @@ const isPausedForSevereInjury = useMemo(() => {
   useEffect(() => {
    if (ctx && (!matchState || matchState.fixtureId !== ctx.fixture.id)) {
       const sessionSeed = Math.abs(Math.floor(Date.now() * Math.random()));
-      
+
+      const aiClubInit = ctx.homeClub.id === userTeamId ? ctx.awayClub : ctx.homeClub;
+      const aiCoachInit = aiClubInit?.coachId ? coaches[aiClubInit.coachId] : null;
+      const userClubInit = ctx.homeClub.id === userTeamId ? ctx.homeClub : ctx.awayClub;
+      const userPlayersInit = ctx.homeClub.id === userTeamId ? ctx.homePlayers : ctx.awayPlayers;
+      const userTacticIdInit = lineups[userTeamId ?? '']?.tacticId ?? '4-4-2';
+      const preMatchInstr = AiCoachTacticsService.decidePreMatchInstructions(
+        aiClubInit, aiCoachInit, userClubInit, userPlayersInit, userTacticIdInit, sessionSeed
+      );
+      const aiInitNextMin = 10 + Math.floor(seededRng(sessionSeed, 0, 77) * 11);
+
       setMatchState({
         fixtureId: ctx.fixture.id, minute: 0, period: 1, addedTime: 0, isPaused: true,
         isPausedForEvent: false, isHalfTime: false, isFinished: false, speed: 1, momentum: 0, momentumPulse: 0,
@@ -229,7 +240,8 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
           intensityResponseFactor: 1.0,
          lastChangeMinute: -5,},
           playedPlayerIds: [],
-        aiActiveShout: null,
+        aiActiveShout: preMatchInstr ? { id: 'pre_match', ...preMatchInstr, expiryMinute: 999 } : null,
+        aiNextInstructionMinute: aiInitNextMin,
         lastGoalBoostMinute: -1,
         activeTacticalBoost: null,
         tacticalBoostExpiry: -1
@@ -421,12 +433,27 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
           if (pId) nextFatigue[pId] = Math.min(100, (nextFatigue[pId] || 100) + effect.fatigueRegenBonus);
         });
       }
+      const oppClub = isHome ? ctx?.awayClub : ctx?.homeClub;
+      const oppCoach = oppClub?.coachId ? coaches[oppClub.coachId] : null;
+      const oppScore = isHome ? prev.awayScore : prev.homeScore;
+      const userScore = isHome ? prev.homeScore : prev.awayScore;
+      const oppContext = getScoreContext(oppScore, userScore);
+      const oppCoachDelta = oppCoach
+        ? calculateOpponentCoachTalkEffect(
+            oppCoach.attributes.decisionMaking,
+            oppCoach.attributes.experience,
+            oppContext,
+            prev.sessionSeed
+          )
+        : 0;
+      const oppMomentumDelta = isHome ? -oppCoachDelta : oppCoachDelta;
       return {
         ...prev,
         homeFatigue: isHome ? nextFatigue : prev.homeFatigue,
         awayFatigue: !isHome ? nextFatigue : prev.awayFatigue,
         halftimeTalkApplied: true,
         halftimeMomentumBonus: effect.momentumDelta,
+        oppHalftimeMomentumBonus: oppMomentumDelta,
         userInstructions: {
           ...prev.userInstructions,
           tempoResponseFactor:     effect.tempoResponseFactor,
@@ -880,6 +907,44 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
         const uPenaltyMod = uInstr.intensity === 'AGGRESSIVE' ? 1.0 + 0.25 * _irf : uInstr.intensity === 'CAUTIOUS' ? 1.0 - 0.30 * _irf : 1.0;
         // ───────────────────────────────────────────────────────────────────────
 
+        // ─── INSTRUKCJE TAKTYCZNE TRENERA AI → MODYFIKATORY SILNIKA ────────────
+        let nextAiActiveShout = prev.aiActiveShout;
+        let nextAiNextInstructionMinute = prev.aiNextInstructionMinute ?? 10;
+
+        if (nextMinute >= nextAiNextInstructionMinute) {
+          const aiClub = userSide === 'HOME' ? ctx.awayClub : ctx.homeClub;
+          const aiCoach = aiClub?.coachId ? coaches[aiClub.coachId] : null;
+          const aiScoreDiff = userSide === 'HOME' ? prev.awayScore - prev.homeScore : prev.homeScore - prev.awayScore;
+          const aiMomentum = userSide === 'HOME' ? -prev.momentum : prev.momentum;
+          const decision = AiCoachTacticsService.decideInMatchInstructions(
+            aiScoreDiff, aiMomentum, nextMinute,
+            aiCoach?.attributes.decisionMaking ?? 50,
+            aiCoach?.attributes.experience ?? 50,
+            prev.lastGoalBoostMinute ?? -1,
+            currentSeed
+          );
+          nextAiActiveShout = decision ? { id: `ai_${nextMinute}`, ...decision, expiryMinute: -1 } : null;
+          nextAiNextInstructionMinute = nextMinute + 10 + Math.floor(seededRng(currentSeed, nextMinute, 77) * 11);
+        }
+
+        const isAiAttacking = !isUserAttacking;
+        if (nextAiActiveShout) {
+          if (nextAiActiveShout.tempo === 'FAST') {
+            shotThreshold += isAiAttacking ? 0.012 : 0.004;
+          } else if (nextAiActiveShout.tempo === 'SLOW' && isAiAttacking) {
+            shotThreshold -= 0.004;
+          }
+          if (nextAiActiveShout.mindset === 'OFFENSIVE' && isAiAttacking) {
+            shotThreshold += 0.015;
+          } else if (nextAiActiveShout.mindset === 'DEFENSIVE' && !isAiAttacking) {
+            shotThreshold -= 0.012;
+          }
+        }
+
+        const aiFoulMod    = nextAiActiveShout?.intensity === 'AGGRESSIVE' ? 1.30 : nextAiActiveShout?.intensity === 'CAUTIOUS' ? 0.72 : 1.0;
+        const aiPenaltyMod = nextAiActiveShout?.intensity === 'AGGRESSIVE' ? 1.25 : nextAiActiveShout?.intensity === 'CAUTIOUS' ? 0.70 : 1.0;
+        // ────────────────────────────────────────────────────────────────────────
+
         // ── CONTACT GOAL BOOST: aplikacja do shotThreshold ─────────────────────
         // Jeśli atakująca drużyna ma aktywny boost kontaktowy → podnosi próg strzału.
         // Boost trwa losowo 5-15 min i wygasa automatycznie (zerowanie wyżej).
@@ -941,14 +1006,14 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
         const _activeXI = (activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI).filter((id): id is string => id !== null);
         const _avgAggression = _activeXI.length > 0 ? _activeTeam.filter(p => _activeXI.includes(p.id)).reduce((acc, p) => acc + p.attributes.aggression, 0) / _activeXI.length : 50;
         const _aggrFoulMod = 0.70 + (_avgAggression / 100) * 0.60;
-        const uFoulThreshold = 0.043 * (isUserAttacking ? uFoulMod : 1.0) * _aggrFoulMod;
+        const uFoulThreshold = 0.043 * (isUserAttacking ? uFoulMod : aiFoulMod) * _aggrFoulMod;
         if (rngEvent < uFoulThreshold) { 
            const xi = activeSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI;
            const validXi = xi.filter(id => id !== null) as string[];
            const pId = validXi[Math.floor(seededRng(currentSeed, nextMinute, 1500) * validXi.length)];
            const player = (activeSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers).find(p => p.id === pId)!;
            if (!player) return prev; // Jeśli zawodnik zniknął (np. czerwona kartka), przerwij akcję
-           const isPenalty = seededRng(currentSeed, nextMinute, 1700) < (0.0956 * (isUserAttacking ? uPenaltyMod : 1.0));
+           const isPenalty = seededRng(currentSeed, nextMinute, 1700) < (0.0956 * (isUserAttacking ? uPenaltyMod : aiPenaltyMod));
 
            if (isPenalty) {
               const attackingSide = activeSide === 'HOME' ? 'AWAY' : 'HOME';
@@ -1417,6 +1482,14 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
             uFatTarget[id] = Math.max(0, (uFatTarget[id] ?? 100) - uFatExtra);
           });
         }
+        const aiFatExtra = (nextAiActiveShout?.tempo === 'FAST' ? 0.025 : 0) + (nextAiActiveShout?.intensity === 'AGGRESSIVE' ? 0.018 : nextAiActiveShout?.intensity === 'CAUTIOUS' ? 0.012 : 0);
+        if (aiFatExtra > 0) {
+          const aiXIForFat = userSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI;
+          const aiFatTarget = userSide === 'HOME' ? fatigue.away : fatigue.home;
+          aiXIForFat.filter((id): id is string => id !== null).forEach(id => {
+            aiFatTarget[id] = Math.max(0, (aiFatTarget[id] ?? 100) - aiFatExtra);
+          });
+        }
         Object.keys(nextHomeInjuries).forEach(id => { if (nextHomeInjuries[id] === InjurySeverity.SEVERE) fatigue.home[id] = 0; });
         Object.keys(nextAwayInjuries).forEach(id => { if (nextAwayInjuries[id] === InjurySeverity.SEVERE) fatigue.away[id] = 0; });
 
@@ -1458,6 +1531,8 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
             homeUpgradeProb: nextHomeUpgradeProb, awayUpgradeProb: nextAwayUpgradeProb,
             userInstructions: nextUserInstructions,
             activeTacticalBoost: 0, tacticalBoostExpiry: -1,
+            aiActiveShout: nextAiActiveShout,
+            aiNextInstructionMinute: nextAiNextInstructionMinute,
           };
         }
 
@@ -1499,7 +1574,9 @@ return {
            awayUpgradeProb: nextAwayUpgradeProb,
            userInstructions: nextUserInstructions,
            activeTacticalBoost: nextActiveTacticalBoost,
-           tacticalBoostExpiry: nextTacticalBoostExpiry
+           tacticalBoostExpiry: nextTacticalBoostExpiry,
+           aiActiveShout: nextAiActiveShout,
+           aiNextInstructionMinute: nextAiNextInstructionMinute,
         };
 
 
@@ -2688,7 +2765,7 @@ const hasScored = matchState.homeGoals.some(g => (g.scorerId ? g.scorerId === p.
       <div className="flex gap-3 justify-center py-3 px-8 bg-white/5 border border-white/10 rounded-[28px] shadow-2xl">
         <button
           disabled={hasMandatorySub}
-          onClick={() => matchState.isHalfTime ? setMatchState(s => s ? {...s, isHalfTime: false, isPaused: false, period: 2, minute: 45, addedTime: 0, momentum: Math.max(-100, Math.min(100, s.momentum + (s.halftimeMomentumBonus || 0))), halftimeMomentumBonus: 0} : s) : setMatchState(s => s ? {...s, isPaused: !s.isPaused, isPausedForEvent: false, flashMessage: null} : s)}
+          onClick={() => matchState.isHalfTime ? setMatchState(s => s ? {...s, isHalfTime: false, isPaused: false, period: 2, minute: 45, addedTime: 0, momentum: Math.max(-100, Math.min(100, s.momentum + (s.halftimeMomentumBonus || 0) + (s.oppHalftimeMomentumBonus || 0))), halftimeMomentumBonus: 0, oppHalftimeMomentumBonus: 0} : s) : setMatchState(s => s ? {...s, isPaused: !s.isPaused, isPausedForEvent: false, flashMessage: null} : s)}
           className={`min-w-[170px] py-3 px-7 rounded-xl font-black italic uppercase tracking-widest text-sm transition-all hover:scale-105 active:scale-95 shadow-2xl border
             ${hasMandatorySub
               ? 'bg-red-600/20 border-red-500/40 text-red-500 hover:bg-red-600/30 shadow-red-500/10'

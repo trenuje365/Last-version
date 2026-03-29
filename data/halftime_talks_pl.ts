@@ -35,7 +35,7 @@ export const HALFTIME_TALKS: Record<ScoreContext, TalkOption[]> = {
     { id: 'DH_1',  text: 'Strzelamy i tracimy, strzelamy i tracimy! Czas zacisnąć defensywę i atakować skuteczniej!', hiddenType: 'AGGRESSIVE' },
     { id: 'DH_2',  text: 'To jest mecz na szarpanie nerwów. Uspokójmy grę, kontrolujmy piłkę.', hiddenType: 'CALM' },
     { id: 'DH_3',  text: 'Panowie, te bramki były fenomenalne! Teraz zadbajcie o szczelność obrony.', hiddenType: 'PRAISE' },
-    { id: 'DH_4',  text: 'Tyle goli strąconych w pierwszej połowie to wstyd dla naszej linii defensywnej!', hiddenType: 'CRITICIZE' },
+    { id: 'DH_4',  text: 'Każda stracona bramka to hańba! Koniec z taką linią obronną w drugiej połowie!', hiddenType: 'CRITICIZE' },
     { id: 'DH_5',  text: 'Rywal daje się nam strzelać! Jeszcze jedna bramka i mecz jest nasz!', hiddenType: 'AGGRESSIVE' },
     { id: 'DH_6',  text: 'Zatrzymajcie to szaleństwo. Zagrajcie spokojnie, opanujcie środek pola.', hiddenType: 'CALM' },
     { id: 'DH_7',  text: 'Świetna gra w ataku, naprawdę! Teraz tylko trochę więcej skupienia z tyłu.', hiddenType: 'PRAISE' },

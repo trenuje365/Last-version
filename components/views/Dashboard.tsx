@@ -73,7 +73,7 @@ const boardConfidence = useMemo(() => {
     if (!myClub) return 50;
     const resultScore = (myClub.stats.wins * 4) - (myClub.stats.losses * 6);
     const rankImpact = (18 - userRank) * 2;
-    const total = 75 + resultScore + rankImpact - (myClub.reputation * 2);
+    const total = 75 + resultScore + rankImpact - (myClub.reputation * 2) + (myClub.europeanBonusPoints ?? 0);
     return Math.min(100, Math.max(5, total));
   }, [myClub, userRank]);
 

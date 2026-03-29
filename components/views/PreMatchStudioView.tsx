@@ -344,42 +344,45 @@ export const PreMatchStudioView: React.FC = () => {
               </div>
            </div>
 
-           <div className="w-full max-w-5xl bg-slate-900/30 rounded-[35px] border border-white/10 p-3 flex items-center justify-between backdrop-blur-[1px] shadow-2xl shrink-0 mt-auto">
-              <div className="flex items-center gap-12 pl-8">
-                 <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-3 px-1">TYPY BUKMACHERÓW</span>
-                    <div className="flex gap-4">
-                       {[
-                         { l: '1', v: data.odds?.homeWin || '2.15', c: 'text-blue-400' },
-                         { l: 'X', v: data.odds?.draw || '3.40', c: 'text-slate-400' },
-                         { l: '2', v: data.odds?.awayWin || '3.10', c: 'text-emerald-400' }
-                       ].map(o => (
-                         <div key={o.l} className="bg-black/30 px-6 py-2.5 rounded-2xl border border-white/5 flex items-center gap-4 hover:border-white/20 hover:bg-black/80 transition-all cursor-help group/bet shadow-inner">
-                            <span className={`text-xs ${o.c} font-black`}>{o.l}</span>
-                            <span className="text-lg font-black font-mono text-white group-hover:scale-110 transition-transform tabular-nums">{o.v}</span>
-                         </div>
-                       ))}
-                    </div>
-                 </div>
-              </div>
+           {/* PANEL PRZYCISKÓW */}
+           <div className="w-full max-w-5xl bg-slate-900/30 rounded-[35px] border border-white/10 p-4 flex items-center justify-center gap-4 backdrop-blur-[1px] shadow-2xl shrink-0">
+              <button
+                onClick={() => setShowExpertCommentary(true)}
+                className="flex-1 px-10 py-8 rounded-[40px] bg-blue-600/30 border-b-8 border-blue-900 text-blue-400 font-black italic text-xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-3"
+              >
+                🎙️ ANALIZA EKSPERTÓW
+              </button>
+              <button
+                onClick={() => navigateTo(ViewState.MATCH_LIVE)}
+                className="group relative flex-1 px-10 py-8 rounded-[40px] bg-white text-slate-950 font-black italic text-xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-[0_20px_60px_rgba(255,255,255,0.2)] border-b-8 border-slate-300 overflow-hidden animate-shimmer"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  ROZPOCZNIJ MECZ <span className="text-2xl group-hover:rotate-12 transition-transform">⚽</span>
+                </span>
+              </button>
+              <button
+                onClick={() => navigateTo(ViewState.SQUAD_VIEW)}
+                className="flex-1 px-10 py-8 rounded-[40px] bg-emerald-600/30 border-b-8 border-emerald-900 text-emerald-400 font-black italic text-xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-3"
+              >
+                ✏️ ZMIEŃ SKŁAD
+              </button>
+           </div>
 
+           {/* PANEL TYPY BUKMACHERÓW */}
+           <div className="w-full max-w-5xl bg-slate-900/30 rounded-[35px] border border-white/10 py-3 px-8 flex items-center justify-center gap-4 backdrop-blur-[1px] shadow-2xl shrink-0">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mr-4">TYPY BUKMACHERÓW</span>
               <div className="flex gap-4">
-                <button 
-                  onClick={() => setShowExpertCommentary(true)}
-                  className="px-10 py-8 rounded-[40px] bg-blue-600/30 border-b-8 border-blue-900 text-blue-400 font-black italic text-xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-3"
-                >
-                  🎙️ SPRAWDŻ ANALIZĘ EKSPERTÓW
-                </button>
-
-                <button 
-                   onClick={() => navigateTo(ViewState.MATCH_LIVE)}
-                   className="group relative px-20 py-8 rounded-[40px] bg-white text-slate-950 font-black italic text-2xl uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-[0_20px_60px_rgba(255,255,255,0.2)] border-b-8 border-slate-300 overflow-hidden animate-shimmer"
-                >
-                   <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                   <span className="relative z-10 flex items-center gap-6">
-                      ROZPOCZNIJ MECZ <span className="text-4xl group-hover:rotate-12 transition-transform">⚽</span>
-                   </span>
-                </button>
+                 {[
+                   { l: '1', v: data.odds?.homeWin || '2.15', c: 'text-blue-400' },
+                   { l: 'X', v: data.odds?.draw || '3.40', c: 'text-slate-400' },
+                   { l: '2', v: data.odds?.awayWin || '3.10', c: 'text-emerald-400' }
+                 ].map(o => (
+                   <div key={o.l} className="bg-black/30 px-6 py-2.5 rounded-2xl border border-white/5 flex items-center gap-4 hover:border-white/20 hover:bg-black/80 transition-all cursor-help group/bet shadow-inner">
+                      <span className={`text-xs ${o.c} font-black`}>{o.l}</span>
+                      <span className="text-lg font-black font-mono text-white group-hover:scale-110 transition-transform tabular-nums">{o.v}</span>
+                   </div>
+                 ))}
               </div>
            </div>
         </div>
@@ -396,10 +399,7 @@ export const PreMatchStudioView: React.FC = () => {
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Status transmisji</span>
                   <span className="text-sm font-black text-emerald-400 italic uppercase">NA ŻYWO</span>
                </div>
-               <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Sędzia Główny</span>
-                  <span className="text-sm font-black text-white italic uppercase">{data.referee.firstName} {data.referee.lastName}</span>
-               </div>
+
             </div>
             <div className="text-right">
                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1 italic">"AKADEMIA PIŁKARSKA RKS ORZEŁ"</p>

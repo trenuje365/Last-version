@@ -267,3 +267,29 @@ export const calculateTalkEffect = (
     reactionText,
   };
 };
+
+// ─── ROZMOWA MOTYWACYJNA TRENERA PRZECIWNIKA ──────────────────────────────────
+export const calculateOpponentCoachTalkEffect = (
+  decisionMaking: number,
+  experience: number,
+  oppScoreContext: ScoreContext,
+  seed: number
+): number => {
+  const rng1 = seededRng(seed, 97);
+  const rng2 = seededRng(seed, 98);
+
+  const baseChance = 0.30 + (decisionMaking / 100) * 0.35 + (experience / 100) * 0.20;
+  const contextBonus =
+    oppScoreContext === 'LOSING_HIGH' ? 0.10
+    : oppScoreContext === 'LOSING_ONE' ? 0.07
+    : oppScoreContext === 'DRAW_LOW' || oppScoreContext === 'DRAW_HIGH' ? 0.03
+    : 0;
+
+  const finalChance = Math.min(0.90, baseChance + contextBonus);
+  const isPositive = rng1 < finalChance;
+
+  const strength = 5 + (decisionMaking / 100) * 10 + (experience / 100) * 8;
+  const delta = strength * (rng2 * 0.6 + 0.4);
+
+  return Math.round((isPositive ? delta : -delta * 0.7) * 10) / 10;
+};

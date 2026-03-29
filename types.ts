@@ -469,6 +469,7 @@ export interface Club {
   penaltyTakerId?: string | null;
   freeKickTakerId?: string | null;
   financeHistory?: FinanceLog[];
+  europeanBonusPoints?: number;
 }
 
 export interface EuropeanStatus {
@@ -723,6 +724,8 @@ isPenalties?: boolean;
   comebackSide?: 'HOME' | 'AWAY' | null;
   halftimeTalkApplied?: boolean;
   halftimeMomentumBonus?: number;
+  oppHalftimeMomentumBonus?: number;
+  aiNextInstructionMinute?: number;
   userInstructions: TacticalInstructions;
 }
 

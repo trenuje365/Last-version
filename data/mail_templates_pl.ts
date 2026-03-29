@@ -292,6 +292,123 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     role: 'Dyrektor ds. Sprzedaży',
     subject: 'Raport przedsprzedaży karnetów — Sezon {SEASON}',
     body: 'Szanowny Panie Managerze,\n\nZ przyjemnością przedstawiamy raport z przedsprzedaży karnetów sezonowych dla {CLUB} przed startem nowych rozgrywek.\n\n🏟️ STADION: {STADIUM}\n📊 POJEMNOŚĆ: {CAPACITY} miejsc\n\n--- WYNIKI PRZEDSPRZEDAŻY ---\n\n🎫 Sprzedane karnety: {TICKETS_SOLD} szt.\n💰 Przychód netto: {REVENUE}\n💳 Cena karnetu: {TICKET_PRICE}\n\nZainteresowanie kibiców przed tym sezonem oceniamy jako {DEMAND_LEVEL}. Pieniądze z przedsprzedaży zostały doliczone do budżetu klubu.\n\nZ poważaniem,\nDział Marketingu {CLUB}'
+  },
+  // --- EUROPEJSKIE GRATULACJE — FAZA GRUPOWA ---
+  {
+    id: 'board_european_advance_group_cl',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Fazy Grupowej Ligi Mistrzów — Gratulacje!',
+    body: 'Panie Managerze,\n\nW imieniu całego Zarządu {CLUB} składamy serdeczne gratulacje z okazji awansu do fazy grupowej Ligi Mistrzów! To historyczny moment dla naszego klubu. Europejskie areny czekają — liczymy na godne zaprezentowanie barw {CLUB}. Zarząd w pełni Pana wspiera.\n\nZ wyrazami uznania,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_group_el',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Fazy Grupowej Ligi Europy — Gratulacje!',
+    body: 'Szanowny Panie Managerze,\n\nZ wielką przyjemnością gratulujemy awansu do fazy grupowej Ligi Europy! To znakomity wynik, który potwierdza rosnącą siłę {CLUB} na arenie europejskiej. Cały klub jest z Pana dumny — powodzenia w dalszych zmaganiach!\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_group_conf',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Fazy Grupowej Ligi Konferencji — Gratulacje!',
+    body: 'Panie Managerze,\n\nW imieniu Zarządu {CLUB} gratulujemy awansu do fazy grupowej Ligi Konferencji UEFA! To ważny krok w europejskiej rywalizacji i powód do dumy dla całego klubu. Liczymy na dalsze sukcesy!\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  // --- EUROPEJSKIE GRATULACJE — 1/8 FINAŁU ---
+  {
+    id: 'board_european_advance_r16_cl',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do 1/8 Finału Ligi Mistrzów!',
+    body: 'Panie Managerze,\n\nZarząd {CLUB} składa gratulacje z okazji awansu do 1/8 finału Ligi Mistrzów! To wybitne osiągnięcie, które stawia {CLUB} w gronie europejskiej elity. Jesteśmy niezwykle dumni i z niecierpliwością oczekujemy kolejnych meczów.\n\nZ wyrazami uznania,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_r16_el',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do 1/8 Finału Ligi Europy!',
+    body: 'Szanowny Panie Managerze,\n\nGratulujemy awansu do 1/8 finału Ligi Europy! Wyjście z grupy to doskonały wynik potwierdzający jakość pracy całego sztabu. Zarząd {CLUB} jest pełen optymizmu i wierzy w dalsze postępy drużyny.\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_r16_conf',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do 1/8 Finału Ligi Konferencji!',
+    body: 'Panie Managerze,\n\nGratulujemy awansu do fazy pucharowej Ligi Konferencji! Wyjście z grupy to potwierdzenie ciężkiej pracy całego sztabu szkoleniowego. Zarząd {CLUB} jest zadowolony z dotychczasowych wyników i liczy na kolejne sukcesy.\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  // --- EUROPEJSKIE GRATULACJE — 1/4 FINAŁU ---
+  {
+    id: 'board_european_advance_qf_cl',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Ćwierćfinału Ligi Mistrzów!',
+    body: 'Panie Managerze,\n\nSerdecznie gratulujemy niesamowitego osiągnięcia — {CLUB} awansował do ćwierćfinału Ligi Mistrzów! To historyczny wyczyn, który przejdzie do kronik naszego klubu. Cały zarząd, kibice i miasto są z Pana niezwykle dumni!\n\nZ ogromnym uznaniem,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_qf_el',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Ćwierćfinału Ligi Europy!',
+    body: 'Szanowny Panie Managerze,\n\nGratulujemy awansu do ćwierćfinału Ligi Europy! To znakomity wynik, świadczący o doskonałej jakości pracy całego zespołu. Zarząd {CLUB} w pełni Pana popiera i oczekuje kolejnych emocji.\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_qf_conf',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Ćwierćfinału Ligi Konferencji!',
+    body: 'Panie Managerze,\n\nGratulujemy awansu do ćwierćfinału Ligi Konferencji! To kolejny krok naprzód w europejskiej przygodzie {CLUB}. Zarząd jest zadowolony z postawy drużyny i liczy na dalsze sukcesy.\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  // --- EUROPEJSKIE GRATULACJE — 1/2 FINAŁU ---
+  {
+    id: 'board_european_advance_sf_cl',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Półfinału Ligi Mistrzów! Historyczne osiągnięcie!',
+    body: 'Panie Managerze,\n\nJesteśmy w półfinale Ligi Mistrzów! To historyczne osiągnięcie {CLUB}, którego nikt nie zapomni. W imieniu zarządu, kibiców i całego miasta składamy Panu wyrazy najwyższego uznania. Jeden krok od wielkiego finału — wierzymy w Pana i drużynę!\n\nZ ogromną dumą,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_sf_el',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Półfinału Ligi Europy!',
+    body: 'Szanowny Panie Managerze,\n\nZarząd {CLUB} z ogromną dumą gratuluje awansu do półfinału Ligi Europy! To znakomity wynik, który odzwierciedla ciężką pracę całego sztabu szkoleniowego. Do wielkiego finału brakuje jeszcze jednego kroku — liczymy na Pana!\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_sf_conf',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: 'Awans do Półfinału Ligi Konferencji!',
+    body: 'Panie Managerze,\n\nSerdecznie gratulujemy awansu do półfinału Ligi Konferencji! {CLUB} udowadnia, że jest liczącą się siłą w europejskich rozgrywkach. Zarząd w pełni wierzy, że drużyna powalczy o najwyższe laury.\n\nZ poważaniem,\nZarząd {CLUB}'
+  },
+  // --- EUROPEJSKIE GRATULACJE — FINAŁ ---
+  {
+    id: 'board_european_advance_final_el',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: '{CLUB} w Finale Ligi Europy! Gratulacje!',
+    body: 'Panie Managerze,\n\nGRATULACJE! {CLUB} awansował do Finału Ligi Europy! To jeden z największych momentów w historii naszego klubu. Cały kraj patrzy na Was z podziwem. Zarząd jest za Panem w 100% — idźcie po ten puchar!\n\nZ wyrazami najwyższego uznania,\nZarząd {CLUB}'
+  },
+  {
+    id: 'board_european_advance_final_conf',
+    type: MailType.BOARD,
+    sender: 'Zarząd Klubu',
+    role: 'Prezes Zarządu',
+    subject: '{CLUB} w Finale Ligi Konferencji! Gratulacje!',
+    body: 'Panie Managerze,\n\nGRATULACJE! {CLUB} awansował do Finału Ligi Konferencji UEFA! To historyczny sukces, który przejdzie do annałów naszego klubu. Zarząd jest z Pana niezwykle dumny. Powodzenia w wielkim finale!\n\nZ wyrazami najwyższego uznania,\nZarząd {CLUB}'
   }
 ]; // <--- ZAMKNIĘCIE TABLICY
 
