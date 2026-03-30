@@ -1,4 +1,4 @@
-import { Club, Player, PlayerPosition, Tactic, HealthStatus } from '../types';
+import { Club, Player, PlayerAttributes, PlayerPosition, Tactic, HealthStatus } from '../types';
 import { TacticRepository } from '../resources/tactics_db';
 import { LineupService } from './LineupService';
 import { FinanceService } from './FinanceService';
@@ -6,6 +6,18 @@ import { FinanceService } from './FinanceService';
 const RECENT_FORM_SAMPLE = 5;
 const TACTIC_INJURY_LIMIT_DAYS = 10;
 const MIN_TACTIC_CONDITION = 60;
+const TALENT_CARE_MIN_AGE = 16;
+const TALENT_CARE_MAX_AGE = 21;
+const TALENT_CARE_MIN_TALENT = 70;
+const EXIT_CANDIDATE_MIN_SQUAD_SIZE = 21;
+const HIGH_REPUTATION_TACTIC_THRESHOLD = 75;
+
+const POSITION_EXIT_MINIMUMS: Record<PlayerPosition, number> = {
+  [PlayerPosition.GK]: 2,
+  [PlayerPosition.DEF]: 5,
+  [PlayerPosition.MID]: 5,
+  [PlayerPosition.FWD]: 3,
+};
 
 const POSITION_LABELS: Record<PlayerPosition, string> = {
   [PlayerPosition.GK]: 'bramce',
@@ -26,6 +38,54 @@ const POSITION_NAME_LABELS: Record<PlayerPosition, string> = {
   [PlayerPosition.DEF]: 'obrońca',
   [PlayerPosition.MID]: 'pomocnik',
   [PlayerPosition.FWD]: 'napastnik',
+};
+
+const POSITION_GROUP_LABELS: Record<PlayerPosition, string> = {
+  [PlayerPosition.GK]: 'Bramkarze',
+  [PlayerPosition.DEF]: 'Obroncy',
+  [PlayerPosition.MID]: 'Pomocnicy',
+  [PlayerPosition.FWD]: 'Napastnicy',
+};
+
+const ATTRIBUTE_LABELS: Record<keyof PlayerAttributes, string> = {
+  strength: 'sila',
+  stamina: 'wydolnosc',
+  pace: 'szybkosc',
+  defending: 'obrona',
+  passing: 'podanie',
+  attacking: 'gra w ataku',
+  finishing: 'wykonczenie',
+  technique: 'technika',
+  vision: 'wizja gry',
+  dribbling: 'drybling',
+  heading: 'gra glowa',
+  positioning: 'ustawianie sie',
+  goalkeeping: 'gra na bramce',
+  freeKicks: 'stale fragmenty',
+  talent: 'talent',
+  penalties: 'rzuty karne',
+  corners: 'rzuty rozne',
+  aggression: 'agresja',
+  crossing: 'dosrodkowania',
+  leadership: 'przywodztwo',
+  mentality: 'mentalnosc',
+  workRate: 'pracowitosc',
+};
+
+const TECHNICAL_ATTRIBUTE_KEYS: Array<keyof PlayerAttributes> = [
+  'technique',
+  'passing',
+  'vision',
+  'dribbling',
+  'crossing',
+  'finishing',
+];
+
+const POSITION_TRAINING_KEYS: Record<PlayerPosition, Array<keyof PlayerAttributes>> = {
+  [PlayerPosition.GK]: ['goalkeeping', 'positioning', 'passing', 'mentality'],
+  [PlayerPosition.DEF]: ['defending', 'positioning', 'heading', 'strength', 'passing'],
+  [PlayerPosition.MID]: ['passing', 'vision', 'technique', 'dribbling', 'workRate'],
+  [PlayerPosition.FWD]: ['finishing', 'attacking', 'technique', 'pace', 'heading'],
 };
 
 type SquadSentenceStyle = {
@@ -132,13 +192,50 @@ export interface TeamAnalysisCommentary {
   paragraphs: string[];
 }
 
+export interface TeamTrainingWeakness {
+  attributeKey: keyof PlayerAttributes;
+  label: string;
+  average: number;
+  note: string;
+}
+
+export interface TeamTrainingLineFocus {
+  position: PlayerPosition;
+  positionLabel: string;
+  weaknesses: TeamTrainingWeakness[];
+  coachNote: string;
+}
+
+export interface TeamTrainingAnalysis {
+  teamTechniqueAverage: number;
+  weakestTechnicalAreas: TeamTrainingWeakness[];
+  lineFocuses: TeamTrainingLineFocus[];
+  summary: string[];
+}
+
+export interface TeamAnalysisSpecialist {
+  player: Player;
+  score: number;
+  reason: string;
+}
+
+export interface TeamAnalysisAssistantLeaders {
+  penalties: TeamAnalysisSpecialist[];
+  freeKicks: TeamAnalysisSpecialist[];
+  captains: TeamAnalysisSpecialist[];
+}
+
 export interface TeamAnalysisReport {
   generatedAt: string;
   injuryRule: string;
+  squadSize: number;
   squadAverageOverall: number;
   availableCounts: Record<PlayerPosition, number>;
+  trainingAnalysis: TeamTrainingAnalysis;
+  assistantLeaders: TeamAnalysisAssistantLeaders;
   keyPlayers: TeamAnalysisInsightPlayer[];
   exitCandidates: TeamAnalysisExitCandidate[];
+  exitCandidatesNote: string | null;
   contractCases: TeamAnalysisContractCase[];
   analystNotes: TeamAnalysisAnalystNote[];
   talents: TeamAnalysisTalent[];
@@ -164,6 +261,77 @@ const seededRange = (seed: string, min: number, max: number): number => min + se
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
 const average = (values: number[]): number => values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
 const formatPlayerName = (player: Player): string => `${player.firstName} ${player.lastName}`;
+
+const joinLabels = (labels: string[]): string => {
+  if (labels.length === 0) return '';
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} i ${labels[1]}`;
+  return `${labels.slice(0, -1).join(', ')} i ${labels[labels.length - 1]}`;
+};
+
+const getTalentAttributeProfile = (player: Player): { strongest: string[]; improvements: string[] } => {
+  const relevantKeys = POSITION_TRAINING_KEYS[player.position];
+  const rankedAttributes = relevantKeys
+    .map(attributeKey => ({
+      key: attributeKey,
+      label: ATTRIBUTE_LABELS[attributeKey],
+      value: player.attributes[attributeKey] || 0,
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const strongest = rankedAttributes.slice(0, 2).map(entry => entry.label);
+  const improvementCandidates = [...rankedAttributes]
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 2)
+    .map(entry => entry.label);
+
+  return {
+    strongest,
+    improvements: improvementCandidates,
+  };
+};
+
+const getAttributeAverage = (players: Player[], attributeKey: keyof PlayerAttributes): number =>
+  players.length === 0 ? 0 : average(players.map(player => player.attributes[attributeKey] || 0));
+
+const getTrainingNote = (attributeKey: keyof PlayerAttributes): string => {
+  switch (attributeKey) {
+    case 'passing':
+      return 'Na treningach trzeba poprawic podanie i tempo gry pilka.';
+    case 'technique':
+      return 'Na treningach trzeba poprawic technike i jakosc gry pilka.';
+    case 'vision':
+      return 'Na treningach trzeba poprawic wybór podan i przeglad pola.';
+    case 'dribbling':
+      return 'Na treningach trzeba poprawic prowadzenie pilki i gre 1 na 1.';
+    case 'crossing':
+      return 'Na treningach trzeba poprawic dosrodkowania.';
+    case 'finishing':
+      return 'Na treningach trzeba poprawic wykonczenie akcji.';
+    case 'defending':
+      return 'Na treningach trzeba poprawic odbior i krycie.';
+    case 'positioning':
+      return 'Na treningach trzeba poprawic ustawianie sie.';
+    case 'strength':
+      return 'Na treningach trzeba poprawic sile i pojedynki.';
+    case 'stamina':
+      return 'Na treningach trzeba poprawic wydolnosc.';
+    case 'pace':
+      return 'Na treningach trzeba poprawic szybkosc i dynamike.';
+    case 'goalkeeping':
+      return 'Na treningach bramkarskich trzeba poprawic interwencje i pewnosc w bramce.';
+    case 'heading':
+      return 'Na treningach trzeba poprawic gre glowa.';
+    case 'attacking':
+      return 'Na treningach trzeba poprawic ruch bez pilki i zachowanie w polu karnym.';
+    case 'workRate':
+      return 'Na treningach trzeba poprawic prace bez pilki.';
+    case 'mentality':
+      return 'Na treningach trzeba zwrocic uwage na koncentracje i reakcje w trudnych momentach.';
+    default:
+      return 'Na treningach trzeba poprawic ten element.';
+  }
+};
 
 const formatContractLabel = (daysLeft: number): string => {
   if (daysLeft <= 30) return 'Temu zawodnikowi zaraz kończy się umowa.';
@@ -248,6 +416,59 @@ const getSlotScore = (player: Player, role: PlayerPosition): number => {
   return player.overallRating * 0.82 + fitScore * 0.55 + formScore + contribution + conditionBonus + sameRoleBonus + talentBonus - injuryPenalty;
 };
 
+const getGoalkeeperCoreScore = (player: Player): number =>
+  player.attributes.goalkeeping * 0.52 +
+  player.attributes.positioning * 0.18 +
+  player.attributes.mentality * 0.14 +
+  player.attributes.passing * 0.09 +
+  player.attributes.leadership * 0.07;
+
+const getExitEvaluationScore = (player: Player): number => {
+  const formAverage = getRecentAverageRating(player);
+  const gp = Math.max(1, player.stats.matchesPlayed);
+
+  if (player.position === PlayerPosition.GK) {
+    return (
+      getGoalkeeperCoreScore(player) +
+      (formAverage !== null ? (formAverage - 6.5) * 7 : 0) +
+      (player.stats.cleanSheets / gp) * 10 +
+      (player.condition - 70) * 0.12
+    );
+  }
+
+  return (
+    player.overallRating * 0.82 +
+    getFormScore(player) * 0.35 +
+    getContributionScore(player) * 0.25 +
+    (player.condition - 70) * 0.12
+  );
+};
+
+const getGoalkeeperWeaknessLabels = (player: Player): string[] =>
+  (['goalkeeping', 'positioning', 'mentality', 'passing'] as Array<keyof PlayerAttributes>)
+    .map(attributeKey => ({
+      attributeKey,
+      label: ATTRIBUTE_LABELS[attributeKey],
+      value: player.attributes[attributeKey] || 0,
+    }))
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 2)
+    .map(entry => entry.label);
+
+const buildWeakPlayersSummary = (entries: TeamAnalysisExitCandidate[]): string => {
+  const names = joinNames(entries.slice(0, 3).map(entry => entry.player));
+
+  if (entries.length === 0) {
+    return 'Na dziś nie widzę jednego wyraźnie słabego zawodnika, którego trzeba od razu odsunąć.';
+  }
+
+  if (entries.length === 1) {
+    return `Uważam, że ${names} jest dziś słabszy od innych na swojej pozycji.`;
+  }
+
+  return `Uważam, że ${names} są dziś słabsi od innych na swoich pozycjach.`;
+};
+
 const pickProjectedLineup = (players: Player[], tactic: Tactic): Placement[] => {
   const eligiblePlayers = players.filter(canBeUsedForTactic);
   const usedIds = new Set<string>();
@@ -316,7 +537,39 @@ const buildTacticReasons = (
   ];
 };
 
-const analyzeTactics = (players: Player[]): {
+const getTacticProfileStrength = (players: Player[], position: PlayerPosition): number => {
+  const positionPlayers = players
+    .filter(player => player.position === position)
+    .sort((a, b) => getSlotScore(b, position) - getSlotScore(a, position))
+    .slice(0, position === PlayerPosition.GK ? 1 : position === PlayerPosition.FWD ? 3 : 4);
+
+  return positionPlayers.length > 0 ? average(positionPlayers.map(player => getSlotScore(player, position))) : 0;
+};
+
+const getTacticStyleAdjustment = (
+  club: Club,
+  tactic: Tactic,
+  strengths: Record<PlayerPosition, number>
+): number => {
+  if (tactic.id === '4-2-4') return -1000;
+  if (club.reputation >= HIGH_REPUTATION_TACTIC_THRESHOLD && tactic.id === '6-3-1') return -1000;
+
+  if (club.reputation < HIGH_REPUTATION_TACTIC_THRESHOLD) return 0;
+
+  const controlProfile = strengths[PlayerPosition.DEF] >= strengths[PlayerPosition.FWD] + 5
+    && strengths[PlayerPosition.MID] >= strengths[PlayerPosition.FWD] + 3
+    && strengths[PlayerPosition.DEF] >= 72
+    && strengths[PlayerPosition.MID] >= 72;
+
+  if (tactic.attackBias >= 85) return -180;
+  if (tactic.category === 'Offensive' || tactic.attackBias >= 65) return 18;
+  if (tactic.category === 'Neutral' || (tactic.attackBias >= 45 && tactic.attackBias < 65)) return 10;
+  if (tactic.category === 'Defensive' || tactic.attackBias < 45) return controlProfile ? -4 : -22;
+
+  return 0;
+};
+
+const analyzeTactics = (club: Club, players: Player[]): {
   best: TeamAnalysisTacticOption;
   alternatives: TeamAnalysisTacticOption[];
   availableCounts: Record<PlayerPosition, number>;
@@ -332,13 +585,21 @@ const analyzeTactics = (players: Player[]): {
     [PlayerPosition.FWD]: 0,
   });
 
-  const scoredTactics = TacticRepository.getAll().map(tactic => {
+  const strengths = {
+    [PlayerPosition.GK]: getTacticProfileStrength(eligiblePlayers, PlayerPosition.GK),
+    [PlayerPosition.DEF]: getTacticProfileStrength(eligiblePlayers, PlayerPosition.DEF),
+    [PlayerPosition.MID]: getTacticProfileStrength(eligiblePlayers, PlayerPosition.MID),
+    [PlayerPosition.FWD]: getTacticProfileStrength(eligiblePlayers, PlayerPosition.FWD),
+  };
+
+  const scoredTactics = TacticRepository.getAll().filter(tactic => tactic.id !== '4-2-4').map(tactic => {
     const projectedXI = pickProjectedLineup(players, tactic);
     const missingSlots = projectedXI.filter(entry => !entry.player).length;
     const lineStrength = getLineStrengthFromPlacement(projectedXI);
     const healthyPoolUsed = projectedXI.filter(entry => !!entry.player).length;
     const rawScore = projectedXI.reduce((sum, entry) => sum + entry.score, 0);
-    const score = Math.round(rawScore + healthyPoolUsed * 2.5 - missingSlots * 42);
+    const styleAdjustment = getTacticStyleAdjustment(club, tactic, strengths);
+    const score = Math.round(rawScore + healthyPoolUsed * 2.5 - missingSlots * 42 + styleAdjustment);
 
     return {
       tacticId: tactic.id,
@@ -403,7 +664,14 @@ const analyzeExitCandidates = (
   club: Club,
   tacticalRecommendation: TeamAnalysisTacticOption,
   squadAverageOverall: number
-): TeamAnalysisExitCandidate[] => {
+): { candidates: TeamAnalysisExitCandidate[]; note: string | null } => {
+  if (players.length < EXIT_CANDIDATE_MIN_SQUAD_SIZE) {
+    return {
+      candidates: [],
+      note: `Nasza kadra liczy tylko ${players.length} zawodnikow. Warto uzupelnic kilka pozycji, bo przy wiekszej liczbie kontuzji albo kartek mozemy miec powazne problemy kadrowe.`,
+    };
+  }
+
   const positionGroups = players.reduce<Record<PlayerPosition, Player[]>>((acc, player) => {
     acc[player.position].push(player);
     return acc;
@@ -416,8 +684,8 @@ const analyzeExitCandidates = (
 
   (Object.keys(positionGroups) as PlayerPosition[]).forEach(position => {
     positionGroups[position].sort((a, b) => {
-      const scoreA = a.overallRating + getFormScore(a) * 0.15;
-      const scoreB = b.overallRating + getFormScore(b) * 0.15;
+      const scoreA = getExitEvaluationScore(a);
+      const scoreB = getExitEvaluationScore(b);
       return scoreB - scoreA;
     });
   });
@@ -432,12 +700,27 @@ const analyzeExitCandidates = (
     [PlayerPosition.FWD]: 0,
   });
 
-  return players
+  const currentPositionCounts = players.reduce<Record<PlayerPosition, number>>((acc, player) => {
+    acc[player.position] += 1;
+    return acc;
+  }, {
+    [PlayerPosition.GK]: 0,
+    [PlayerPosition.DEF]: 0,
+    [PlayerPosition.MID]: 0,
+    [PlayerPosition.FWD]: 0,
+  });
+
+  const maxCandidates = players.length <= 23 ? 1 : players.length <= 26 ? 2 : 3;
+
+  const rankedCandidates = players
     .filter(player => !player.isUntouchable)
     .map(player => {
       const positionRank = positionGroups[player.position].findIndex(candidate => candidate.id === player.id) + 1;
       const formAverage = getRecentAverageRating(player);
       const gp = Math.max(1, player.stats.matchesPlayed);
+      const playerPositionGroup = positionGroups[player.position];
+      const positionAverageScore = average(playerPositionGroup.map(getExitEvaluationScore));
+      const positionQualityGap = clamp((positionAverageScore - getExitEvaluationScore(player)) * 1.25, 0, 16);
       const fairSalary = FinanceService.getFairMarketSalary(player.overallRating);
       const salaryPressure = player.annualSalary > 0
         ? ((player.annualSalary - fairSalary) / Math.max(1, fairSalary)) * 25
@@ -445,16 +728,27 @@ const analyzeExitCandidates = (
 
       const isLikelySurplus = positionRank > Math.max(2, requiredByBestTactic[player.position] + 1);
       const weakFormPenalty = formAverage !== null ? clamp((6.25 - formAverage) * 18, 0, 20) : 4;
-      const weakOutputPenalty = player.position === PlayerPosition.FWD
+      const weakOutputPenalty = player.position === PlayerPosition.GK
+        ? clamp((0.24 - (player.stats.cleanSheets / gp)) * 55, 0, 16)
+        : player.position === PlayerPosition.FWD
         ? clamp((0.16 - (player.stats.goals / gp)) * 70, 0, 18)
         : player.position === PlayerPosition.MID
           ? clamp((0.20 - ((player.stats.goals + player.stats.assists) / gp)) * 65, 0, 18)
           : 0;
+      const goalkeeperAttributePenalty = player.position === PlayerPosition.GK
+        ? clamp((67 - getGoalkeeperCoreScore(player)) * 1.35, 0, 24)
+        : 0;
       const hasDevelopmentUpside = player.age <= 23 && player.attributes.talent >= player.overallRating + 4;
+      const weakLevelSignal = positionQualityGap >= 8 || player.overallRating < squadAverageOverall - 5 || goalkeeperAttributePenalty >= 8;
+      const weakFormSignal = (formAverage !== null && formAverage < 6.2) || weakOutputPenalty >= 8;
+      const noPlanSignal = isLikelySurplus || salaryPressure >= 8 || (player.age >= 29 && player.attributes.talent <= 62);
+      const signalCount = [weakLevelSignal, weakFormSignal, noPlanSignal].filter(Boolean).length;
       const probability = Math.round(clamp(
         18 +
+        positionQualityGap +
         weakFormPenalty +
         weakOutputPenalty +
+        goalkeeperAttributePenalty +
         (isLikelySurplus ? 18 : 0) +
         (player.age >= 29 && player.attributes.talent <= 62 ? 10 : 0) +
         (getInjuryDays(player) > 20 ? 8 : 0) +
@@ -468,7 +762,16 @@ const analyzeExitCandidates = (
       const reasons: string[] = [];
       if (isLikelySurplus) reasons.push(`Jest dopiero numerem ${positionRank} na swojej pozycji.`);
       if (formAverage !== null && formAverage < 6.2) reasons.push(`Forma z ostatnich meczów spadła do ${formAverage.toFixed(1)}.`);
-      if (weakOutputPenalty >= 8) reasons.push('Liczby meczowe są poniżej oczekiwań dla tej roli.');
+      if (weakOutputPenalty >= 8) {
+        reasons.push(player.position === PlayerPosition.GK
+          ? 'Na bramce daje dziś za mało czystych kont i pewności.'
+          : 'Liczby meczowe są poniżej oczekiwań dla tej roli.'
+        );
+      }
+      if (player.position === PlayerPosition.GK && goalkeeperAttributePenalty >= 8) {
+        reasons.push(`U bramkarza najsłabiej wyglądają dziś ${joinLabels(getGoalkeeperWeaknessLabels(player))}.`);
+      }
+      if (positionQualityGap >= 8) reasons.push('Na swojej pozycji odstaje dziś od reszty drużyny.');
       if (salaryPressure >= 8) reasons.push('Pensja jest wysoka w porównaniu z obecnym wkładem w grę.');
       if (reasons.length === 0) reasons.push('To zawodnik na granicy składu i trzeba podjąć wobec niego decyzję.');
 
@@ -495,10 +798,38 @@ const analyzeExitCandidates = (
         actionLabel,
         reasons,
         squadNote,
+        signalCount,
       };
     })
     .sort((a, b) => b.probability - a.probability)
-    .slice(0, 5);
+    .filter(entry => entry.probability >= 50 && entry.signalCount >= 2);
+
+  const remainingCounts = { ...currentPositionCounts };
+  const pickedCandidates: TeamAnalysisExitCandidate[] = [];
+
+  rankedCandidates.forEach(entry => {
+    if (pickedCandidates.length >= maxCandidates) return;
+
+    const minForPosition = Math.max(POSITION_EXIT_MINIMUMS[entry.player.position], requiredByBestTactic[entry.player.position] + 1);
+    if (remainingCounts[entry.player.position] - 1 < minForPosition) return;
+    if (players.length - pickedCandidates.length - 1 < EXIT_CANDIDATE_MIN_SQUAD_SIZE) return;
+
+    remainingCounts[entry.player.position] -= 1;
+    pickedCandidates.push({
+      player: entry.player,
+      probability: entry.probability,
+      actionLabel: entry.actionLabel,
+      reasons: entry.reasons,
+      squadNote: entry.squadNote,
+    });
+  });
+
+  return {
+    candidates: pickedCandidates,
+    note: pickedCandidates.length === 0
+      ? 'Na teraz nie widze zawodnika, ktorego mozna bezpiecznie oddac bez oslabiania kadry.'
+      : null,
+  };
 };
 
 const analyzeContractCases = (
@@ -558,17 +889,36 @@ const analyzeContractCases = (
 };
 
 const analyzeTalents = (players: Player[], currentDate: Date, squadAverageOverall: number): TeamAnalysisTalent[] => {
-  return players
-    .filter(player => player.age <= 23 && (player.attributes.talent >= 68 || player.attributes.talent - player.overallRating >= 5))
+  const youngPlayers = players.filter(player => player.age >= TALENT_CARE_MIN_AGE && player.age <= TALENT_CARE_MAX_AGE);
+  const highTalentYoungPlayers = youngPlayers.filter(player => player.attributes.talent > TALENT_CARE_MIN_TALENT);
+  const fallbackYoungPlayers = [...youngPlayers].sort((a, b) => {
+    if (b.attributes.talent !== a.attributes.talent) return b.attributes.talent - a.attributes.talent;
+    if (a.age !== b.age) return a.age - b.age;
+    return b.overallRating - a.overallRating;
+  });
+  const emergencyFallbackPlayers = [...players].sort((a, b) => {
+    if (a.age !== b.age) return a.age - b.age;
+    if (b.attributes.talent !== a.attributes.talent) return b.attributes.talent - a.attributes.talent;
+    return b.overallRating - a.overallRating;
+  });
+
+  const selectedPlayers = highTalentYoungPlayers.length > 0
+    ? highTalentYoungPlayers
+    : fallbackYoungPlayers.length > 0
+      ? fallbackYoungPlayers
+      : emergencyFallbackPlayers;
+
+  return selectedPlayers
     .map(player => {
       const formAverage = getRecentAverageRating(player);
       const minutesFactor = clamp(player.stats.minutesPlayed / 900, 0, 1.4);
       const upside = Math.max(0, player.attributes.talent - player.overallRating);
       const contractDays = getContractDaysLeft(player, currentDate);
+      const attributeProfile = getTalentAttributeProfile(player);
       const score = Math.round(
-        player.attributes.talent * 0.7 +
-        upside * 2.2 +
-        (23 - player.age) * 4 +
+        player.attributes.talent * 0.95 +
+        upside * 2.4 +
+        (TALENT_CARE_MAX_AGE + 1 - Math.min(player.age, TALENT_CARE_MAX_AGE + 1)) * 4 +
         (formAverage ?? 6.4) * 3 +
         minutesFactor * 8
       );
@@ -587,7 +937,11 @@ const analyzeTalents = (players: Player[], currentDate: Date, squadAverageOveral
         score,
         developmentPath,
         reasons: [
-          `Talent ${player.attributes.talent} jest wyraźnie wyższy niż obecny poziom ${player.overallRating} OVR.`,
+          player.attributes.talent > TALENT_CARE_MIN_TALENT
+            ? `To jeden z najbardziej utalentowanych młodych zawodników w obecnej kadrze.`
+            : `To jeden z młodszych zawodników, którym warto się przyjrzeć w obecnej kadrze.`,
+          `Na swojej pozycji najmocniej wyglądają u niego ${joinLabels(attributeProfile.strongest)}.`,
+          `Żeby wejść poziom wyżej, powinien poprawić ${joinLabels(attributeProfile.improvements)}.`,
           formAverage !== null
             ? `Ostatnie oceny (${formAverage.toFixed(1)}) są dobrym sygnałem na dziś.`
             : 'Ma jeszcze mało ocen meczowych, więc trzeba go dalej obserwować.',
@@ -603,15 +957,250 @@ const analyzeTalents = (players: Player[], currentDate: Date, squadAverageOveral
       };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 3);
+};
+
+const analyzeTraining = (players: Player[]): TeamTrainingAnalysis => {
+  const outfieldPlayers = players.filter(player => player.position !== PlayerPosition.GK);
+  const teamTechniqueAverage = Math.round(getAttributeAverage(outfieldPlayers, 'technique') * 10) / 10;
+
+  const weakestTechnicalAreas = TECHNICAL_ATTRIBUTE_KEYS
+    .map(attributeKey => ({
+      attributeKey,
+      label: ATTRIBUTE_LABELS[attributeKey],
+      average: Math.round(getAttributeAverage(outfieldPlayers, attributeKey) * 10) / 10,
+      note: getTrainingNote(attributeKey),
+    }))
+    .sort((a, b) => a.average - b.average)
+    .slice(0, 3);
+
+  const lineFocuses = (Object.values(PlayerPosition) as PlayerPosition[]).map(position => {
+    const linePlayers = players.filter(player => player.position === position);
+    const weaknesses = POSITION_TRAINING_KEYS[position]
+      .map(attributeKey => ({
+        attributeKey,
+        label: ATTRIBUTE_LABELS[attributeKey],
+        average: Math.round(getAttributeAverage(linePlayers, attributeKey) * 10) / 10,
+        note: getTrainingNote(attributeKey),
+      }))
+      .sort((a, b) => a.average - b.average)
+      .slice(0, 2);
+
+    const coachNote = weaknesses.length > 0
+      ? `${POSITION_GROUP_LABELS[position]} najslabiej wygladaja dzis w elemencie: ${weaknesses.map(entry => entry.label).join(' i ')}.`
+      : `${POSITION_GROUP_LABELS[position]} nie wymagaja osobnej uwagi.`;
+
+    return {
+      position,
+      positionLabel: POSITION_GROUP_LABELS[position],
+      weaknesses,
+      coachNote,
+    };
+  });
+
+  const teamWeaknessText = weakestTechnicalAreas.length > 0
+    ? `Patrząc na całą drużynę, najsłabiej wyglądają dziś ${joinLabels(weakestTechnicalAreas.slice(0, 2).map(area => area.label))}.`
+    : 'Patrząc na całą drużynę, nie widać dziś jednego dużego problemu technicznego.';
+
+  const mainTrainingText = weakestTechnicalAreas[0]
+    ? `Na treningach w pierwszej kolejności poprawiłbym ${weakestTechnicalAreas[0].label}.`
+    : 'Na treningach utrzymałbym obecny kierunek pracy.';
+
+  const lineSummaryText = lineFocuses
+    .map(line => {
+      const weaknessLabels = joinLabels(line.weaknesses.slice(0, 2).map(weakness => weakness.label));
+      if (!weaknessLabels) {
+        return `${line.positionLabel} wyglądają dziś równo i nie mają jednego wyraźnego braku.`;
+      }
+
+      return `${line.positionLabel} najsłabiej wyglądają dziś w elemencie ${weaknessLabels}.`;
+    })
+    .join(' ');
+
+  const summary = [
+    `${teamWeaknessText} ${mainTrainingText} Osobno zwróciłbym uwagę na poszczególne formacje. ${lineSummaryText}`,
+  ];
+
+  return {
+    teamTechniqueAverage,
+    weakestTechnicalAreas,
+    lineFocuses,
+    summary,
+  };
+};
+
+const getPenaltySpecialistScore = (player: Player): number => {
+  const formAverage = getRecentAverageRating(player) ?? 6.4;
+  const formBonus = (formAverage - 6.0) * 6;
+
+  return (
+    player.attributes.penalties * 0.42 +
+    player.attributes.finishing * 0.2 +
+    player.attributes.technique * 0.14 +
+    player.attributes.mentality * 0.1 +
+    player.attributes.attacking * 0.05 +
+    player.attributes.leadership * 0.03 +
+    player.overallRating * 0.05 +
+    formBonus +
+    player.condition * 0.03 -
+    getInjuryDays(player) * 0.45
+  );
+};
+
+const getFreeKickSpecialistScore = (player: Player): number => {
+  const formAverage = getRecentAverageRating(player) ?? 6.4;
+  const formBonus = (formAverage - 6.0) * 6;
+
+  return (
+    player.attributes.freeKicks * 0.42 +
+    player.attributes.technique * 0.16 +
+    player.attributes.passing * 0.13 +
+    player.attributes.vision * 0.1 +
+    player.attributes.crossing * 0.08 +
+    player.attributes.attacking * 0.05 +
+    player.overallRating * 0.05 +
+    formBonus +
+    player.condition * 0.03 -
+    getInjuryDays(player) * 0.4
+  );
+};
+
+const getCaptainCandidateScore = (player: Player): number => {
+  const formAverage = getRecentAverageRating(player) ?? 6.4;
+  const formBonus = (formAverage - 6.0) * 5;
+  const matchReadiness = Math.min(player.stats.matchesPlayed, 34) / 34;
+
+  return (
+    player.attributes.leadership * 0.42 +
+    player.attributes.mentality * 0.18 +
+    player.attributes.workRate * 0.12 +
+    player.overallRating * 0.12 +
+    player.attributes.positioning * 0.04 +
+    player.age * 0.16 +
+    matchReadiness * 8 +
+    formBonus +
+    player.condition * 0.03 -
+    getInjuryDays(player) * 0.45
+  );
+};
+
+const getTopNamedAttributes = (
+  entries: Array<{ label: string; value: number }>,
+  limit = 2
+): string[] => [...entries].sort((a, b) => b.value - a.value).slice(0, limit).map(entry => entry.label);
+
+const buildPenaltyReason = (player: Player, rank: number): string => {
+  const strongest = getTopNamedAttributes([
+    { label: 'rzuty karne', value: player.attributes.penalties },
+    { label: 'wykonczenie', value: player.attributes.finishing },
+    { label: 'technike', value: player.attributes.technique },
+    { label: 'mentalnosc', value: player.attributes.mentality },
+  ]);
+
+  if (rank === 0) {
+    return `Na dzisiaj to pierwszy wybor do karnych. Najlepiej laczy ${joinLabels(strongest)}.`;
+  }
+
+  if (rank === 1) {
+    return `Jesli pierwszy wykonawca nie bedzie gral, to od razu patrzylbym na niego. Ma dobre ${joinLabels(strongest)}.`;
+  }
+
+  return `To sensowna trzecia opcja do karnych. Dalej ma atuty w takich elementach jak ${joinLabels(strongest)}.`;
+};
+
+const buildFreeKickReason = (player: Player, rank: number): string => {
+  const strongest = getTopNamedAttributes([
+    { label: 'stale fragmenty', value: player.attributes.freeKicks },
+    { label: 'technike', value: player.attributes.technique },
+    { label: 'podanie', value: player.attributes.passing },
+    { label: 'wizje gry', value: player.attributes.vision },
+    { label: 'dosrodkowania', value: player.attributes.crossing },
+  ]);
+
+  if (rank === 0) {
+    return `To moim zdaniem najlepszy wykonawca wolnych w tej kadrze. Wyroznia sie przez ${joinLabels(strongest)}.`;
+  }
+
+  if (rank === 1) {
+    return `To dobra druga opcja do wolnych. Dobrze laczy ${joinLabels(strongest)}.`;
+  }
+
+  return `Jako trzeci wybor tez sie broni. W jego przypadku widac ${joinLabels(strongest)}.`;
+};
+
+const buildCaptainReason = (player: Player, rank: number): string => {
+  const strongest = getTopNamedAttributes([
+    { label: 'przywodztwo', value: player.attributes.leadership },
+    { label: 'mentalnosc', value: player.attributes.mentality },
+    { label: 'pracowitosc', value: player.attributes.workRate },
+    { label: 'ustawianie sie', value: player.attributes.positioning },
+  ]);
+
+  if (rank === 0) {
+    return `Jesli szukamy kapitana, to od niego bym zaczal. Ma mocne ${joinLabels(strongest)} i wyglada na naturalnego lidera.`;
+  }
+
+  if (rank === 1) {
+    return `To bardzo dobra druga opcja na opaske. Wyróznia go ${joinLabels(strongest)}.`;
+  }
+
+  return `To kandydat, ktorego tez warto miec pod uwaga przy wyborze kapitana. Pomagaja mu ${joinLabels(strongest)}.`;
+};
+
+const analyzeAssistantLeaders = (players: Player[]): TeamAnalysisAssistantLeaders => {
+  const availablePlayers = players.filter(player => (player.suspensionMatches || 0) === 0);
+  const specialistPool = availablePlayers.length > 0 ? availablePlayers : players;
+
+  const penalties = [...specialistPool]
+    .sort((a, b) => getPenaltySpecialistScore(b) - getPenaltySpecialistScore(a))
+    .slice(0, 3)
+    .map((player, index) => ({
+      player,
+      score: Math.round(getPenaltySpecialistScore(player)),
+      reason: buildPenaltyReason(player, index),
+    }));
+
+  const freeKicks = [...specialistPool]
+    .sort((a, b) => getFreeKickSpecialistScore(b) - getFreeKickSpecialistScore(a))
+    .slice(0, 3)
+    .map((player, index) => ({
+      player,
+      score: Math.round(getFreeKickSpecialistScore(player)),
+      reason: buildFreeKickReason(player, index),
+    }));
+
+  const captains = [...specialistPool]
+    .sort((a, b) => getCaptainCandidateScore(b) - getCaptainCandidateScore(a))
+    .slice(0, 3)
+    .map((player, index) => ({
+      player,
+      score: Math.round(getCaptainCandidateScore(player)),
+      reason: buildCaptainReason(player, index),
+    }));
+
+  return {
+    penalties,
+    freeKicks,
+    captains,
+  };
 };
 
 const joinNames = (players: Player[]): string => {
-  const names = players.map(player => player.lastName);
+  const names = players.map(player => formatPlayerName(player));
   if (names.length === 0) return 'brakuje wyraźnych nazwisk';
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} i ${names[1]}`;
   return `${names[0]}, ${names[1]} i ${names[2]}`;
+};
+
+const buildKeyPlayersStatement = (players: Player[]): string => {
+  const names = joinNames(players);
+
+  if (players.length <= 1) {
+    return `${names} jest teraz jednym z najważniejszych i najlepszych zawodników w drużynie.`;
+  }
+
+  return `${names} są teraz najważniejszymi zawodnikami w tej drużynie.`;
 };
 
 const strongestPosition = (counts: Record<PlayerPosition, number>): PlayerPosition =>
@@ -637,20 +1226,21 @@ const buildAnalystNotes = (
 
   const topContract = report.contractCases[0];
   if (topContract) {
-    let title = `${topContract.player.lastName} - kontrakt`;
-    let explanation = `Obecnie nie ma problemu z kontraktem ${topContract.player.lastName}.`;
+    const playerName = formatPlayerName(topContract.player);
+    let title = `${playerName} - kontrakt`;
+    let explanation = `Obecnie nie ma problemu z kontraktem zawodnika ${playerName}.`;
 
     if (topContract.actionLabel === 'Daj mu nowy kontrakt') {
-      title = `${topContract.player.lastName} - daj mu lepszy kontrakt`;
+      title = `${playerName} - daj mu lepszy kontrakt`;
       explanation = `Z tym zawodnikiem trzeba szybko usiąść do rozmów. To ważny gracz dla składu i nie warto czekać do końca umowy.`;
     } else if (topContract.actionLabel === 'Daj mu nowy kontrakt albo go sprzedaj') {
-      title = `${topContract.player.lastName} - podejmij decyzję teraz`;
+      title = `${playerName} - podejmij decyzję teraz`;
       explanation = `Temu zawodnikowi kończy się umowa, więc trzeba podjąć decyzję. Jeśli nie damy mu nowego kontraktu, lepiej sprzedać go teraz.`;
     } else if (topContract.actionLabel === 'Trzeba podjąć decyzję') {
-      title = `${topContract.player.lastName} - kontrakt się kończy`;
+      title = `${playerName} - kontrakt się kończy`;
       explanation = `Temu zawodnikowi kończy się umowa, więc trzeba podjąć decyzję. Nie ma sensu zostawiać tego na później.`;
     } else if (topContract.actionLabel === 'Jeśli nie damy mu nowego kontraktu, może odejść') {
-      title = `${topContract.player.lastName} - może odejść`;
+      title = `${playerName} - może odejść`;
       explanation = `Jeśli nie damy temu zawodnikowi nowego kontraktu, może odejść. Trzeba mieć to z tyłu głowy.`;
     }
 
@@ -663,26 +1253,32 @@ const buildAnalystNotes = (
     });
   }
 
-  const topExit = report.exitCandidates[0];
-  if (topExit) {
-    let title = `${topExit.player.lastName} - decyzja sportowa`;
-    let explanation = `Uważam, że ${topExit.player.lastName} jest dziś słabszy od innych na swojej pozycji. Trzeba podjąć wobec niego prostą decyzję sportową.`;
+  report.exitCandidates.slice(0, 3).forEach((topExit) => {
+    const playerName = formatPlayerName(topExit.player);
+    let title = `${playerName} - decyzja sportowa`;
+    let explanation = `Uważam, że ${playerName} jest dziś słabszy od innych na swojej pozycji. Trzeba podjąć wobec niego prostą decyzję sportową.`;
 
-    if (topExit.actionLabel === 'Wystaw na listę transferową') {
-      title = `${topExit.player.lastName} - wystaw na listę transferową`;
-      explanation = `Uważam, że ${topExit.player.lastName} jest słabszy od innych na swojej pozycji i nie daje dziś tyle, ile potrzebujemy. Dlatego wystawiłbym go na listę transferową.`;
+    if (topExit.player.position === PlayerPosition.GK) {
+      explanation = `Uważam, że ${playerName} broni dziś słabiej od innych bramkarzy w klubie. Trzeba ocenić, czy dalej na niego stawiamy, czy szykujemy zmianę.`;
+    }
+
+    if (topExit.actionLabel === 'Wystawmy go na listę transferową') {
+      title = `${playerName} - wystaw na listę transferową`;
+      explanation = topExit.player.position === PlayerPosition.GK
+        ? `Uważam, że ${playerName} jest dziś za słaby na rolę numeru jeden w bramce. Jeśli mamy lepszą opcję, wystawiłbym go na listę transferową.`
+        : `Uważam, że ${playerName} jest słabszy od innych na swojej pozycji i nie daje dziś tyle, ile potrzebujemy. Dlatego wystawiłbym go na listę transferową.`;
     } else if (topExit.actionLabel === 'Spróbuj sprzedać') {
-      title = `${topExit.player.lastName} - można go sprzedać`;
-      explanation = `Myślę, że ${topExit.player.lastName} nie daje dziś przewagi nad innymi i jeśli pojawi się dobra oferta, można go sprzedać bez dużej straty dla składu.`;
+      title = `${playerName} - można go sprzedać`;
+      explanation = `Myślę, że ${playerName} nie daje dziś przewagi nad innymi i jeśli pojawi się dobra oferta, można go sprzedać bez dużej straty dla składu.`;
     } else if (topExit.actionLabel === 'Daj trening indywidualny') {
-      title = `${topExit.player.lastName} - daj mu trening indywidualny`;
-      explanation = `Uważam, że ${topExit.player.lastName} nie jest dziś gotowy na dużą rolę, ale ma jeszcze coś do wyciągnięcia. Dałbym mu trening indywidualny i obserwował, czy pójdzie do góry.`;
+      title = `${playerName} - daj mu trening indywidualny`;
+      explanation = `Uważam, że ${playerName} nie jest dziś gotowy na dużą rolę, ale ma jeszcze coś do poprawy. Dałbym mu trening indywidualny i sprawdził, czy zrobi postęp.`;
     } else if (topExit.actionLabel === 'Wypożycz') {
-      title = `${topExit.player.lastName} - wypożycz go`;
-      explanation = `Myślę, że ${topExit.player.lastName} potrzebuje regularnej gry. U nas może jej nie dostać, więc wypożyczenie byłoby teraz najlepszym ruchem.`;
+      title = `${playerName} - wypożycz go`;
+      explanation = `Myślę, że ${playerName} potrzebuje regularnej gry. U nas może jej nie dostać, więc wypożyczenie byłoby teraz najlepszym ruchem.`;
     } else if (topExit.actionLabel === 'Zostaw jako rezerwowego') {
-      title = `${topExit.player.lastName} - zostaw go jako rezerwowego`;
-      explanation = `Na dziś nie widzę ${topExit.player.lastName} w pierwszym składzie, ale może jeszcze dać coś z ławki. Zostawiłbym go w kadrze, ale bez większej roli.`;
+      title = `${playerName} - zostaw go jako rezerwowego`;
+      explanation = `Na dziś nie widzę ${playerName} w pierwszym składzie, ale może jeszcze dać coś z ławki. Zostawiłbym go w kadrze, ale bez większej roli.`;
     }
 
     pushNote({
@@ -692,41 +1288,43 @@ const buildAnalystNotes = (
       title,
       explanation,
     });
-  }
+  });
 
   const topTalent = report.talents[0];
   if (topTalent) {
-    let explanation = `Uważam, że ${topTalent.player.lastName} warto prowadzić spokojnie i regularnie dawać mu minuty, bo może nam jeszcze mocno pójść do góry.`;
+    const playerName = formatPlayerName(topTalent.player);
+    let explanation = `Uważam, że ${playerName} warto prowadzić spokojnie i regularnie dawać mu minuty, bo może nam jeszcze mocno pójść do góry.`;
 
     if (topTalent.developmentPath.includes('wypożyczenie')) {
-      explanation = `Myślę, że ${topTalent.player.lastName} potrzebuje regularnych minut. Jeśli nie damy mu ich u nas, najlepiej będzie go wypożyczyć.`;
+      explanation = `Myślę, że ${playerName} potrzebuje regularnych minut. Jeśli nie damy mu ich u nas, najlepiej będzie go wypożyczyć.`;
     } else if (topTalent.developmentPath.includes('rotacji')) {
-      explanation = `Uważam, że ${topTalent.player.lastName} jest już blisko pierwszego składu. Dawałbym mu regularne wejścia i część meczów od początku.`;
+      explanation = `Uważam, że ${playerName} jest już blisko pierwszego składu. Dawałbym mu regularne wejścia i część meczów od początku.`;
     } else if (topTalent.developmentPath.includes('Wprowadzać etapami')) {
-      explanation = `Myślę, że ${topTalent.player.lastName} trzeba wprowadzać spokojnie. Końcówki meczów i puchary będą dla niego teraz najlepsze.`;
+      explanation = `Myślę, że ${playerName} trzeba wprowadzać spokojnie. Końcówki meczów i puchary będą dla niego teraz najlepsze.`;
     }
 
     pushNote({
       id: `talent_${topTalent.player.id}`,
       player: topTalent.player,
       actionLabel: topTalent.developmentPath,
-      title: `${topTalent.player.lastName} - plan rozwoju`,
+      title: `${playerName} - plan rozwoju`,
       explanation,
     });
   }
 
   const topLeader = report.keyPlayers[0];
   if (topLeader) {
+    const playerName = formatPlayerName(topLeader.player);
     pushNote({
       id: `leader_${topLeader.player.id}`,
       player: topLeader.player,
       actionLabel: topLeader.label,
-      title: `${topLeader.player.lastName} - oprzyj na nim zespół`,
-      explanation: `Uważam, że ${topLeader.player.lastName} powinien być jednym z głównych punktów tej drużyny. To zawodnik, na którym warto oprzeć skład i dać mu ważną rolę.`,
+      title: `${playerName} - oprzyj na nim zespół`,
+      explanation: `Uważam, że ${playerName} powinien być jednym z głównych punktów tej drużyny. To zawodnik, na którym warto oprzeć skład i dać mu ważną rolę.`,
     });
   }
 
-  return notes.slice(0, 4);
+  return notes.slice(0, 6);
 };
 
 const buildCommentary = (
@@ -735,15 +1333,18 @@ const buildCommentary = (
   currentDate: Date
 ): TeamAnalysisCommentary => {
   const style = COMMENTARY_STYLES[hashString(`${club.id}_${currentDate.toISOString().slice(0, 10)}`) % COMMENTARY_STYLES.length];
-  const keyNames = joinNames(report.keyPlayers.slice(0, 3).map(entry => entry.player));
-  const exitName = report.exitCandidates[0]?.player.lastName ?? 'nikt';
-  const talentName = report.talents[0]?.player.lastName ?? 'brak wybijającego się talentu';
-  const contractName = report.contractCases[0]?.player.lastName ?? 'nikt';
+  const topKeyPlayers = report.keyPlayers.slice(0, 3).map(entry => entry.player);
+  const keyPlayersStatement = buildKeyPlayersStatement(topKeyPlayers);
+  const weakPlayersSummary = buildWeakPlayersSummary(report.exitCandidates);
+  const talentName = report.talents[0] ? formatPlayerName(report.talents[0].player) : '';
+  const contractName = report.contractCases[0] ? formatPlayerName(report.contractCases[0].player) : 'nikt';
   const bestTactic = report.tacticalRecommendation.tacticName;
   const altTactic = report.alternativeTactics[0]?.tacticName ?? report.tacticalRecommendation.tacticName;
   const bestPosition = strongestPosition(report.availableCounts);
   const weakestPos = weakestPosition(report.availableCounts);
   const averageOverall = report.squadAverageOverall.toFixed(1);
+  const technicalAreaOne = report.trainingAnalysis.weakestTechnicalAreas[0]?.label ?? 'technika';
+  const technicalAreaTwo = report.trainingAnalysis.weakestTechnicalAreas[1]?.label ?? 'podanie';
   const topExit = report.exitCandidates[0];
   const topTalent = report.talents[0];
   const opening = pickVariant(`${club.id}_${style.id}_opening`, [
@@ -754,9 +1355,9 @@ const buildCommentary = (
   ]);
 
   const keyPlayersLine = pickVariant(`${club.id}_${style.id}_leaders`, [
-    `Najlepiej wygląda dziś ${POSITION_LABELS[bestPosition]}, a najsłabiej ${POSITION_LABELS[weakestPos]}. Najważniejsi zawodnicy w tej kadrze to ${keyNames}.`,
-    `Patrząc na skład, najmocniejsi jesteśmy dziś w ${POSITION_LABELS[bestPosition]}, a najwięcej problemów mamy w ${POSITION_LABELS[weakestPos]}. Najwięcej dają teraz ${keyNames}.`,
-    `Największa siła jest dziś w ${POSITION_LABELS[bestPosition]}, a najsłabsze miejsce mamy w ${POSITION_LABELS[weakestPos]}. Ten zespół w dużej mierze opiera się na zawodnikach takich jak ${keyNames}.`,
+    `Najlepiej wygląda dziś ${POSITION_LABELS[bestPosition]}, a najsłabiej ${POSITION_LABELS[weakestPos]}. ${keyPlayersStatement}`,
+    `Patrząc na skład, najmocniejsi jesteśmy dziś w ${POSITION_LABELS[bestPosition]}, a najwięcej problemów mamy w ${POSITION_LABELS[weakestPos]}. ${keyPlayersStatement}`,
+    `Największa siła jest dziś w ${POSITION_LABELS[bestPosition]}, a najsłabsze miejsce mamy w ${POSITION_LABELS[weakestPos]}. ${keyPlayersStatement}`,
   ]);
 
   const squadShapeLine = pickVariant(`${club.id}_${style.id}_shape`, [
@@ -766,16 +1367,20 @@ const buildCommentary = (
   ]);
 
   const exitContextLine = topExit
-    ? `Uważam, że ${exitName} jest dziś słabszy od innych na swojej pozycji. Moja rekomendacja: ${topExit.actionLabel.toLowerCase()}.`
+    ? `${weakPlayersSummary} Moja rekomendacja: ${report.exitCandidates.slice(0, 3).map(entry => `${formatPlayerName(entry.player)} - ${entry.actionLabel.toLowerCase()}`).join('; ')}.`
     : 'Na dziś nie widzę jednego oczywistego zawodnika do odsunięcia, ale kilku graczy wymaga dalszej obserwacji.';
 
   const contractLine = report.contractCases[0]
     ? `Osobno zwracam uwagę na ${contractName}. W jego przypadku chodzi tylko o kontrakt, więc ten temat trzeba ocenić osobno.`
-    : 'Obecnie nie ma problemu z kontraktami.';
+    : '';
 
-  const talentLine = topTalent && seededUnit(`${club.id}_${style.id}_talent`) > 0.5
-    ? `${topTalent.player.lastName} to dziś najciekawszy młody zawodnik w kadrze. Powinien grać regularnie, ale nie trzeba go od razu wystawiać do pierwszego składu w każdym meczu.`
-    : `Najciekawszym zawodnikiem do rozwoju jest ${talentName}. Warto dawać mu minuty i sprawdzać, jak szybko idzie do przodu.`;
+  const talentLine = topTalent
+    ? seededUnit(`${club.id}_${style.id}_talent`) > 0.5
+      ? `${formatPlayerName(topTalent.player)} to dziś najciekawszy młody zawodnik w kadrze. Powinien grać regularnie, ale nie trzeba go od razu wystawiać do pierwszego składu w każdym meczu.`
+      : `Najciekawszym zawodnikiem do rozwoju jest ${talentName}. Warto dawać mu minuty i sprawdzać, jak szybko idzie do przodu.`
+    : '';
+
+  const trainingLine = `Patrzac na treningi, druzyna najslabiej wyglada dzis w takich elementach jak ${technicalAreaOne} i ${technicalAreaTwo}. W najblizszych tygodniach trzeba na to zwrocic najwieksza uwage.`;
 
   const tacticLine = pickVariant(`${club.id}_${style.id}_tactic`, [
     `Jeśli chodzi o ustawienie, najlepiej wygląda dziś ${bestTactic}. W tym systemie najłatwiej zmieścić najlepszych zdrowych zawodników. Drugą opcją jest ${altTactic}.`,
@@ -791,7 +1396,8 @@ const buildCommentary = (
 
   const paragraphs = [
     `${opening} ${keyPlayersLine} ${squadShapeLine}`,
-    `${exitContextLine} ${contractLine} ${talentLine}`,
+    [exitContextLine, contractLine, talentLine].filter(Boolean).join(' '),
+    trainingLine,
     `${tacticLine} ${closeLine}`,
   ];
 
@@ -806,14 +1412,19 @@ const buildCommentary = (
 export const TeamAnalysisService = {
   analyzeSquad: (club: Club, players: Player[], currentDate: Date): TeamAnalysisReport => {
     const squadAverageOverall = average(players.map(player => player.overallRating));
-    const { best, alternatives, availableCounts } = analyzeTactics(players);
+    const { best, alternatives, availableCounts } = analyzeTactics(club, players);
+    const { candidates: exitCandidates, note: exitCandidatesNote } = analyzeExitCandidates(players, club, best, squadAverageOverall);
     const baseReport = {
       generatedAt: currentDate.toISOString(),
-      injuryRule: `Taktyka liczona tylko na zawodnikach zdrowych lub z urazem do ${TACTIC_INJURY_LIMIT_DAYS} dni oraz z kondycją co najmniej ${MIN_TACTIC_CONDITION}%.`,
+      injuryRule: `Analiza jest tworzona na danych zawodników zdrowych lub z urazem do ${TACTIC_INJURY_LIMIT_DAYS} dni oraz z kondycją co najmniej ${MIN_TACTIC_CONDITION}%.`,
+      squadSize: players.length,
       squadAverageOverall: Math.round(squadAverageOverall * 10) / 10,
       availableCounts,
+      trainingAnalysis: analyzeTraining(players),
+      assistantLeaders: analyzeAssistantLeaders(players),
       keyPlayers: analyzeKeyPlayers(players),
-      exitCandidates: analyzeExitCandidates(players, club, best, squadAverageOverall),
+      exitCandidates,
+      exitCandidatesNote,
       contractCases: analyzeContractCases(players, currentDate, squadAverageOverall),
       talents: analyzeTalents(players, currentDate, squadAverageOverall),
       tacticalRecommendation: best,
