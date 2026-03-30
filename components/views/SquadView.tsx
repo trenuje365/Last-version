@@ -6,11 +6,13 @@ import { Card } from '../ui/Card';
 import { TacticRepository } from '../../resources/tactics_db';
 import { LineupService } from '../../services/LineupService';
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
+import { TeamAnalysisService } from '../../services/TeamAnalysisService';
 import szatnia from '../../Graphic/themes/szatnia.png';
 import { getClubLogo } from '../../resources/ClubLogoAssets';
+import { TeamAnalysisModal } from './TeamAnalysisModal';
 
 export const SquadView: React.FC = () => {
-  const { players, userTeamId, clubs, setClubs, navigateTo, lineups, updateLineup, viewPlayerDetails } = useGame();
+  const { players, userTeamId, clubs, setClubs, navigateTo, lineups, updateLineup, viewPlayerDetails, currentDate } = useGame();
   
   const myClub = useMemo(() => clubs.find(c => c.id === userTeamId), [clubs, userTeamId]);
   const myPlayers = userTeamId ? players[userTeamId] : [];
@@ -18,6 +20,7 @@ export const SquadView: React.FC = () => {
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; playerId: string; loc: 'START' | 'BENCH' | 'RES' } | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{ id: string | null, index?: number, loc: 'START' | 'BENCH' | 'RES' } | null>(null);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
   const currentTactic = useMemo(() => {
     return myLineup ? TacticRepository.getById(myLineup.tacticId) : TacticRepository.getDefault();
@@ -105,6 +108,11 @@ export const SquadView: React.FC = () => {
     const pObjs = myLineup.reserves.map(id => getPlayerById(id)).filter(Boolean) as Player[];
     return PlayerPresentationService.sortPlayers(pObjs).map(p => p.id);
   }, [myLineup?.reserves, myPlayers]);
+
+  const teamAnalysisReport = useMemo(() => {
+    if (!myClub || myPlayers.length === 0) return null;
+    return TeamAnalysisService.analyzeSquad(myClub, myPlayers, currentDate);
+  }, [myClub, myPlayers, currentDate]);
 
   if (!myLineup || !userTeamId || !myClub) return null;
 
@@ -339,6 +347,13 @@ export const SquadView: React.FC = () => {
          </div>
 
          <div className="flex items-center gap-5">
+            <button
+              onClick={() => setIsAnalysisOpen(true)}
+              className="relative group px-8 py-5 rounded-[24px] bg-emerald-600/10 border border-emerald-500/30 text-[11px] font-black uppercase italic tracking-widest text-emerald-300 hover:bg-emerald-600/20 hover:border-emerald-400 transition-all active:scale-95 shadow-xl overflow-hidden"
+            >
+               <span className="relative z-10 flex items-center gap-3">ANALIZA DRUŻYNY</span>
+               <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
             <button onClick={handleAutoPick} className="relative group px-10 py-5 rounded-[24px] bg-blue-600/10 border border-blue-500/30 text-[11px] font-black uppercase italic tracking-widest text-blue-400 hover:bg-blue-600/20 hover:border-blue-400 transition-all active:scale-95 shadow-xl overflow-hidden">
                <span className="relative z-10 flex items-center gap-3">🪄 AUTO WYBÓR</span>
                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -609,6 +624,15 @@ export const SquadView: React.FC = () => {
           </button>
         </div>
       )}
+
+      {isAnalysisOpen && myClub && teamAnalysisReport && (
+        <TeamAnalysisModal
+          club={myClub}
+          report={teamAnalysisReport}
+          onClose={() => setIsAnalysisOpen(false)}
+        />
+      )}
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

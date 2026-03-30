@@ -2,7 +2,33 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { Button } from '../ui/Button';
-import { ViewState, Club } from '../../types';
+import { ViewState } from '../../types';
+import { getClubLogo } from '../../resources/ClubLogoAssets';
+
+const ClubSelectionBadge: React.FC<{
+  clubName: string;
+  colorsHex: string[];
+  logo?: string;
+}> = ({ clubName, colorsHex, logo }) => {
+  if (logo) {
+    return (
+      <div className="w-12 h-12 shrink-0 flex items-center justify-center overflow-hidden">
+        <img
+          src={logo}
+          alt={`${clubName} logo`}
+          className="w-full h-full object-contain -rotate-[10deg]"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col w-1 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+      <div style={{ backgroundColor: colorsHex[0] }} className="flex-1" />
+      <div style={{ backgroundColor: colorsHex[1] || colorsHex[0] }} className="flex-1" />
+    </div>
+  );
+};
 
 export const TeamSelection: React.FC = () => {
   const { clubs, selectUserTeam, navigateTo } = useGame();
@@ -35,6 +61,11 @@ export const TeamSelection: React.FC = () => {
   const selectedClub = useMemo(() => 
     clubs.find(c => c.id === selectedClubId), 
     [clubs, selectedClubId]
+  );
+
+  const selectedClubLogo = useMemo(
+    () => (selectedClub ? getClubLogo(selectedClub.id) : undefined),
+    [selectedClub]
   );
 
   const handleRandomize = () => {
@@ -133,6 +164,7 @@ export const TeamSelection: React.FC = () => {
            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
               {filteredClubs.map(club => {
                 const isSelected = selectedClubId === club.id;
+                const clubLogo = getClubLogo(club.id);
                 return (
                   <button
                     key={club.id}
@@ -161,10 +193,7 @@ export const TeamSelection: React.FC = () => {
                     />
                     
                     <div className="relative h-full flex items-center px-5 gap-3">
-                       <div className="flex flex-col w-1 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
-                          <div style={{ backgroundColor: club.colorsHex[0] }} className="flex-1" />
-                          <div style={{ backgroundColor: club.colorsHex[1] || club.colorsHex[0] }} className="flex-1" />
-                       </div>
+                       <ClubSelectionBadge clubName={club.name} colorsHex={club.colorsHex} logo={clubLogo} />
                        <div className="flex-1 text-left min-w-0">
                           <div className={`text-xs font-black uppercase italic truncate tracking-tight transition-colors ${isSelected ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}>
                             {club.name}
@@ -213,34 +242,47 @@ export const TeamSelection: React.FC = () => {
            )}
 
            {selectedClub ? (
-             <div className="relative z-10 w-full max-w-5xl animate-slide-up flex flex-col md:flex-row gap-16 items-center">
+             <div className="relative z-10 w-full max-w-[1320px] animate-slide-up flex flex-col md:flex-row gap-8 lg:gap-10 items-center">
                 {/* Big Visual Identity Card */}
                 <div className="relative group shrink-0">
                    <div className="absolute inset-[-20px] bg-white/5 rounded-[60px] blur-2xl opacity-0 group-hover:opacity-50 transition-opacity duration-700" />
                    
-                   <div className="w-64 h-64 md:w-80 md:h-80 rounded-[50px] shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative overflow-hidden border-4 border-white/10 transform -rotate-1 transition-transform duration-700 group-hover:rotate-0">
-                      <div className="absolute inset-0 flex flex-col">
-                        <div style={{ backgroundColor: selectedClub.colorsHex[0] }} className="flex-1" />
-                        <div style={{ backgroundColor: selectedClub.colorsHex[1] || selectedClub.colorsHex[0] }} className="flex-1" />
-                        <div style={{ backgroundColor: selectedClub.colorsHex[2] || selectedClub.colorsHex[1] || selectedClub.colorsHex[0] }} className="flex-1" />
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+                   <div
+                     className={`relative overflow-hidden transform -rotate-1 transition-transform duration-700 group-hover:rotate-0 ${
+                       selectedClubLogo
+                         ? 'w-96 h-96 md:w-[30rem] md:h-[30rem]'
+                         : 'w-64 h-64 md:w-80 md:h-80 rounded-[50px] shadow-[0_30px_60px_rgba(0,0,0,0.5)] border-4 border-white/10'
+                     }`}
+                   >
+                      {!selectedClubLogo && (
+                        <div className="absolute inset-0 flex flex-col">
+                          <div style={{ backgroundColor: selectedClub.colorsHex[0] }} className="flex-1" />
+                          <div style={{ backgroundColor: selectedClub.colorsHex[1] || selectedClub.colorsHex[0] }} className="flex-1" />
+                          <div style={{ backgroundColor: selectedClub.colorsHex[2] || selectedClub.colorsHex[1] || selectedClub.colorsHex[0] }} className="flex-1" />
+                        </div>
+                      )}
+                      {!selectedClubLogo && <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-8xl md:text-[11rem] font-black text-white italic tracking-tighter drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none opacity-90">
-                          {selectedClub.shortName}
-                        </span>
+                        {selectedClubLogo ? (
+                          <div className="w-[90%] h-[90%] flex items-center justify-center">
+                            <img
+                              src={selectedClubLogo}
+                              alt={`${selectedClub.name} logo`}
+                              className="w-full h-full object-contain -rotate-[10deg] drop-shadow-[0_14px_30px_rgba(0,0,0,0.45)]"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-8xl md:text-[11rem] font-black text-white italic tracking-tighter drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none opacity-90">
+                            {selectedClub.shortName}
+                          </span>
+                        )}
                       </div>
                    </div>
 
-                   {/* Stats Badges floating around */}
-                   <div className="absolute -right-6 -bottom-6 bg-slate-900 border border-white/10 p-4 rounded-3xl shadow-2xl backdrop-blur-xl animate-float">
-                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Pojemność</span>
-                      <span className="text-xl font-black text-emerald-400 font-mono">{selectedClub.stadiumCapacity.toLocaleString()}</span>
-                   </div>
                 </div>
 
                 {/* Details Showcase */}
-                <div className="flex-1 text-center md:text-left">
+                <div className="flex-1 w-full max-w-[44rem] text-center md:text-left md:-ml-4">
                    <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[9px] font-black tracking-[0.3em] uppercase mb-6 backdrop-blur-md">
                       <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                       {selectedLeagueTier === 'FOREIGN'
@@ -249,7 +291,7 @@ export const TeamSelection: React.FC = () => {
                       }
                    </div>
                    
-                   <h2 className="text-6xl md:text-8xl font-black text-white italic uppercase tracking-tighter leading-[0.85] mb-8 drop-shadow-2xl">
+                   <h2 className="text-6xl md:text-[5.5rem] lg:text-[6.25rem] font-black text-white italic uppercase tracking-tighter leading-[0.85] mb-8 drop-shadow-2xl">
                       {selectedClub.name}
                    </h2>
                    
