@@ -216,7 +216,7 @@ export const TransferPlayerNegotiationView: React.FC = () => {
                   <span className="text-slate-400">Pula bonusow</span>
                   <span className="font-black text-amber-400 text-right">{buyerClub.signingBonusPool.toLocaleString()} PLN</span>
                 </div>
-                {negotiationPlan && (
+                {negotiationPlan?.willingToTalk && (
                   <>
                     <div className="flex justify-between gap-4">
                       <span className="text-slate-400">Zadana pensja</span>
@@ -239,67 +239,75 @@ export const TransferPlayerNegotiationView: React.FC = () => {
               <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500">Stanowisko Agenta</p>
               <div className="mt-4 text-sm text-slate-300 space-y-2">
                 <p>{negotiationPlan?.reason || 'Moj klient analizuje projekt sportowy i warunki finansowe.'}</p>
-                <p>
-                  Oczekiwana pensja: {(negotiationPlan?.desiredSalary || 0).toLocaleString()} PLN rocznie.
-                </p>
-                <p>
-                  Oczekiwany bonus za podpis: {(negotiationPlan?.desiredBonus || 0).toLocaleString()} PLN.
-                </p>
+                {negotiationPlan?.willingToTalk && (
+                  <>
+                    <p>
+                      Oczekiwana pensja: {(negotiationPlan?.desiredSalary || 0).toLocaleString()} PLN rocznie.
+                    </p>
+                    <p>
+                      Oczekiwany bonus za podpis: {(negotiationPlan?.desiredBonus || 0).toLocaleString()} PLN.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 space-y-6">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">Pensja roczna</span>
-                <span className="text-xl font-black text-blue-400 font-mono">{salary.toLocaleString()} PLN</span>
-              </div>
-              <input
-                type="range"
-                min="50000"
-                max={Math.max(50000, maxSalary)}
-                step="5000"
-                value={salary}
-                onChange={e => setSalary(parseInt(e.target.value, 10))}
-                className="w-full accent-blue-500"
-              />
-            </div>
+            {negotiationPlan?.willingToTalk && (
+              <>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">Pensja roczna</span>
+                    <span className="text-xl font-black text-blue-400 font-mono">{salary.toLocaleString()} PLN</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50000"
+                    max={Math.max(50000, maxSalary)}
+                    step="5000"
+                    value={salary}
+                    onChange={e => setSalary(parseInt(e.target.value, 10))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">Bonus za podpis</span>
-                <span className="text-xl font-black text-amber-400 font-mono">{bonus.toLocaleString()} PLN</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max={Math.max(0, maxBonus)}
-                step="5000"
-                value={bonus}
-                onChange={e => setBonus(parseInt(e.target.value, 10))}
-                className="w-full accent-amber-500"
-              />
-            </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">Bonus za podpis</span>
+                    <span className="text-xl font-black text-amber-400 font-mono">{bonus.toLocaleString()} PLN</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={Math.max(0, maxBonus)}
+                    step="5000"
+                    value={bonus}
+                    onChange={e => setBonus(parseInt(e.target.value, 10))}
+                    className="w-full accent-amber-500"
+                  />
+                </div>
 
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 block mb-3">Dlugosc kontraktu</span>
-              <div className="grid grid-cols-5 gap-2">
-                {[1, 2, 3, 4, 5].map(option => (
-                  <button
-                    key={option}
-                    onClick={() => setYears(option)}
-                    className={`py-3 rounded-2xl border text-sm font-black transition-all ${
-                      years === option
-                        ? 'bg-white text-black border-white'
-                        : 'bg-black/30 text-slate-400 border-white/10 hover:border-white/30'
-                    }`}
-                  >
-                    {option}L
-                  </button>
-                ))}
-              </div>
-            </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 block mb-3">Dlugosc kontraktu</span>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map(option => (
+                      <button
+                        key={option}
+                        onClick={() => setYears(option)}
+                        className={`py-3 rounded-2xl border text-sm font-black transition-all ${
+                          years === option
+                            ? 'bg-white text-black border-white'
+                            : 'bg-black/30 text-slate-400 border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        {option}L
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {!negotiationPlan?.willingToTalk && (
               <div className="rounded-[24px] border border-red-500/30 bg-red-500/10 p-5">
@@ -339,8 +347,8 @@ export const TransferPlayerNegotiationView: React.FC = () => {
                 : isRejected
                   ? 'Negocjacje zakonczone'
                   : !negotiationPlan?.willingToTalk
-                    ? 'Zawodnik odrzuca rozmowy'
-                    : 'Zloz warunki zawodnikowi'}
+                    ? 'ZERWANIE ROZMÓW'
+                    : 'PRZEDSTAW OFERTĘ'}
             </button>
           </div>
         </div>

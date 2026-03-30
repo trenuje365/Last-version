@@ -118,7 +118,7 @@ export const TransferPlayerDecisionService = {
     if (reputationDelta === 0 && !isForeignMove && !canAcceptSidewaysOrLowerMove) {
       return {
         willingToTalk: false,
-        reason: 'Przy podobnej reputacji zawodnik nie widzi wystarczajacego awansu sportowego. Taki ruch mialby sens glownie do zagranicznego klubu lub po utracie miejsca w skladzie.',
+        reason: 'Nie jestem zainteresowany przejsciem do Waszego klubu. Do widzenia.',
         targetRole,
         desiredSalary: roundMoney(currentSalaryBase * 1.2),
         desiredBonus: roundMoney(currentSalaryBase * 0.7),
@@ -163,7 +163,7 @@ export const TransferPlayerDecisionService = {
     } else if (reputationDelta === 0 && isForeignMove) {
       negotiationReason = 'Moj klient jest zainteresowany tym kierunkiem, ale przy klubie o podobnej reputacji oczekuje wyraznie lepszego kontraktu.';
     } else if (reputationDelta > 0) {
-      negotiationReason = `Moj klient widzi tu awans sportowy, ale oczekuje kontraktu na ${desiredYears} ${desiredYears === 1 ? 'rok' : 'lata'} i warunkow adekwatnych do tego kroku.`;
+      negotiationReason = `Mój klient jest zainteresowany przejściem do Waszego klubu i oczekuje kontraktu na ${desiredYears} ${desiredYears === 1 ? 'rok' : 'lata'} i warunkow adekwatnych do tego kroku.`;
     }
 
     return {

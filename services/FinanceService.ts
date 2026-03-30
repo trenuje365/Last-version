@@ -90,20 +90,20 @@ export const FinanceService = {
 
     switch (tier) {
       case 1: // Ekstraklasa
-        min = 24000000;
+        min = 50000000;
         max = 217000000;
         break;
       case 2: // 1 Liga
-        min = 9000000;
-        max = 18000000;
+        min = 20000000;
+        max = 70000000;
         break;
       case 3: // 2 Liga
-        min = 1000000;
-        max = 3000000;
+        min = 10000000;
+        max = 45000000;
         break;
       case 4: // Tier 4
-        min = 80000;
-        max = 500000;
+        min = 800000;
+        max = 10000000;
         break;
       default:
         min = 1000000;
@@ -134,6 +134,31 @@ export const FinanceService = {
     const baseWeight = Math.pow(Math.max(1, ovr - 35), 1.5);
     const ageMod = age < 20 ? 0.8 : 1.0;
     return baseWeight * ageMod;
+  },
+  calculateNewgenSalary: (clubBudget: number, overall: number, age: number): number => {
+    const wagePool = FinanceService.getWagePool(clubBudget);
+    const avgSquadSalary = wagePool / 31;
+
+    const youthDiscount =
+      age <= 17 ? 0.38 :
+      age <= 19 ? 0.46 :
+      age <= 21 ? 0.58 :
+      0.72;
+
+    const overallModifier = Math.min(1.2, Math.max(0.55, 0.55 + ((overall - 45) * 0.03)));
+
+    let salary = avgSquadSalary * youthDiscount * overallModifier;
+
+    if (overall >= 70) {
+      const starBonus = 1.12 + Math.min(0.18, (overall - 70) * 0.02);
+      salary *= starBonus;
+    }
+
+    const fairMarketSalary = FinanceService.getFairMarketSalary(overall);
+    const fairMarketCapMultiplier = overall >= 70 ? 0.55 : 0.40;
+    const cappedSalary = Math.min(salary, fairMarketSalary * fairMarketCapMultiplier);
+
+    return Math.max(15_000, Math.round(cappedSalary / 5_000) * 5_000);
   },
 
   // Koszty organizacji meczu — progresywna formuła wg. ligi, reputacji i frekwencji
@@ -182,17 +207,57 @@ export const FinanceService = {
   calculateMarketValue: (player: Player, reputation: number, tier: number): number => {
     if (player.clubId === 'FREE_AGENTS') return 0;
     const ovr = player.overallRating;
+    const isPolishClub = player.clubId.startsWith('PL_');
     let baseValue = 0;
     if (ovr >= 80) baseValue = 15000000 + (ovr - 80) * 1300000;
     else if (ovr >= 75) baseValue = 8500000 + (ovr - 75) * 840000;
     else if (ovr >= 70) baseValue = 4200000 + (ovr - 70) * 860000;
     else baseValue = 50000 + (ovr / 70) * 4150000;
+
     let multiplier = 1.0;
-    if (tier === 1) multiplier += 0.15;
-    if (tier === 3) multiplier -= 0.10;
-    if (reputation > 5) multiplier += (reputation - 5) * 0.05;
+    switch (tier) {
+      case 1:
+        multiplier = 1.15;
+        break;
+      case 2:
+        multiplier = 0.72;
+        break;
+      case 3:
+        multiplier = 0.30;
+        break;
+      case 4:
+        multiplier = 0.12;
+        break;
+      case 5:
+        multiplier = 0.08;
+        break;
+      default:
+        multiplier = 0.18;
+        break;
+    }
+
+    if (reputation > 5) multiplier += (reputation - 5) * 0.03;
+    else if (reputation < 4) multiplier -= (4 - reputation) * 0.02;
+
+    const tierCap = isPolishClub
+      ? ({
+          1: 50_000_000,
+          2: 12_000_000,
+          3: 3_000_000,
+          4: 600_000
+        } as Record<number, number | undefined>)[tier]
+      : ({
+          1: 120_000_000,
+          2: 18_000_000,
+          3: 6_000_000,
+          4: 2_000_000,
+          5: 800_000
+        } as Record<number, number | undefined>)[tier];
+
     const randomFactor = 0.97 + (Math.random() * 0.06);
-    return Math.round((baseValue * multiplier * randomFactor) / 100) * 100;
+    const rawValue = baseValue * multiplier * randomFactor;
+    const cappedValue = tierCap ? Math.min(rawValue, tierCap) : rawValue;
+    return Math.round(cappedValue / 100) * 100;
   },
 
   /**

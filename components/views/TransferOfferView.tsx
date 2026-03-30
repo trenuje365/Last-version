@@ -111,7 +111,11 @@ export const TransferOfferView: React.FC = () => {
     }
   }, [timing]);
 
-  const marketValue = player?.marketValue || 500_000;
+  const marketValue = useMemo(() => {
+    if (!player || !sellerClub) return 500_000;
+    const sellerTier = parseInt(sellerClub.leagueId.split('_')[2] || '1', 10);
+    return FinanceService.calculateMarketValue(player, sellerClub.reputation, sellerTier);
+  }, [player, sellerClub]);
   const suggestedFee = useMemo(() => {
     if (!player) return 500_000;
     const base = player.isOnTransferList ? marketValue * 0.95 : marketValue * 1.10;
@@ -379,7 +383,7 @@ export const TransferOfferView: React.FC = () => {
                   <div className="rounded-[24px] border border-red-500/30 bg-red-500/10 p-5">
                     <p className="text-sm font-black uppercase tracking-[0.2em]">Rozmowy zablokowane</p>
                     <p className="text-sm text-slate-200 mt-3">
-                      Klub nie chce wracac do tematu tego zawodnika przed {new Date(player.transferLockoutUntil!).toLocaleDateString('pl-PL')}.
+                      Pańska oferta nie jest możliwa do rozpatrzenia przed {new Date(player.transferLockoutUntil!).toLocaleDateString('pl-PL')}.
                     </p>
                   </div>
                 )}
@@ -415,7 +419,7 @@ export const TransferOfferView: React.FC = () => {
                     </p>
                     {(submissionFeedback?.askingPrice || latestOffer?.askingPrice) && activeStatus !== TransferOfferStatus.PLAYER_NEGOTIATION ? (
                       <p className="text-xs uppercase tracking-[0.2em] text-amber-300 mt-4">
-                        Klub zadaje {(submissionFeedback?.askingPrice || latestOffer?.askingPrice || 0).toLocaleString()} PLN.
+                        Klub oczekiwał {(submissionFeedback?.askingPrice || latestOffer?.askingPrice || 0).toLocaleString()} PLN.
                       </p>
                     ) : null}
                   </div>
@@ -435,7 +439,7 @@ export const TransferOfferView: React.FC = () => {
                     className="w-full py-4 rounded-[24px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-[0.25em] text-sm shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isTransferLocked
-                      ? 'Rozmowy czasowo zamkniete'
+                      ? 'ODRZUCONO'
                       : isFutureAgreementSigned
                         ? 'Umowa od przyszlej daty juz podpisana'
                         : hasAnyActiveAgreement

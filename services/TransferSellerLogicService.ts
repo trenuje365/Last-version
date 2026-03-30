@@ -30,9 +30,9 @@ const roundToNearest50k = (value: number) => Math.round(Math.max(100_000, value)
 const getTimingPriceMultiplier = (timing: TransferTiming): number => {
   switch (timing) {
     case TransferTiming.IN_SIX_MONTHS:
-      return 0.92;
+      return 1.08;
     case TransferTiming.IN_TWELVE_MONTHS:
-      return 0.84;
+      return 1.20;
     case TransferTiming.CONTRACT_END:
       return 0;
     default:
@@ -84,8 +84,10 @@ export const TransferSellerLogicService = {
     );
     const sellerNeedsCash = sellerClub.budget < Math.max(askingPrice * 0.7, 4_000_000);
 
-    const strictImmediateRivalSale =
-      timing === TransferTiming.IMMEDIATE &&
+    const blocksShortDelaySale =
+      timing === TransferTiming.IMMEDIATE || timing === TransferTiming.IN_SIX_MONTHS;
+
+    const protectedRivalSale =
       sameLeague &&
       !player.isOnTransferList &&
       !sellerNeedsCash &&
@@ -93,16 +95,15 @@ export const TransferSellerLogicService = {
       reputationGap <= 1 &&
       daysLeft > 365;
 
-    if (strictImmediateRivalSale) {
+    if (protectedRivalSale && blocksShortDelaySale) {
       return {
         allowTalks: false,
         askingPrice,
-        reason: `Klub nie podejmie rozmow. ${sellerClub.name} nie zamierza sprzedawac kluczowego zawodnika bezposredniemu rywalowi z ligi.`
+        reason: `Klub nie podejmie rozmow. ${sellerClub.name} nie zamierza sprzedawac kluczowego zawodnika bezposredniemu rywalowi z ligi w tym terminie.`
       };
     }
 
-    const strictImmediateTopElevenSale =
-      timing === TransferTiming.IMMEDIATE &&
+    const protectedTopElevenSale =
       sameLeague &&
       !player.isOnTransferList &&
       !sellerNeedsCash &&
@@ -110,19 +111,20 @@ export const TransferSellerLogicService = {
       reputationGap <= 0 &&
       daysLeft > 365;
 
-    if (strictImmediateTopElevenSale) {
+    if (protectedTopElevenSale && blocksShortDelaySale) {
       return {
         allowTalks: false,
         askingPrice,
-        reason: `Klub nie jest sklonny sprzedac waznego zawodnika do ligowego rywala.`
+        reason: `Klub nie jest sklonny sprzedac waznego zawodnika do ligowego rywala w tym terminie.`
       };
     }
 
-    if ((strictImmediateRivalSale || strictImmediateTopElevenSale) && timing !== TransferTiming.IMMEDIATE) {
+    if ((protectedRivalSale || protectedTopElevenSale) && timing === TransferTiming.IN_TWELVE_MONTHS) {
+      const delayedAskingPrice = roundToNearest50k(askingPrice * 1.20);
       return {
         allowTalks: true,
-        askingPrice,
-        reason: `Klub nie chce sprzedawac tego zawodnika od razu, ale dopuszcza transfer ${getTimingLabel(timing)}. Cena wyjsciowa wynosi ${askingPrice.toLocaleString()} PLN.`
+        askingPrice: delayedAskingPrice,
+        reason: `Klub nie chce sprzedawac tego zawodnika od razu, ale dopuszcza transfer ${getTimingLabel(timing)}. Cena wyjsciowa wynosi ${delayedAskingPrice.toLocaleString()} PLN.`
       };
     }
 
@@ -153,10 +155,7 @@ export const TransferSellerLogicService = {
     currentDate: Date
   ): number => {
     const tier = parseInt(sellerClub.leagueId.split('_')[2] || '1', 10);
-    const baseValue = Math.max(
-      player.marketValue || 0,
-      FinanceService.calculateMarketValue(player, sellerClub.reputation, tier)
-    );
+    const baseValue = FinanceService.calculateMarketValue(player, sellerClub.reputation, tier);
 
     let multiplier = 1.0;
     const daysLeft = Math.floor(
@@ -186,7 +185,16 @@ export const TransferSellerLogicService = {
     const financialPressure = sellerClub.budget < Math.max(baseValue * 0.75, 3_000_000);
     if (financialPressure) multiplier -= 0.05;
 
-    const rawPrice = Math.max(100_000, baseValue * multiplier);
+    let minimumMultiplier = player.isOnTransferList ? 0.82 : 1.0;
+    if (daysLeft > 365 && !player.isOnTransferList) {
+      minimumMultiplier = Math.max(minimumMultiplier, 1.02);
+    }
+
+    if (top11Ids.includes(player.id)) minimumMultiplier = Math.max(minimumMultiplier, 1.08);
+    if (sortedSquad.slice(0, 3).some(p => p.id === player.id)) minimumMultiplier = Math.max(minimumMultiplier, 1.15);
+    if (player.isUntouchable || sortedSquad[0]?.id === player.id) minimumMultiplier = Math.max(minimumMultiplier, 1.25);
+
+    const rawPrice = Math.max(100_000, baseValue * Math.max(multiplier, minimumMultiplier));
     return Math.round(rawPrice / 50_000) * 50_000;
   },
 

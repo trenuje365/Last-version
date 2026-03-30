@@ -55,6 +55,7 @@ const releasedPlayers: Player[] = [];  // ← NOWA LINIA
             player.position, 
             leagueTier, 
             club.reputation,
+            club.budget,
             nextSquad.length,
             
           );
@@ -103,6 +104,7 @@ const releasedPlayers: Player[] = [];  // ← NOWA LINIA
     position: PlayerPosition, 
     tier: number, 
     reputation: number,
+    clubBudget: number,
     index: number
   ): Player => {
     const region = Math.random() < 0.85 ? Region.POLAND : NameGeneratorService.getRandomForeignRegion();
@@ -112,7 +114,7 @@ const releasedPlayers: Player[] = [];  // ← NOWA LINIA
     const age = 16 + Math.floor(Math.random() * 6);
     const genData = PlayerAttributesGenerator.generateAttributes(position, tier, reputation, age);
 
-    const salary = Math.floor((FinanceService.getWagePool(reputation * 10000000) / 28) * (genData.overall / 65));
+    const salary = FinanceService.calculateNewgenSalary(clubBudget, genData.overall, age);
     
     const newPlayer: Player = {
       id: `NEWGEN_${clubId}_${Date.now()}_${index}`,
