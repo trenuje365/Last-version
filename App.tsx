@@ -23,6 +23,7 @@ import { TrainingView } from './components/views/TrainingView';
 import { CupDrawView } from './components/views/CupDrawView';
 import { MatchHistoryView } from './components/views/MatchHistoryView';
 import { JobMarketView } from './components/views/JobMarketView';
+import { TransferNewsView } from './components/views/TransferNewsView';
 import { PreMatchCupStudioView } from './PolishCupEngine/PreMatchCupStudioView';
 import { MatchLiveViewPolishCupSimulation } from './PolishCupEngine/MatchLiveViewPolishCupSimulation';
 import { PostMatchCupStudioView } from './PolishCupEngine/PostMatchCupStudioView';
@@ -215,6 +216,8 @@ case ViewState.POLISH_CUP_BRACKET:
         return <EditorView />;
       case ViewState.JOB_MARKET: // -> tutaj wstaw kod
         return <JobMarketView />;
+      case ViewState.TRANSFER_NEWS:
+        return <TransferNewsView />;
       case ViewState.REFEREE_CARD:
         return <RefereeCard />;
       case ViewState.REFEREE_LIST:

@@ -313,13 +313,26 @@ createFromTemplate: (templateId: string, replacements: Record<string, string>): 
     };
   },
 
-generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCapacity: number; reputation: number }, tier: number, seasonLabel: string, gameDate: Date): MailMessage => {
-    const seasonTicketRevenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
-    const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
-    const ticketPrice = FinanceService.calculateTicketPrice(tier, club.reputation);
-    const matchesPerSeason = 19;
-    const rawSeasonPrice = ticketPrice * matchesPerSeason;
-    const finalSeasonPrice = Math.max(200, Math.min(1300, rawSeasonPrice));
+generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCapacity: number; reputation: number; leagueId: string; country?: string }, seasonLabel: string, gameDate: Date): MailMessage => {
+    const ticketPackage = FinanceService.calculateSeasonTicketPackageForClub({
+      id: club.name,
+      name: club.name,
+      shortName: club.name,
+      leagueId: club.leagueId,
+      colorsHex: [],
+      stadiumName: club.stadiumName,
+      stadiumCapacity: club.stadiumCapacity,
+      reputation: club.reputation,
+      isDefaultActive: true,
+      colorPrimary: '#000000',
+      colorSecondary: '#FFFFFF',
+      rosterIds: [],
+      budget: 0,
+      boardStrictness: 5,
+      signingBonusPool: 0,
+      stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+      country: club.country
+    });
     const demandLevel = club.reputation >= 8 ? 'bardzo wysokie' : club.reputation >= 6 ? 'dobre' : club.reputation >= 4 ? 'umiarkowane' : 'niskie';
     const formatPLN = (n: number) => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 }).format(n);
 
@@ -328,9 +341,9 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
       SEASON: seasonLabel,
       STADIUM: club.stadiumName,
       CAPACITY: club.stadiumCapacity.toLocaleString('pl-PL'),
-      TICKETS_SOLD: ticketsSold.toLocaleString('pl-PL'),
-      REVENUE: formatPLN(seasonTicketRevenue),
-      TICKET_PRICE: formatPLN(finalSeasonPrice),
+      TICKETS_SOLD: ticketPackage.ticketsSold.toLocaleString('pl-PL'),
+      REVENUE: formatPLN(ticketPackage.revenue),
+      TICKET_PRICE: formatPLN(ticketPackage.seasonTicketPrice),
       DEMAND_LEVEL: demandLevel
     });
   },

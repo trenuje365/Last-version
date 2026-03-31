@@ -88,12 +88,16 @@ export const TransferPlayerDecisionService = {
       !!targetClub.country &&
       currentClub.country !== targetClub.country;
     const isNotFirstTeamPlayer = currentRole === 'ROTATION' || currentRole === 'BACKUP';
-    const canAcceptSidewaysOrLowerMove = !!player.isOnTransferList || isNotFirstTeamPlayer;
+    const isVeteran = player.age >= 31;
+    const canAcceptSidewaysOrLowerMove = !!player.isOnTransferList || isNotFirstTeamPlayer || isVeteran;
     const daysLeft = Math.floor(
       (new Date(player.contractEndDate).getTime() - currentDate.getTime()) / 86_400_000
     );
 
-    if (reputationDelta < -2) {
+    // Rezerwowi/rotacyjni powyżej 24 lat mogą zejść o więcej niż 2 szczeble reputacji (chcą grać)
+    // Młodzi (≤24) i podstawowi trzymają twardą granicę -2
+    const hardReputationLimit = (isNotFirstTeamPlayer && player.age > 24) ? -4 : -2;
+    if (reputationDelta < hardReputationLimit) {
       return {
         willingToTalk: false,
         reason: 'Zawodnik nie chce schodzic sportowo tak nisko. Reputacja nowego klubu jest zbyt wyraznie slabsza od obecnego.',
@@ -138,6 +142,8 @@ export const TransferPlayerDecisionService = {
     }
 
     let salaryMultiplier = 1.10;
+    if (player.age <= 24 && reputationDelta >= 2) salaryMultiplier -= 0.08;
+    if (player.age <= 24 && reputationDelta < 0) salaryMultiplier += 0.15;
     if (reputationDelta > 0) salaryMultiplier += 0.08;
     if (reputationDelta === 0 && isForeignMove) salaryMultiplier += 0.18;
     if (reputationDelta < 0) salaryMultiplier += 0.30;
@@ -247,10 +253,18 @@ export const TransferPlayerDecisionService = {
     const reputationScore = Math.max(-20, Math.min(22, reputationDelta * 7));
     const foreignBonus = reputationDelta === 0 && isForeignMove ? 6 : 0;
 
+    const estimatedMarketSalary = 50_000 + player.overallRating * 8_000;
+    const salaryOverMarket = currentSalaryBase / Math.max(estimatedMarketSalary, 1);
+    const salarySatisfactionBonus = salaryOverMarket >= 1.4 ? 10 : salaryOverMarket >= 1.2 ? 5 : 0;
+
+    const roleUpgradeBonus = (currentRole === 'BACKUP' && roleLevel(negotiationPlan.targetRole) >= 3) ? 12 :
+                             (currentRole === 'ROTATION' && roleLevel(negotiationPlan.targetRole) >= 4) ? 8 : 0;
+
     const stayScore =
       currentClub.reputation * 7 +
       roleScore(currentRole) +
-      Math.min(16, Math.round(currentSalaryBase / 110_000)) -
+      Math.min(16, Math.round(currentSalaryBase / 110_000)) +
+      salarySatisfactionBonus -
       contractPressure -
       transferListPressure;
 
@@ -263,6 +277,7 @@ export const TransferPlayerDecisionService = {
       contractScore(offer.years) +
       reputationScore +
       foreignBonus +
+      roleUpgradeBonus +
       Math.round((financialFit - 1) * 35);
 
     const margin = offerScore - stayScore;

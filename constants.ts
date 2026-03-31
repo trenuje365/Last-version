@@ -180,68 +180,77 @@ export const STATIC_CLUBS: Club[] = [
   ...clubsTier4
 ];
 
-export const STATIC_CL_CLUBS: Club[] = RAW_CHAMPIONS_LEAGUE_CLUBS.map(raw => ({
-  id: generateEuropeanClubId(raw.name),
-  name: raw.name,
-  shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
-  leagueId: 'L_CL',
-  colorsHex: raw.colors,
-  stadiumName: raw.stadium,
-  stadiumCapacity: raw.capacity,
-  reputation: raw.reputation,
-  country: raw.country,
-  isDefaultActive: true,
-  colorPrimary: raw.colors[0],
-  colorSecondary: raw.colors[1] || '#FFFFFF',
-  rosterIds: [],
-  budget: 0,
-  boardStrictness: 5,
-  signingBonusPool: 0,
-  stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
-  isInPolishCup: false,
-}));
+export const STATIC_CL_CLUBS: Club[] = RAW_CHAMPIONS_LEAGUE_CLUBS.map(raw => {
+  const budget = FinanceService.calculateEuropeanInitialBudget(raw.tier, raw.reputation, raw.country, raw.name, raw.capacity);
+  return {
+    id: generateEuropeanClubId(raw.name),
+    name: raw.name,
+    shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
+    leagueId: 'L_CL',
+    colorsHex: raw.colors,
+    stadiumName: raw.stadium,
+    stadiumCapacity: raw.capacity,
+    reputation: raw.reputation,
+    country: raw.country,
+    isDefaultActive: true,
+    colorPrimary: raw.colors[0],
+    colorSecondary: raw.colors[1] || '#FFFFFF',
+    rosterIds: [],
+    budget,
+    boardStrictness: 5,
+    signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
+    stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+    isInPolishCup: false,
+  };
+});
 
-export const STATIC_EL_CLUBS: Club[] = RAW_EUROPA_LEAGUE_CLUBS.map(raw => ({
-  id: generateELClubId(raw.name),
-  name: raw.name,
-  shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
-  leagueId: 'L_EL',
-  colorsHex: raw.colors,
-  stadiumName: raw.stadium,
-  stadiumCapacity: raw.capacity,
-  reputation: raw.reputation,
-  country: raw.country,
-  isDefaultActive: true,
-  colorPrimary: raw.colors[0],
-  colorSecondary: raw.colors[1] || '#FFFFFF',
-  rosterIds: [],
-  budget: 0,
-  boardStrictness: 5,
-  signingBonusPool: 0,
-  stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
-  isInPolishCup: false,
-}));
+export const STATIC_EL_CLUBS: Club[] = RAW_EUROPA_LEAGUE_CLUBS.map(raw => {
+  const budget = FinanceService.calculateEuropeanInitialBudget(raw.tier, raw.reputation, raw.country, raw.name, raw.capacity);
+  return {
+    id: generateELClubId(raw.name),
+    name: raw.name,
+    shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
+    leagueId: 'L_EL',
+    colorsHex: raw.colors,
+    stadiumName: raw.stadium,
+    stadiumCapacity: raw.capacity,
+    reputation: raw.reputation,
+    country: raw.country,
+    isDefaultActive: true,
+    colorPrimary: raw.colors[0],
+    colorSecondary: raw.colors[1] || '#FFFFFF',
+    rosterIds: [],
+    budget,
+    boardStrictness: 5,
+    signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
+    stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+    isInPolishCup: false,
+  };
+});
 
-export const STATIC_CONF_CLUBS: Club[] = RAW_CONFERENCE_LEAGUE_CLUBS.map(raw => ({
-  id: generateCONFClubId(raw.name),
-  name: raw.name,
-  shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
-  leagueId: 'L_CONF',
-  colorsHex: raw.colors,
-  stadiumName: raw.stadium,
-  stadiumCapacity: raw.capacity,
-  reputation: raw.reputation,
-  country: raw.country,
-  isDefaultActive: true,
-  colorPrimary: raw.colors[0],
-  colorSecondary: raw.colors[1] || '#FFFFFF',
-  rosterIds: [],
-  budget: 0,
-  boardStrictness: 5,
-  signingBonusPool: 0,
-  stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
-  isInPolishCup: false,
-}));
+export const STATIC_CONF_CLUBS: Club[] = RAW_CONFERENCE_LEAGUE_CLUBS.map(raw => {
+  const budget = FinanceService.calculateEuropeanInitialBudget(raw.tier, raw.reputation, raw.country, raw.name, raw.capacity);
+  return {
+    id: generateCONFClubId(raw.name),
+    name: raw.name,
+    shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
+    leagueId: 'L_CONF',
+    colorsHex: raw.colors,
+    stadiumName: raw.stadium,
+    stadiumCapacity: raw.capacity,
+    reputation: raw.reputation,
+    country: raw.country,
+    isDefaultActive: true,
+    colorPrimary: raw.colors[0],
+    colorSecondary: raw.colors[1] || '#FFFFFF',
+    rosterIds: [],
+    budget,
+    boardStrictness: 5,
+    signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
+    stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+    isInPolishCup: false,
+  };
+});
 
 export const STATIC_SA_CLUBS: Club[] = CLUBS_SOUTH_AMERICA.map(raw => ({
   id: generateSAClubId(raw.name),

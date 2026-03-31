@@ -76,35 +76,40 @@ export const BackgroundMatchProcessor = {
 if (todayFixtures.length === 0) {
       const contractUpdate = AiContractService.processClubsContracts(clubs, playersMap, currentDate, userTeamId);
       const recruitmentUpdate = AiContractService.processAiRecruitment(contractUpdate.updatedClubs, contractUpdate.updatedPlayers, currentDate, userTeamId);
+      const resolvedUpdate = AiContractService.resolveAiFreeAgentNegotiations(recruitmentUpdate.updatedClubs, recruitmentUpdate.updatedPlayers, currentDate, userTeamId);
+      const financingUpdate = AiContractService.processAiSquadFinancing(resolvedUpdate.updatedClubs, resolvedUpdate.updatedPlayers, currentDate, userTeamId);
+      const transferSigningsUpdate = AiContractService.processAiTransferListSignings(financingUpdate.updatedClubs, financingUpdate.updatedPlayers, currentDate, userTeamId);
+      const interestedTargetingUpdate = AiContractService.processAiInterestedPlayerTargeting(transferSigningsUpdate.updatedClubs, transferSigningsUpdate.updatedPlayers, currentDate, userTeamId);
+      const transferResolvedUpdate = AiContractService.resolveAiTransferPending(interestedTargetingUpdate.updatedClubs, interestedTargetingUpdate.updatedPlayers, currentDate, userTeamId);
 
       // Miesięczna aktualizacja zainteresowań transferowych (tylko 1. dzień miesiąca).
       // AI-kluby przeglądają rynek i aktualizują swoje listy obserwowanych zawodników.
-      let scoutedPlayers = recruitmentUpdate.updatedPlayers;
+      let scoutedPlayers = transferResolvedUpdate.updatedPlayers;
       if (currentDate.getDate() === 1) {
         scoutedPlayers = AiScoutingService.updateTransferInterests(
-          recruitmentUpdate.updatedClubs,
-          recruitmentUpdate.updatedPlayers,
+          transferResolvedUpdate.updatedClubs,
+          transferResolvedUpdate.updatedPlayers,
           currentDate,
           userTeamId,
           sessionSeed
         );
         scoutedPlayers = AiContractService.processMonthlyPlayerReview(
-          recruitmentUpdate.updatedClubs,
+          transferResolvedUpdate.updatedClubs,
           scoutedPlayers,
           currentDate,
           userTeamId
         ).updatedPlayers;
       }
 
-      return { 
-        updatedFixtures: fixtures, 
-        updatedClubs: recruitmentUpdate.updatedClubs, 
-        updatedPlayers: scoutedPlayers, 
-        updatedLineups: newLineups, 
-        newOffers: recruitmentUpdate.newOffers, 
+      return {
+        updatedFixtures: fixtures,
+        updatedClubs: transferResolvedUpdate.updatedClubs,
+        updatedPlayers: scoutedPlayers,
+        updatedLineups: newLineups,
+        newOffers: recruitmentUpdate.newOffers,
         seasonNumber: seasonNumber,
         roundResults: null,
-        ratings: {} 
+        ratings: {}
       };
     }
 
@@ -260,11 +265,10 @@ if (todayFixtures.length === 0) {
           const newForm = [...(c.stats.form || []), resultChar].slice(-5) as ("W" | "R" | "P")[];
 
           const matchExpenses = isHome ? homeMatchExpenses : awayMatchExpenses;
-          const tier = parseInt(c.leagueId.split('_')[2] || '1');
           const { revenue: ticketRevenue, avgPrice: ticketAvgPrice } = isHome
-            ? FinanceService.calculateMatchTicketRevenue(fixture.attendance || 0, tier, c.reputation)
+            ? FinanceService.calculateMatchTicketRevenueForClub(fixture.attendance || 0, c)
             : { revenue: 0, avgPrice: 0 };
-          const additionalRevenues = isHome ? FinanceService.calculateMatchdayAdditionalRevenues(fixture.attendance || 0, tier, c.reputation) : null;
+          const additionalRevenues = isHome ? FinanceService.calculateMatchdayAdditionalRevenuesForClub(fixture.attendance || 0, c) : null;
           const additionalTotal = additionalRevenues ? (additionalRevenues.catering + additionalRevenues.merchandising + additionalRevenues.programs + additionalRevenues.parking) : 0;
           const netChange = ticketRevenue + additionalTotal - matchExpenses;
 
@@ -448,11 +452,16 @@ if (todayFixtures.length === 0) {
 
     const contractResult = AiContractService.processClubsContracts(currentClubs, currentPlayers, currentDate, userTeamId);
 
- const finalUpdate = AiContractService.processAiRecruitment(contractResult.updatedClubs, contractResult.updatedPlayers, currentDate, userTeamId);
+    const finalUpdate = AiContractService.processAiRecruitment(contractResult.updatedClubs, contractResult.updatedPlayers, currentDate, userTeamId);
+    const resolvedFinal = AiContractService.resolveAiFreeAgentNegotiations(finalUpdate.updatedClubs, finalUpdate.updatedPlayers, currentDate, userTeamId);
+    const financingFinal = AiContractService.processAiSquadFinancing(resolvedFinal.updatedClubs, resolvedFinal.updatedPlayers, currentDate, userTeamId);
+    const transferSigningsFinal = AiContractService.processAiTransferListSignings(financingFinal.updatedClubs, financingFinal.updatedPlayers, currentDate, userTeamId);
+    const interestedTargetingFinal = AiContractService.processAiInterestedPlayerTargeting(transferSigningsFinal.updatedClubs, transferSigningsFinal.updatedPlayers, currentDate, userTeamId);
+    const transferResolvedFinal = AiContractService.resolveAiTransferPending(interestedTargetingFinal.updatedClubs, interestedTargetingFinal.updatedPlayers, currentDate, userTeamId);
 
-       currentClubs = finalUpdate.updatedClubs;
-    currentPlayers = finalUpdate.updatedPlayers;
- const newOffers = finalUpdate.newOffers;
+    currentClubs = transferResolvedFinal.updatedClubs;
+    currentPlayers = transferResolvedFinal.updatedPlayers;
+    const newOffers = finalUpdate.newOffers;
 
     // Miesięczna aktualizacja zainteresowań transferowych — dotyczy też dni meczowych.
     if (currentDate.getDate() === 1) {

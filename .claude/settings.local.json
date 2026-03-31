@@ -9,7 +9,11 @@
       "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name *GameContext* -print)",
       "Bash(find 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' -path */node_modules -prune -o -type f -name types.ts -print)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(grep -r processCLMatchDay 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' --include=*.ts --include=*.tsx)"
+      "Bash(grep -r processCLMatchDay 'c:\\\\Users\\\\Jack Cave\\\\Documents\\\\FM google studio\\\\Last version' --include=*.ts --include=*.tsx)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -n \"PULPIT\\\\|← PULPIT\" /c/Users/Jack Cave/Documents/FM google studio/Last version/components/views/*.tsx)",
+      "Bash(grep -rli \"PULPIT\\\\|pulpit\\\\|wolni\\\\|transferowa\" 'c:/Users/Jack Cave/Documents/FM google studio/Last version' --include=*.tsx)",
+      "Bash(grep -rli \"FREE_AGENT\\\\|freeAgent\\\\|JobMarket\\\\|JOB_MARKET\" 'c:/Users/Jack Cave/Documents/FM google studio/Last version' --include=*.tsx)"
     ]
   }
 }

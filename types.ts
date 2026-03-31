@@ -78,6 +78,7 @@ export enum ViewState {
   PRE_MATCH_CL_FINAL = 'PRE_MATCH_CL_FINAL',
   POST_MATCH_CL_FINAL = 'POST_MATCH_CL_FINAL',
   EUROPEAN_CLUBS = 'EUROPEAN_CLUBS',
+  TRANSFER_NEWS = 'TRANSFER_NEWS',
   PRE_MATCH_EL_STUDIO = 'PRE_MATCH_EL_STUDIO',
   PRE_MATCH_EL_LIVE_STUDIO = 'PRE_MATCH_EL_LIVE_STUDIO',
   MATCH_LIVE_EL = 'MATCH_LIVE_EL',
@@ -480,6 +481,14 @@ export interface Player {
   assignedNationalTeamId?: string | null;
   /** Lista ID klubów aktualnie zainteresowanych pozyskaniem tego zawodnika (aktualizowana ~1x/miesiąc przez AI) */
   interestedClubs?: string[];
+  /** ID klubu AI który aktualnie negocjuje z tym wolnym agentem */
+  aiNegotiationClubId?: string;
+  /** Data ISO do której klub AI czeka na odpowiedź agenta (okno 4 dni dla gracza) */
+  aiNegotiationResponseDate?: string;
+  /** ID klubu AI który kupuje zawodnika z listy transferowej — tag TRSF, blokuje inne oferty */
+  transferPendingClubId?: string;
+  /** Data ISO kiedy zawodnik "melduje się" w nowym klubie (currentDate + 3 dni) */
+  transferReportDate?: string;
 }
 
 export interface TeamStats {

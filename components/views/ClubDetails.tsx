@@ -58,6 +58,14 @@ export const ClubDetails: React.FC = () => {
     }
   };
 
+  const formatContractEnd = (contractEndDate?: string | null) => {
+    if (!contractEndDate) return '-';
+
+    return new Date(contractEndDate)
+      .toLocaleDateString('pl-PL', { month: 'short', year: 'numeric' })
+      .replace('.', '');
+  };
+
   const renderPlayerRow = (player: Player, label: string) => {
     const healthInfo = PlayerPresentationService.getHealthDisplay(player);
     const condColor = PlayerPresentationService.getConditionColorClass(player.condition);
@@ -111,15 +119,12 @@ export const ClubDetails: React.FC = () => {
               )}
            </div>
         </td>
-         <td className="w-10 text-center relative z-10 font-mono text-[13px] text-slate-500">{player.stats.matchesPlayed}</td>
+        <td className="w-10 text-center relative z-10 font-mono text-[13px] text-slate-500">{player.stats.matchesPlayed}</td>
         <td className="w-10 text-center relative z-10 font-mono text-[13px] text-emerald-500 font-bold">{player.stats.goals}</td>
         <td className="w-10 text-center relative z-10 font-mono text-[13px] text-blue-400">{player.stats.assists}</td>
         <td className="w-10 text-center relative z-10 font-mono text-[13px] text-amber-500">{player.stats.yellowCards}</td>
         <td className="w-16 text-center relative z-10">
            <span className="text-xs font-black text-slate-400 font-mono italic">{player.overallRating}</span>
-        </td>
-        <td className="w-28 text-center relative z-10">
-           <span className={`text-[9px] font-black uppercase tracking-widest ${healthInfo.colorClass}`}>{healthInfo.text}</span>
         </td>
          <td className="w-16 text-center relative z-10">
            <span className="text-sm font-black text-blue-400 font-mono italic">
@@ -128,10 +133,18 @@ export const ClubDetails: React.FC = () => {
                 : '-'}
            </span>
         </td>
+        <td className="w-28 text-center relative z-10">
+           <span className={`text-[9px] font-black uppercase tracking-widest ${healthInfo.colorClass}`}>{healthInfo.text}</span>
+        </td>
         <td className="pr-6 w-24 relative z-10">
            <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden">
               <div className={`h-full ${condColor} transition-all duration-1000`} style={{ width: `${player.condition}%` }} />
            </div>
+        </td>
+        <td className="px-6 w-28 text-center relative z-10">
+           <span className="text-[10px] font-black text-slate-300 uppercase tracking-wide">
+             {formatContractEnd(player.contractEndDate)}
+           </span>
         </td>
       </tr>
     );
@@ -313,13 +326,14 @@ export const ClubDetails: React.FC = () => {
                           <th className="py-3 text-center">ZDROWIE</th>
                          
                           <th className="py-3 pr-6">FORMA</th>
+                          <th className="py-3 px-6 w-28 text-center">KONTRAKT DO</th>
                        </tr>
                     </thead>
                     <tbody>
                        {startingXI.map(p => renderPlayerRow(p, 'START'))}
-                       <tr className="bg-black/20"><td colSpan={6} className="py-2 px-6 text-[8px] font-black text-blue-500 uppercase tracking-[0.3em]">Ławka rezerwowych</td></tr>
+                       <tr className="bg-black/20"><td colSpan={13} className="py-2 px-6 text-[8px] font-black text-blue-500 uppercase tracking-[0.3em]">Ławka rezerwowych</td></tr>
                        {bench.map(p => renderPlayerRow(p, 'SUB'))}
-                       <tr className="bg-black/20"><td colSpan={6} className="py-2 px-6 text-[8px] font-black text-slate-600 uppercase tracking-[0.3em]">Pozostali zawodnicy</td></tr>
+                       <tr className="bg-black/20"><td colSpan={13} className="py-2 px-6 text-[8px] font-black text-slate-600 uppercase tracking-[0.3em]">Pozostali zawodnicy</td></tr>
                        {reserves.map(p => renderPlayerRow(p, 'RES'))}
                     </tbody>
                  </table>
@@ -335,6 +349,7 @@ export const ClubDetails: React.FC = () => {
       />
 
       <style>{`
+        .custom-scrollbar table thead th:nth-child(8) { display: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }

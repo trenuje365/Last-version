@@ -80,6 +80,116 @@ export const MATCHDAY_COST_PARAMS = {
   },
 } as const;
 
+// Latest public benchmarks used for European club start budgets:
+// - Deloitte Football Money League 2026 (2024/25 season revenue)
+// - FC Barcelona 2024/25 approved operating budget
+// - NBP table 059/A/NBP/2026 exchange rates
+const EUR_TO_PLN_NBP_2026 = 4.2710;
+
+const eurMillionsToPln = (amount: number): number =>
+  Math.round(amount * EUR_TO_PLN_NBP_2026 * 1_000_000);
+
+const EUROPEAN_TIER_BASE_REVENUE_EUR_M: Record<number, number> = {
+  1: 190,
+  2: 90,
+  3: 50,
+  4: 8,
+};
+
+const EUROPEAN_COUNTRY_FINANCE_FACTOR: Record<string, number> = {
+  ENG: 2.40,
+  ESP: 1.70,
+  GER: 1.80,
+  ITA: 1.45,
+  FRA: 1.15,
+  POR: 1.00,
+  NED: 0.95,
+  BEL: 0.75,
+  SCO: 0.70,
+  TUR: 0.80,
+  AUT: 0.55,
+  SUI: 0.60,
+  CZE: 0.45,
+  DEN: 0.45,
+  GRE: 0.45,
+  NOR: 0.35,
+  CRO: 0.30,
+  SRB: 0.30,
+  UKR: 0.30,
+  RUS: 0.45,
+  SWE: 0.30,
+  ISR: 0.28,
+  CYP: 0.25,
+  HUN: 0.20,
+  AZE: 0.20,
+  KAZ: 0.20,
+  SVK: 0.18,
+  SVN: 0.18,
+  BUL: 0.18,
+  BIH: 0.14,
+  MNE: 0.12,
+  MKD: 0.10,
+  ALB: 0.10,
+  ARM: 0.09,
+  GEO: 0.09,
+  BLR: 0.09,
+  KOS: 0.09,
+  MDA: 0.08,
+  FIN: 0.14,
+  LTU: 0.08,
+  LAT: 0.08,
+  EST: 0.08,
+  IRL: 0.10,
+  NIR: 0.08,
+  WAL: 0.06,
+  ISL: 0.08,
+  FRO: 0.06,
+  AND: 0.04,
+  GIB: 0.05,
+  LIE: 0.04,
+  SMR: 0.04,
+  MLT: 0.06,
+  LUX: 0.07,
+};
+
+const EUROPEAN_CLUB_REVENUE_OVERRIDE_PLN: Record<string, number> = {
+  'Real Madryt': eurMillionsToPln(1161.0),
+  'FC Barcelona': eurMillionsToPln(893.0),
+  'Bayern Monachium': eurMillionsToPln(860.6),
+  'Paris Saint-Germain': eurMillionsToPln(837.0),
+  'Liverpool FC': eurMillionsToPln(836.1),
+  'Manchester City': eurMillionsToPln(829.3),
+  'Arsenal Londyn': eurMillionsToPln(821.7),
+  'Manchester United': eurMillionsToPln(793.1),
+  'Tottenham Hotspur': eurMillionsToPln(672.6),
+  'Chelsea Londyn': eurMillionsToPln(584.1),
+  'Borussia Dortmund': eurMillionsToPln(531.3),
+  'Inter Mediolan': eurMillionsToPln(537.5),
+  'Atlético Madryt': eurMillionsToPln(454.5),
+  'Milan AC': eurMillionsToPln(410.4),
+  'Juventus Turyn': eurMillionsToPln(401.7),
+  'Newcastle United': eurMillionsToPln(398.4),
+  'Benfica Lizbona': eurMillionsToPln(283.4),
+};
+
+const EUROPEAN_COMMERCIAL_LEAGUES = new Set(['L_CL', 'L_EL', 'L_CONF']);
+
+const isEuropeanCommercialClub = (club: Pick<Club, 'leagueId'>): boolean =>
+  EUROPEAN_COMMERCIAL_LEAGUES.has(club.leagueId);
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, value));
+
+const getEuropeanCommercialIndex = (club: Pick<Club, 'leagueId' | 'country' | 'reputation' | 'stadiumCapacity'>): number => {
+  const countryFactorRaw = EUROPEAN_COUNTRY_FINANCE_FACTOR[club.country || ''] ?? 0.10;
+  const countryFactor = 0.40 + Math.sqrt(Math.max(0.01, countryFactorRaw));
+  const reputationFactor = 0.70 + Math.pow(Math.max(1, Math.min(20, club.reputation)) / 20, 1.2) * 0.90;
+  const stadiumFactor = 0.78 + Math.pow(Math.max(2_000, Math.min(100_000, club.stadiumCapacity)) / 100_000, 0.8) * 0.42;
+  const competitionFactor = club.leagueId === 'L_CL' ? 1.12 : club.leagueId === 'L_EL' ? 1.00 : 0.92;
+
+  return clamp((countryFactor * reputationFactor * stadiumFactor * competitionFactor) / 1.45, 0.45, 2.60);
+};
+
 export const FinanceService = {
   /**
    * Oblicza budżet początkowy na podstawie poziomu ligi i reputacji (1-10)
@@ -115,6 +225,39 @@ export const FinanceService = {
     const variability = 0.95 + (Math.random() * 0.1);
    
     return Math.floor(baseBudget * variability);
+  },
+
+  calculateEuropeanInitialBudget: (
+    tier: number,
+    reputation: number,
+    country: string,
+    clubName?: string,
+    stadiumCapacity: number = 15_000
+  ): number => {
+    if (clubName && EUROPEAN_CLUB_REVENUE_OVERRIDE_PLN[clubName]) {
+      return EUROPEAN_CLUB_REVENUE_OVERRIDE_PLN[clubName];
+    }
+
+    const baseRevenueEurM = EUROPEAN_TIER_BASE_REVENUE_EUR_M[tier] ?? EUROPEAN_TIER_BASE_REVENUE_EUR_M[4];
+    const countryFactor = EUROPEAN_COUNTRY_FINANCE_FACTOR[country] ?? 0.10;
+    const cappedReputation = Math.max(1, Math.min(20, reputation));
+    const cappedCapacity = Math.max(2_000, Math.min(100_000, stadiumCapacity));
+
+    // Europe has a much wider financial gap between elite and ordinary clubs than Poland.
+    const reputationFactor = 0.62 + (Math.pow(cappedReputation / 20, 1.35) * 0.98);
+    const stadiumFactor = 0.85 + (((cappedCapacity - 2_000) / 98_000) * 0.30);
+    const continentalPremium = tier === 1 ? 1.08 : tier === 2 ? 1.00 : tier === 3 ? 0.96 : 0.92;
+    const variability = 0.97 + (Math.random() * 0.06);
+
+    const estimatedRevenueEurM =
+      baseRevenueEurM *
+      countryFactor *
+      reputationFactor *
+      stadiumFactor *
+      continentalPremium *
+      variability;
+
+    return eurMillionsToPln(estimatedRevenueEurM);
   },
 
   getWagePool: (totalBudget: number): number => {
@@ -164,6 +307,40 @@ export const FinanceService = {
   // Koszty organizacji meczu — progresywna formuła wg. ligi, reputacji i frekwencji
   // attendance (opcjonalne) — liczba kibiców na trybunach (dla meczów u siebie)
   calculateMatchdayExpenses: (club: any, isHome: boolean, attendance?: number): number => {
+    if (isEuropeanCommercialClub(club)) {
+      const marketIndex = getEuropeanCommercialIndex(club);
+
+      if (isHome) {
+        const att = attendance ?? 0;
+        const fillRate = club.stadiumCapacity > 0 ? att / club.stadiumCapacity : 0;
+        const fillMultiplier =
+          fillRate >= 0.95 ? 1.30 :
+          fillRate >= 0.85 ? 1.18 :
+          fillRate >= 0.70 ? 1.08 : 1.00;
+
+        const rawCost =
+          (
+            180_000 +
+            club.stadiumCapacity * (5.5 + marketIndex * 1.8) +
+            att * (7.0 + marketIndex * 2.4) +
+            club.reputation * (16_000 + marketIndex * 8_000)
+          ) * fillMultiplier;
+
+        const minFloor = 180_000 + club.stadiumCapacity * (2.0 + marketIndex * 0.8);
+        const maxCap = 350_000 + club.stadiumCapacity * (14 + marketIndex * 4.0);
+
+        return Math.round(clamp(rawCost, minFloor, maxCap));
+      }
+
+      const awayRaw =
+        120_000 +
+        club.stadiumCapacity * (1.0 + marketIndex * 0.35) +
+        club.reputation * (7_000 + marketIndex * 3_000);
+
+      const awayCap = 220_000 + club.stadiumCapacity * (3.5 + marketIndex);
+      return Math.round(Math.min(awayRaw, awayCap));
+    }
+
     const tier = Math.min(4, Math.max(1, parseInt((club.leagueId as string).split('_')[2] || '4')));
     const p = MATCHDAY_COST_PARAMS;
 
@@ -636,11 +813,33 @@ export const FinanceService = {
     return Math.floor(basePrice);
   },
 
+  calculateTicketPriceForClub: (club: Club): number => {
+    if (!isEuropeanCommercialClub(club)) {
+      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      return FinanceService.calculateTicketPrice(tier, club.reputation);
+    }
+
+    const marketIndex = getEuropeanCommercialIndex(club);
+    const maxPrice = 18 + marketIndex * 110 + (club.reputation / 20) * 85;
+    return Math.round(clamp(maxPrice, 45, 420));
+  },
+
   // Przychód z biletów jednorazowych
   calculateMatchTicketRevenue: (attendance: number, tier: number, reputation: number): { revenue: number; avgPrice: number } => {
     const maxPrice = FinanceService.calculateTicketPrice(tier, reputation);
     const minPrice = 20;
     const avgPrice = Math.floor(minPrice + Math.random() * (maxPrice - minPrice));
+    return { revenue: Math.floor(attendance * avgPrice), avgPrice };
+  },
+
+  calculateMatchTicketRevenueForClub: (attendance: number, club: Club): { revenue: number; avgPrice: number } => {
+    if (!isEuropeanCommercialClub(club)) {
+      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      return FinanceService.calculateMatchTicketRevenue(attendance, tier, club.reputation);
+    }
+
+    const maxPrice = FinanceService.calculateTicketPriceForClub(club);
+    const avgPrice = Math.round(maxPrice * (0.58 + Math.random() * 0.20));
     return { revenue: Math.floor(attendance * avgPrice), avgPrice };
   },
 
@@ -660,6 +859,29 @@ export const FinanceService = {
     const seasonTicketsSold = Math.floor(stadiumCapacity * percentageOfCapacity);
     
     return Math.floor(seasonTicketsSold * finalSeasonPrice);
+  },
+
+  calculateSeasonTicketPackageForClub: (club: Club): { revenue: number; ticketsSold: number; seasonTicketPrice: number } => {
+    if (!isEuropeanCommercialClub(club)) {
+      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      const revenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
+      const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
+      const ticketPrice = FinanceService.calculateTicketPrice(tier, club.reputation);
+      const seasonTicketPrice = Math.max(200, Math.min(1300, ticketPrice * 19));
+      return { revenue, ticketsSold, seasonTicketPrice };
+    }
+
+    const marketIndex = getEuropeanCommercialIndex(club);
+    const seasonTicketShare = clamp(0.14 + marketIndex * 0.10 + (club.reputation / 20) * 0.18, 0.16, 0.65);
+    const ticketsSold = Math.floor(club.stadiumCapacity * seasonTicketShare);
+    const singleMatchPrice = FinanceService.calculateTicketPriceForClub(club);
+    const seasonDiscount = clamp(0.68 + marketIndex * 0.05, 0.70, 0.82);
+    const seasonTicketPrice = Math.round(clamp(singleMatchPrice * 19 * seasonDiscount, 900, 8_500));
+    return {
+      revenue: ticketsSold * seasonTicketPrice,
+      ticketsSold,
+      seasonTicketPrice
+    };
   },
 
   // Dodatkowe przychody dnia meczowego per mecz domowy:
@@ -684,6 +906,29 @@ export const FinanceService = {
     return { catering, merchandising, programs, parking };
   },
 
+  calculateMatchdayAdditionalRevenuesForClub: (attendance: number, club: Club): {
+    catering: number;
+    merchandising: number;
+    programs: number;
+    parking: number;
+  } => {
+    if (!isEuropeanCommercialClub(club)) {
+      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      return FinanceService.calculateMatchdayAdditionalRevenues(attendance, tier, club.reputation);
+    }
+
+    const marketIndex = getEuropeanCommercialIndex(club);
+    const repMultiplier = 0.90 + (club.reputation / 20) * 0.45;
+    const rand = () => 0.82 + Math.random() * 0.36;
+
+    const catering = Math.floor(attendance * (2.5 + marketIndex * 2.6) * repMultiplier * rand());
+    const merchandising = Math.floor(attendance * (0.9 + marketIndex * 1.4) * repMultiplier * rand());
+    const programs = Math.floor(attendance * (0.3 + marketIndex * 0.45) * repMultiplier * rand());
+    const parking = Math.floor(attendance * (0.4 + marketIndex * 0.65) * repMultiplier * rand());
+
+    return { catering, merchandising, programs, parking };
+  },
+
   // Roczny przychód z wynajmu stref VIP i lóż (Skybox).
   // Warunki: tier === 1 (Ekstraklasa) ORAZ stadiumCapacity > 15 000
   calculateVIPBoxRevenue: (stadiumCapacity: number, reputation: number): number => {
@@ -691,6 +936,24 @@ export const FinanceService = {
     const raw = p.base + (reputation / 10) * p.repScale + (stadiumCapacity / 40_000) * p.capacityScale;
     const jitter = 0.85 + Math.random() * 0.30;
     return Math.min(p.maxRevenue, Math.max(p.minRevenue, Math.floor(raw * jitter)));
+  },
+
+  calculateVIPBoxRevenueForClub: (club: Club): number => {
+    if (!isEuropeanCommercialClub(club)) {
+      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      if (tier !== 1 || club.stadiumCapacity <= 15_000) return 0;
+      return FinanceService.calculateVIPBoxRevenue(club.stadiumCapacity, club.reputation);
+    }
+
+    if (club.stadiumCapacity < 4_000) return 0;
+
+    const marketIndex = getEuropeanCommercialIndex(club);
+    const suitesSold = Math.max(4, Math.round(club.stadiumCapacity / 2_200));
+    const avgSuitePrice = 25_000 + marketIndex * 120_000 + (club.reputation / 20) * 100_000;
+    const occupancyFactor = club.leagueId === 'L_CL' ? 1.00 : club.leagueId === 'L_EL' ? 0.92 : 0.86;
+    const jitter = 0.90 + Math.random() * 0.20;
+
+    return Math.round(suitesSold * avgSuitePrice * occupancyFactor * jitter);
   },
 
   // Bonusy za pozycję końcową w lidze (Ekstraklasa)

@@ -87,18 +87,21 @@ const boardConfidence = useMemo(() => {
 
   const isTransferWindowOpen = useMemo(() => {
     if (!myClub) return false;
-    const round = myClub.stats.played + 1;
     const month = currentDate.getMonth();
     const day = currentDate.getDate();
 
-    // 1. Okno Letnie: do 9 kolejki włącznie (played < 9)
-    if (round <= 9) return true;
+    // Letnie: 1 lipca (m6, d1) — 8 września (m8, d8) włącznie
+    const isSummer =
+      (month === 6 && day >= 1) ||
+      month === 7 ||
+      (month === 8 && day <= 8);
 
-    // 2. Okno Zimowe: od przerwy (grudzień 8+) do 24 kolejki włącznie
-    const isWinterPeriod = (month === 11 && day >= 8) || (month === 0);
-    if (isWinterPeriod && round <= 24) return true;
+    // Zimowe: 12 stycznia (m0, d12) — 13 lutego (m1, d13) włącznie
+    const isWinter =
+      (month === 0 && day >= 12) ||
+      (month === 1 && day <= 13);
 
-    return false;
+    return isSummer || isWinter;
   }, [myClub, currentDate]);
 
   useEffect(() => {

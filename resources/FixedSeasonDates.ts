@@ -20,7 +20,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
  
   // --- LIPIEC (Przygotowania i Start) ------------------------------------------------------------------------------------------------------------
   { day: 1,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "Przygotowania do nowego sezonu", priority: 100 },
- 
+ // 1  lipca - otwarcie letniego okna transferowego
  // Losowanie Ligi Europy - 1 runda kwalifikacyjna
   { day: 2,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R1Q_DRAW, label: "LOSOWANIE LE: RUNDA 1 PREELIMINACYJNA", priority: 88 },
 
@@ -42,7 +42,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 
-  { day: 9,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Otwarcie letniego okna transferowego", priority: 60 },
+  { day: 1,  month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Otwarcie letniego okna transferowego", priority: 60 },
 
   //Liga Europy - 1 runda kwalifikacyjna rewanż
   { day: 10, month: 6, type: SlotType.MIDWEEK, comp: CompetitionType.EL_R1Q_RETURN, label: "LE: R1Q - Rewanż", priority: 82 },
@@ -155,7 +155,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 4,  month: 8, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "REPREZENTACJA", priority: 30 },
   { day: 7,  month: 8, type: SlotType.WEEKEND, comp: CompetitionType.BREAK, label: "REPREZENTACJA", priority: 30 },
 
-
+// 8 WRZESNIA - zamkniecie okna transferowego letniego
 
   { day: 10, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 8", priority: 10 },
 
@@ -178,13 +178,15 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
       { day: 22, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 9", priority: 10 },
 
 { day: 26,  month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 10", priority: 10 },
+
+
   { day: 30, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 11", priority: 10 },
 
 
 
 
-  // --- PAŹDZIERNIK -------------------------------------------------------------------------------------------------------------------
- { day: 1, month: 9, type: SlotType.WEEKEND, comp: CompetitionType.TRANSFER_WINDOW, label: "Zamknięcie okna transferowego", priority: 60 },
+  // --- WRZESIEŃ (Zamknięcie letniego okna) --------------------------------------------------------------------------------------------
+ { day: 8, month: 8, type: SlotType.WEEKEND, comp: CompetitionType.TRANSFER_WINDOW, label: "Zamknięcie letniego okna transferowego", priority: 60 },
   { day: 3, month: 9, type: SlotType.WEEKEND, comp: CompetitionType.POLISH_CUP, label: "Puchar Polski: 1/16", priority: 50 },
  
   { day: 5, month: 9, type: SlotType.MIDWEEK, comp: CompetitionType.POLISH_CUP, label: "LOSOWANIE PUCHARU POLSKI 1/8", priority: 40 },
@@ -312,6 +314,10 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 7, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
   { day: 9 , month: 0, type: SlotType.WEEKEND, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
    { day: 11 , month: 0, type: SlotType.WEEKEND, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
+
+
+//12 styczen - otwarcie zimowego okna transferowego
+
     { day: 14 , month: 0, type: SlotType.WEEKEND, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
 
   // --- PUCHARY EUROPEJSKIE --- 19 styczen LIGA MISTRZÓW----1/8 finału
@@ -328,7 +334,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
   { day: 23, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.FRIENDLY, label: "SPARING", priority: 20 },
 
-{ day: 24,  month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Otwarcie zimowego okna transferowego", priority: 60 },
+{ day: 12,  month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.TRANSFER_WINDOW, label: "Otwarcie zimowego okna transferowego", priority: 60 },
 
  // --- PUCHARY EUROPEJSKIE --- 25 styczen LIGA MISTRZÓW----1.8 finału REWANZ
  { day: 25, month: 0, type: SlotType.MIDWEEK, comp: CompetitionType.CL_R16_RETURN, label: "LM: 1/8 Finału - Rewanż", priority: 85 },
@@ -367,6 +373,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 7, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 20", priority: 10 },
 { day: 12, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 21", priority: 10 },
 
+//13 luty - zamkniecie zimowego okna transferowego
 
   // --- PUCHARY EUROPEJSKIE --- 16 LUTY LIGA MISTRZÓW----cwierfinaly 1/4
   { day: 16, month: 1, type: SlotType.MIDWEEK, comp: CompetitionType.CL_QF, label: "LM: 1/4 Finału - 1. mecz", priority: 85 },
@@ -386,7 +393,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 22, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 22", priority: 10 },
 
 
-{ day: 24, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.TRANSFER_WINDOW, label: "Zamknięcie okna transferowego", priority: 60 },
+{ day: 13, month: 1, type: SlotType.WEEKEND, comp: CompetitionType.TRANSFER_WINDOW, label: "Zamknięcie zimowego okna transferowego", priority: 60 },
 
 
 

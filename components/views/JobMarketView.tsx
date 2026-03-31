@@ -154,12 +154,20 @@ export const JobMarketView: React.FC = () => {
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em] mt-1">Baza danych PZPN • Rynek Zawodników</p>
             </div>
           </div>
-          <button 
-            onClick={() => navigateTo(ViewState.DASHBOARD)} 
-            className="px-8 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/[0.15] transition-all shadow-xl active:scale-95 group"
-          >
-            <span className="group-hover:text-emerald-400 transition-colors">&larr; Pulpit</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigateTo(ViewState.TRANSFER_NEWS)}
+              className="px-8 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/[0.15] transition-all shadow-xl active:scale-95 group"
+            >
+              <span className="group-hover:text-yellow-400 transition-colors">📡 Aktywność rynku</span>
+            </button>
+            <button
+              onClick={() => navigateTo(ViewState.DASHBOARD)}
+              className="px-8 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/[0.15] transition-all shadow-xl active:scale-95 group"
+            >
+              <span className="group-hover:text-emerald-400 transition-colors">&larr; Pulpit</span>
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 flex gap-4 min-h-0">

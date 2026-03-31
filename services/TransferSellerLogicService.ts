@@ -84,6 +84,14 @@ export const TransferSellerLogicService = {
     );
     const sellerNeedsCash = sellerClub.budget < Math.max(askingPrice * 0.7, 4_000_000);
 
+    if (timing === TransferTiming.CONTRACT_END && player.isNegotiationPermanentBlocked && daysLeft <= 365) {
+      return {
+        allowTalks: true,
+        askingPrice: 0,
+        reason: `Zawodnik odmowil przedluzenia umowy. Klub nie zada odstepnego za transfer po wygasnieciu kontraktu.`
+      };
+    }
+
     const blocksShortDelaySale =
       timing === TransferTiming.IMMEDIATE || timing === TransferTiming.IN_SIX_MONTHS;
 

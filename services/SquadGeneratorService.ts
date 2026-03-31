@@ -1,7 +1,7 @@
 import { Club, Player, PlayerPosition, Region, PlayerStats, HealthStatus } from '../types';
 import { NameGeneratorService } from './NameGeneratorService';
 import { PlayerAttributesGenerator } from './PlayerAttributesGenerator';
-import { STATIC_CLUBS } from '../constants';
+import { STATIC_CLUBS, STATIC_CL_CLUBS, STATIC_EL_CLUBS, STATIC_CONF_CLUBS } from '../constants';
 import { FinanceService } from './FinanceService';
 
 // STAGE 2 CONSTANTS
@@ -226,8 +226,9 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
        return finalSquad;
   },
 
-    generateEuropeanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {
+  generateEuropeanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {
     const usedNames = new Set<string>();
+    const europeanClubInfo = [...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS].find(c => c.id === clubId);
 
     // Mapa kraju → lokalna pula regionów (losowanie nazw lokalnych zawodników)
     const countryToLocalPool: Partial<Record<string, Region[]>> = {
@@ -370,7 +371,23 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       }
     }
 
-    return squad;
+    const clubBudget = europeanClubInfo?.budget ?? FinanceService.calculateEuropeanInitialBudget(
+      tier,
+      reputation,
+      country,
+      europeanClubInfo?.name,
+      europeanClubInfo?.stadiumCapacity
+    );
+    const wagePool = FinanceService.getWagePool(clubBudget);
+    const totalSquadWeight = squad.reduce((sum, p) =>
+      sum + FinanceService.calculateSalaryWeight(p.overallRating, p.age), 0
+    );
+
+    return squad.map(p => ({
+      ...p,
+      annualSalary: Math.floor((FinanceService.calculateSalaryWeight(p.overallRating, p.age) / totalSquadWeight) * wagePool),
+      marketValue: FinanceService.calculateMarketValue(p, reputation, tier)
+    })) as Player[];
   },
 
   generateSouthAmericanSquad: (clubId: string, tier: number, reputation: number, country: string): Player[] => {

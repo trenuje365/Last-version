@@ -1997,9 +1997,9 @@ setMessages([welcomeMail, fanMail]);
       const seasonYear = dateToProcess.getFullYear();
       const seasonLabel = `${seasonYear}/${String(seasonYear + 1).slice(2)}`;
       postReviewClubs = postReviewClubs.map(club => {
-        const tier = parseInt(club.leagueId.split('_')[2] || '1');
-        const seasonTicketRevenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
-        const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
+        const seasonTicketPackage = FinanceService.calculateSeasonTicketPackageForClub(club);
+        const seasonTicketRevenue = seasonTicketPackage.revenue;
+        const ticketsSold = seasonTicketPackage.ticketsSold;
         const newFinanceLog = {
           id: Math.random().toString(36).substr(2, 9),
           date: dateToProcess.toISOString().split('T')[0],
@@ -2018,10 +2018,8 @@ setMessages([welcomeMail, fanMail]);
       if (userTeamId) {
         const userClub = postReviewClubs.find(c => c.id === userTeamId);
         if (userClub) {
-          const tier = parseInt(userClub.leagueId.split('_')[2] || '1');
           const ticketMail = MailService.generateSeasonTicketMail(
-            { name: userClub.name, stadiumName: userClub.stadiumName, stadiumCapacity: userClub.stadiumCapacity, reputation: userClub.reputation },
-            tier,
+            { name: userClub.name, stadiumName: userClub.stadiumName, stadiumCapacity: userClub.stadiumCapacity, reputation: userClub.reputation, leagueId: userClub.leagueId, country: userClub.country },
             seasonLabel,
             dateToProcess
           );
@@ -2034,9 +2032,8 @@ setMessages([welcomeMail, fanMail]);
     // Warunek: tylko Ekstraklasa (tier 1) i pojemność stadionu > 15 000
     if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 20) {
       postReviewClubs = postReviewClubs.map(club => {
-        const tier = parseInt(club.leagueId.split('_')[2] || '1');
-        if (tier !== 1 || club.stadiumCapacity <= 15_000) return club;
-        const vipRevenue = FinanceService.calculateVIPBoxRevenue(club.stadiumCapacity, club.reputation);
+        const vipRevenue = FinanceService.calculateVIPBoxRevenueForClub(club);
+        if (vipRevenue <= 0) return club;
         const newFinanceLog = {
           id: Math.random().toString(36).substr(2, 9),
           date: dateToProcess.toISOString().split('T')[0],
@@ -2054,7 +2051,7 @@ setMessages([welcomeMail, fanMail]);
     }
 
     if (dateToProcess.getMonth() === 6 && dateToProcess.getDate() === 2) {
-      const review = AiContractService.performSeasonSquadReview(postReviewClubs, postReviewPlayers, userTeamId);
+      const review = AiContractService.performSeasonSquadReview(postReviewClubs, postReviewPlayers, dateToProcess, userTeamId);
       postReviewClubs = review.updatedClubs;
       postReviewPlayers = review.updatedPlayers;
       postReviewPlayers = AiScoutingService.updateTransferInterests(postReviewClubs, postReviewPlayers, dateToProcess, userTeamId, sessionSeed);
@@ -4045,6 +4042,8 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
 
     // 2. Przygotuj dane piłkarza (nowy klub, pensja, data)
     const newEndDate = new Date(currentDate.getFullYear() + years, 5, 30).toISOString();
+    const transferLockoutDate = new Date(currentDate);
+    transferLockoutDate.setMonth(transferLockoutDate.getMonth() + 3);
    // AKTUALIZACJA HISTORII - TUTAJ WSTAW TEN KOD
     const updatedHistory = [...(playerToSign.history || [])];
     const currentYear = currentDate.getFullYear();
@@ -4075,6 +4074,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       clubId: userTeamId, 
       annualSalary: salary, 
       contractEndDate: newEndDate,
+      transferLockoutUntil: transferLockoutDate.toISOString(),
       marketValue: FinanceService.calculateMarketValue(playerToSign, 5, 1),
       history: updatedHistory // Podpinamy zaktualizowaną historię
     };
@@ -4090,7 +4090,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
     setMessages(prev => prev.filter(m => m.id !== mailId));
 
     alert(`Transfer sfinalizowany! ${playerToSign.firstName} ${playerToSign.lastName} dołączył do kadry.`);
-  }, [messages, players, userTeamId, currentDate]);
+  }, [messages, players, userTeamId, currentDate, clubs]);
 
   useEffect(() => {
     const duePreContracts = transferOffers.filter(offer =>
