@@ -291,7 +291,7 @@ export const TransferNewsView: React.FC = () => {
           <div className="text-3xl">📡</div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
-              AKTYWNOSC <span className="text-yellow-400">RYNKU</span>
+              AKTYWNOŚĆ <span className="text-yellow-400">RYNKOWA</span>
             </h1>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em] mt-1">
               Transfery w tle • skauting • sezon biezacy
@@ -342,7 +342,7 @@ export const TransferNewsView: React.FC = () => {
                 : 'bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/[0.07]'
             }`}
           >
-            Zwolnieni ({releasedPlayers.length})
+            Zwolnienia ({releasedPlayers.length})
           </button>
           <button
             onClick={() => setActiveTab('activity')}
@@ -352,7 +352,7 @@ export const TransferNewsView: React.FC = () => {
                 : 'bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/[0.07]'
             }`}
           >
-            📡 Aktywnosc ({activityCount})
+            📡 NEGOCJACJE ({activityCount})
           </button>
           <button
             onClick={() => setActiveTab('completed')}

@@ -159,7 +159,7 @@ export const JobMarketView: React.FC = () => {
               onClick={() => navigateTo(ViewState.TRANSFER_NEWS)}
               className="px-8 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/[0.15] transition-all shadow-xl active:scale-95 group"
             >
-              <span className="group-hover:text-yellow-400 transition-colors">📡 Aktywność rynku</span>
+              <span className="group-hover:text-yellow-400 transition-colors">📡 Aktywność rynkowa</span>
             </button>
             <button
               onClick={() => navigateTo(ViewState.DASHBOARD)}
