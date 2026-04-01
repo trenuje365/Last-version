@@ -2452,10 +2452,26 @@ const finalResult: SimulationOutput = {
       const newIncomingMails: MailMessage[] = [];
       const spontaneousInterestAdds = new Map<string, Set<string>>();
       const newOffersToAdd: IncomingTransferOffer[] = [];
+      const queueIncomingMail = (mail: MailMessage) => {
+        if (mail.metadata?.type !== 'INCOMING_TRANSFER_OFFER') {
+          newIncomingMails.push(mail);
+          return;
+        }
 
-      setIncomingOffers(prev => {
+        const duplicateExists = [...messages, ...newIncomingMails].some(existingMail =>
+          existingMail.metadata?.type === 'INCOMING_TRANSFER_OFFER' &&
+          existingMail.metadata.offerId === mail.metadata.offerId &&
+          existingMail.subject === mail.subject
+        );
+
+        if (!duplicateExists) {
+          newIncomingMails.push(mail);
+        }
+      };
+
+      
         // 1. Przetwarzaj timery istniejących ofert
-        const { updatedOffers, actions } = IncomingTransferService.processDailyTimers(prev, dateStr);
+        const { updatedOffers, actions } = IncomingTransferService.processDailyTimers(incomingOffers, dateStr);
         let processed = [...updatedOffers];
 
         actions.forEach(action => {
@@ -2470,7 +2486,7 @@ const finalResult: SimulationOutput = {
           if (!player || !buyerClub || !userClub) return;
 
           if (action.type === 'SEND_REMINDER') {
-            newIncomingMails.push(MailService.generateIncomingOfferReminderMail(
+            queueIncomingMail(MailService.generateIncomingOfferReminderMail(
               player, buyerClub.name, off.fee, userClub.name, nextDay, off.id
             ));
           } else if (action.type === 'EXPIRE') {
@@ -2491,8 +2507,8 @@ const finalResult: SimulationOutput = {
                 playerNegotiationStartedAt: dateStr,
                 playerNegotiationResolvesAt: resolveDate,
               };
-              newIncomingMails.push(MailService.generateAIAcceptedCounterMail(
-                player, buyerClub.name, processed[idx].fee, userClub.name, nextDay
+              queueIncomingMail(MailService.generateAIAcceptedCounterMail(
+                player, buyerClub.name, processed[idx].fee, userClub.name, nextDay, off.id
               ));
             } else if (result.verdict === 'COUNTER' && result.newFee) {
               processed[idx] = {
@@ -2501,7 +2517,7 @@ const finalResult: SimulationOutput = {
                 aiCounterFee: result.newFee,
                 negotiationRound: processed[idx].negotiationRound + 1,
               };
-              newIncomingMails.push(MailService.generateAICounteredMail(
+              queueIncomingMail(MailService.generateAICounteredMail(
                 player, buyerClub.name, result.newFee, processed[idx].negotiationRound, userClub.name, nextDay, off.id
               ));
             } else {
@@ -2517,7 +2533,7 @@ const finalResult: SimulationOutput = {
             processed[idx] = { ...processed[idx], playerNegotiationResult: result };
             if (result === 'accepted') {
               processed[idx].status = IncomingOfferStatus.AWAITING_CONFIRMATION;
-              newIncomingMails.push(MailService.generatePlayerAcceptedConfirmMail(
+              queueIncomingMail(MailService.generatePlayerAcceptedConfirmMail(
                 player, buyerClub.name, off.fee,
                 IncomingTransferService.getTimingLabel(off.timing),
                 userClub.name, nextDay, off.id
@@ -2571,7 +2587,7 @@ const finalResult: SimulationOutput = {
               existingClubs.add(aiClub.id);
               spontaneousInterestAdds.set(p.id, existingClubs);
             }
-            newIncomingMails.push(MailService.generateIncomingOfferMail(
+            queueIncomingMail(MailService.generateIncomingOfferMail(
               p, aiClub.name, buyerLeague?.name ?? aiClub.leagueId,
               fee, IncomingTransferService.getTimingLabel(timing),
               userClub.name, boardPressure, nextDay, newOffer.id
@@ -2579,8 +2595,7 @@ const finalResult: SimulationOutput = {
           });
         });
 
-        return [...newOffersToAdd, ...processed].slice(0, 200);
-      });
+      setIncomingOffers([...newOffersToAdd, ...processed].slice(0, 200));
 
       if (newIncomingMails.length > 0) {
         setMessages(prev => [...newIncomingMails, ...prev]);
@@ -2623,7 +2638,7 @@ const finalResult: SimulationOutput = {
 
     setCurrentDate(nextDay);
     setLastRecoveryDate(new Date(dateToProcess));
-  }, [currentDate, userTeamId, allFixtures, applySimulationResult, startNextSeason, viewState, seasonTemplate, cupParticipants, clubs, processedDrawIds, navigateTo, globalFixtures, targetJumpTime, leagues]);
+  }, [currentDate, userTeamId, allFixtures, applySimulationResult, startNextSeason, viewState, seasonTemplate, cupParticipants, clubs, processedDrawIds, navigateTo, globalFixtures, targetJumpTime, leagues, incomingOffers, messages]);
 
 
    const confirmCLGroupDraw = () => {

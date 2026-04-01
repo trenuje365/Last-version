@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { IncomingOfferStatus, IncomingTransferOffer, Player, ViewState } from '../../types';
-import negocjacjeBg from '../../graphic/themes/negocjacje.png';
+import negocjacjeBg from '../../Graphic/themes/negocjacje.png';
 
 const LEAGUES = [
   { id: 'ALL', label: 'WSZYSTKIE' },

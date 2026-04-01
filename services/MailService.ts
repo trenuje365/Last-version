@@ -552,6 +552,41 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
     currentDate: Date,
     offerId: string
   ): MailMessage {
+    const playerName = `${player.firstName} ${player.lastName}`;
+    const responseDeadline = new Date(currentDate);
+    responseDeadline.setDate(responseDeadline.getDate() + 5);
+    const deadlineLabel = responseDeadline.toLocaleDateString('pl-PL');
+
+    return {
+      id: `incoming_offer_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: 'Dzial Transferowy',
+      role: 'Kierownik ds. Transferow',
+      subject: `Pilne: Oficjalna oferta transferowa - ${playerName}`,
+      body: [
+        'Szanowny Trenerze,',
+        '',
+        `Informuje, ze do klubu wplynela oficjalna oferta transferowa za ${playerName} zlozona przez ${buyerClubName}.`,
+        '',
+        'Zarzad oraz pion sportowy prosza o Trenera opinie dotyczaca tej propozycji. Prosimy o przeanalizowanie oferty pod katem sportowym oraz roli zawodnika w kadrze w nadchodzacym czasie.',
+        '',
+        'Kluczowe informacje:',
+        '',
+        `Zainteresowany klub: ${buyerClubName}`,
+        '',
+        `Termin rozpatrzenia: Mamy 5 dni na udzielenie oficjalnej odpowiedzi (do dnia ${deadlineLabel}).`,
+        '',
+        'Bede wdzieczny za informacje zwrotna lub propozycje krotkiego spotkania, abysmy mogli wspolnie wypracowac ostateczne stanowisko klubu w tej sprawie.',
+        '',
+        'Z powazaniem,',
+        '',
+        `Dzial Transferowy ${sellerClubName}`,
+      ].join('\n'),
+      date: currentDate,
+      isRead: false,
+      type: MailType.SYSTEM,
+      priority: boardPressure ? 2 : 1,
+      metadata: { type: 'INCOMING_TRANSFER_OFFER', offerId },
+    };
     const boardNote = boardPressure
       ? 'UWAGA: Zarząd rozważa sprzedaż ze względów finansowych lub atrakcyjności oferty. Odrzucenie może negatywnie wpłynąć na zaufanie zarządu.\n\n'
       : '';
@@ -635,7 +670,8 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
     buyerClubName: string,
     fee: number,
     sellerClubName: string,
-    currentDate: Date
+    currentDate: Date,
+    offerId: string
   ): MailMessage {
     const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_ai_accepted_counter')!;
     const body = template.body
@@ -655,6 +691,7 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
       isRead: false,
       type: template.type,
       priority: 2,
+      metadata: { type: 'INCOMING_TRANSFER_OFFER', offerId },
     };
   },
 
