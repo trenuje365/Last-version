@@ -35,6 +35,7 @@ export const REGION_PROFILE: Partial<Record<Region, { baseOffset: number; starCh
   [Region.ARGENTINA]: { baseOffset:   0, starChance: 0.10 },
   // Wysoki
   [Region.IBERIA]:    { baseOffset:  -2, starChance: 0.06 },
+  [Region.MEXICO]:    { baseOffset:  -2, starChance: 0.06 },
   [Region.BENELUX]:   { baseOffset:   0, starChance: 0.10 },
   // Dobry
   [Region.SCANDINAVIA]: { baseOffset: -4, starChance: 0.04 },

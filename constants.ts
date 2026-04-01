@@ -30,6 +30,7 @@ export const REGION_NATIONALITY_LABEL: Record<Region, string> = {
   [Region.CZ_SK]:       'Czechy/Słowacja',
   [Region.SSA]:         'Afryka Subsaharyjska',
   [Region.IBERIA]:      'Półwysep Iberyjski',
+  [Region.MEXICO]:      'Meksyk',
   [Region.SCANDINAVIA]: 'Skandynawia',
   [Region.EX_USSR]:     'Europa Wschodnia',
   [Region.JAPAN]:       'Japonia',

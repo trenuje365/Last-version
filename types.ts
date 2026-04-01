@@ -162,6 +162,7 @@ export enum Region {
   CZ_SK = 'CZ_SK',
   SSA = 'SSA',
   IBERIA = 'IBERIA',
+  MEXICO = 'MEXICO',
   SCANDINAVIA = 'SCANDINAVIA',
   EX_USSR = 'EX_USSR',
   SPAIN = 'SPAIN',

@@ -4,7 +4,7 @@ export const CLUBS_ASIAN = [
   { 
     name: "Al-Hilal", 
     country: "KSA", 
-    tier: 1, 
+    tier: 2, 
     colors: ["#0033A0", "#FFFFFF"], 
     stadium: "Kingdom Arena", 
     capacity: 26000, 
@@ -13,7 +13,7 @@ export const CLUBS_ASIAN = [
   { 
     name: "Al-Nassr", 
     country: "KSA", 
-    tier: 1, 
+    tier: 2, 
     colors: ["#1E3A8A", "#FACC15"], 
     stadium: "Al-Awwal Park", 
     capacity: 25000, 
@@ -22,7 +22,7 @@ export const CLUBS_ASIAN = [
   { 
     name: "Al-Ahli", 
     country: "KSA", 
-    tier: 1, 
+    tier: 2, 
     colors: ["#1E3A8A", "#FFFFFF"], 
     stadium: "King Abdullah Sports City", 
     capacity: 62345, 
@@ -31,7 +31,7 @@ export const CLUBS_ASIAN = [
   { 
     name: "Al-Ittihad", 
     country: "KSA", 
-    tier: 1, 
+    tier: 2, 
     colors: ["#FFD700", "#000000"], 
     stadium: "King Abdullah Sports City", 
     capacity: 62345, 
@@ -42,7 +42,7 @@ export const CLUBS_ASIAN = [
   { 
     name: "Al Ain", 
     country: "UAE", 
-    tier: 1, 
+    tier: 2, 
     colors: ["#003087", "#F4C300"], 
     stadium: "Hazza bin Zayed Stadium", 
     capacity: 25100, 

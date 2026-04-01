@@ -2,10 +2,10 @@ import { Region } from '../../../types';
 
 export const NATIONAL_TEAMS_CONCACAF = [
   { name: "Stany Zjednoczone", continent: "North America", tier: 3, colors: ['#B22234','#FFFFFF','#3C3B6E'], stadium: "MetLife Stadium", capacity: 82500, reputation: 13, region: Region.ENGLAND },
-  { name: "Meksyk", continent: "North America", tier: 2, colors: ['#006847','#FFFFFF','#CE1126'], stadium: "Estadio Azteca", capacity: 87000, reputation: 14, region: Region.IBERIA },
+  { name: "Meksyk", continent: "North America", tier: 2, colors: ['#006847','#FFFFFF','#CE1126'], stadium: "Estadio Azteca", capacity: 87000, reputation: 14, region: Region.MEXICO },
   { name: "Kanada", continent: "North America", tier: 3, colors: ['#D52B1E','#FFFFFF','#D52B1E'], stadium: "BMO Field", capacity: 30000, reputation: 12, region: Region.ENGLAND },
-  { name: "Kostaryka", continent: "North America", tier: 2, colors: ['#002B7F','#FFFFFF','#CE1126'], stadium: "Estadio Nacional", capacity: 35000, reputation: 11, region: Region.IBERIA },
-  { name: "Panama", continent: "North America", tier: 3, colors: ['#0052A5','#FFFFFF','#EF3340'], stadium: "Estadio Rommel Fernández", capacity: 32000, reputation: 10, region: Region.IBERIA },
+  { name: "Kostaryka", continent: "North America", tier: 2, colors: ['#002B7F','#FFFFFF','#CE1126'], stadium: "Estadio Nacional", capacity: 35000, reputation: 12, region: Region.IBERIA },
+  { name: "Panama", continent: "North America", tier: 2, colors: ['#0052A5','#FFFFFF','#EF3340'], stadium: "Estadio Rommel Fernández", capacity: 32000, reputation: 12, region: Region.IBERIA },
   { name: "Honduras", continent: "North America", tier: 4, colors: ['#0073CF','#FFFFFF','#0073CF'], stadium: "Estadio Olímpico Metropolitano", capacity: 38000, reputation: 10, region: Region.IBERIA },
   { name: "Salwador", continent: "North America", tier: 4, colors: ['#0F47AF','#FFFFFF','#0F47AF'], stadium: "Estadio Cuscatlán", capacity: 53000, reputation: 9, region: Region.IBERIA },
   { name: "Gwatemala", continent: "North America", tier: 3, colors: ['#4997D0','#FFFFFF','#4997D0'], stadium: "Estadio Doroteo Guamuch Flores", capacity: 26000, reputation: 8, region: Region.IBERIA },

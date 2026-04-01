@@ -121,7 +121,7 @@ const getLocalRegionForInternationalClub = (country: string, continent: 'Asia' |
     SDN: Region.ARABIA,
     USA: Region.ENGLAND,
     CAN: Region.ENGLAND,
-    MEX: Region.IBERIA,
+    MEX: Region.MEXICO,
     CRC: Region.IBERIA,
     HON: Region.IBERIA,
     GUA: Region.IBERIA,
@@ -142,7 +142,17 @@ const getLocalRegionForInternationalClub = (country: string, continent: 'Asia' |
   return Region.ARABIA;
 };
 
-const getForeignRegionForInternationalClub = (continent: 'Asia' | 'Africa' | 'North America' | 'South America'): Region => {
+const getForeignRegionForInternationalClub = (
+  continent: 'Asia' | 'Africa' | 'North America' | 'South America',
+  clubCountry?: string
+): Region => {
+  if (clubCountry !== 'MEX') {
+    const mexicoChance = continent === 'North America' ? 0.18 : 0.03;
+    if (Math.random() < mexicoChance) {
+      return Region.MEXICO;
+    }
+  }
+
   const pools: Record<'Asia' | 'Africa' | 'North America' | 'South America', Region[]> = {
     Asia: [Region.JAPAN, Region.KOREA, Region.ARABIA, Region.KAZAKH, Region.SSA, Region.IBERIA, Region.BRAZIL],
     Africa: [Region.SSA, Region.ARABIA, Region.IBERIA, Region.FRANCE, Region.ENGLAND, Region.BRAZIL],
@@ -152,6 +162,13 @@ const getForeignRegionForInternationalClub = (continent: 'Asia' | 'Africa' | 'No
 
   const pool = pools[continent];
   return pool[Math.floor(Math.random() * pool.length)];
+};
+
+const getRandomGlobalClubForeignRegion = (mexicoChance = 0): Region => {
+  if (mexicoChance > 0 && Math.random() < mexicoChance) {
+    return Region.MEXICO;
+  }
+  return NameGeneratorService.getRandomForeignRegion();
 };
 
 export const SquadValidator = {
@@ -385,6 +402,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
     }
 
     const getSouthAmericanBoostedRegion = (): Region => {
+      if (Math.random() < 0.005) return Region.MEXICO;
       const brazilWeight    = country === 'POR' ? 25 : country === 'ITA' ? 12 : country === 'ESP' ? 10 : 1;
       const argentinaWeight = country === 'POR' ? 10 : country === 'ITA' ?  8 : country === 'ESP' ? 15 : 1;
       const beneluxWeight   = ['ENG','GER','FRA','ITA','ESP'].includes(country) ? 5 : 1;
@@ -393,7 +411,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       if (roll < brazilWeight) return Region.BRAZIL;
       if (roll < brazilWeight + argentinaWeight) return Region.ARGENTINA;
       if (roll < brazilWeight + argentinaWeight + beneluxWeight) return Region.BENELUX;
-      return NameGeneratorService.getRandomForeignRegion();
+      return getRandomGlobalClubForeignRegion();
     };
 
        const squad = slots.map((slot, index) => {
@@ -518,7 +536,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       } else if (index < localCount + saCount) {
         region = Region.SOUTH_AMERICAN;
       } else {
-        region = NameGeneratorService.getRandomForeignRegion();
+        region = getRandomGlobalClubForeignRegion(0.05);
       }
 
       let namePair;
@@ -591,15 +609,16 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
     const usedNames = new Set<string>();
     const localRegion = getLocalRegionForInternationalClub(country, continent);
     const slots = buildStandardSlots();
+    const localCount = country === 'MEX' ? Math.round(slots.length * 0.8) : 21;
 
     const squad = slots.map((slot, index) => {
       let region: Region;
-      if (index < 21) {
+      if (index < localCount) {
         region = localRegion;
-      } else if (index < 27) {
-        region = getForeignRegionForInternationalClub(continent);
+      } else if (index < localCount + 6) {
+        region = getForeignRegionForInternationalClub(continent, country);
       } else {
-        region = NameGeneratorService.getRandomForeignRegion();
+        region = getRandomGlobalClubForeignRegion(country === 'MEX' ? 0 : 0.02);
       }
 
       let namePair;

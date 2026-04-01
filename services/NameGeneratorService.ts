@@ -31,6 +31,7 @@ import { GREEK_MALE_FIRSTNAMES, GREEK_MALE_LASTNAMES } from '../resources/static
 import { AZERBAIJANI_MALE_FIRSTNAMES, AZERBAIJANI_MALE_LASTNAMES } from '../resources/static_db/names/azerbaijani_data';
 import { KAZAKH_MALE_FIRSTNAMES, KAZAKH_MALE_LASTNAMES } from '../resources/static_db/names/kazakh_data';
 import { SOUTH_AMERICAN_MALE_FIRSTNAMES, SOUTH_AMERICAN_MALE_LASTNAMES } from '../resources/static_db/names/southamerican_data';
+import { MEXICAN_MALE_FIRSTNAMES, MEXICAN_MALE_LASTNAMES } from '../resources/static_db/names/mexican_data';
 interface NamePair {
   firstName: string;
   lastName: string;
@@ -67,6 +68,11 @@ export const NameGeneratorService = {
         return {
           firstName: getRandomElement(IBERIA_MALE_FIRSTNAMES),
           lastName: getRandomElement(IBERIA_MALE_LASTNAMES)
+        };
+      case Region.MEXICO:
+        return {
+          firstName: getRandomElement(MEXICAN_MALE_FIRSTNAMES),
+          lastName: getRandomElement(MEXICAN_MALE_LASTNAMES)
         };
       case Region.SCANDINAVIA:
         return {
