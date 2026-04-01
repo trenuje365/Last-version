@@ -539,5 +539,237 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
     }
 
     return newMails;
-  }
+  },
+
+  generateIncomingOfferMail(
+    player: Player,
+    buyerClubName: string,
+    buyerLeagueName: string,
+    fee: number,
+    timing: string,
+    sellerClubName: string,
+    boardPressure: boolean,
+    currentDate: Date,
+    offerId: string
+  ): MailMessage {
+    const boardNote = boardPressure
+      ? 'UWAGA: Zarząd rozważa sprzedaż ze względów finansowych lub atrakcyjności oferty. Odrzucenie może negatywnie wpłynąć na zaufanie zarządu.\n\n'
+      : '';
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_initial')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{BUYER_LEAGUE}', buyerLeagueName)
+      .replace('{FEE}', fee.toLocaleString('pl-PL'))
+      .replace('{TIMING}', timing)
+      .replace('{BOARD_PRESSURE_NOTE}', boardNote)
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_offer_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject.replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: boardPressure ? 2 : 1,
+      metadata: { type: 'INCOMING_TRANSFER_OFFER', offerId },
+    };
+  },
+
+  generateIncomingOfferReminderMail(
+    player: Player,
+    buyerClubName: string,
+    fee: number,
+    sellerClubName: string,
+    currentDate: Date,
+    offerId: string
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_reminder')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{FEE}', fee.toLocaleString('pl-PL'))
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_reminder_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject.replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 2,
+      metadata: { type: 'INCOMING_TRANSFER_OFFER', offerId },
+    };
+  },
+
+  generateIncomingOfferExpiredMail(
+    player: Player,
+    buyerClubName: string,
+    sellerClubName: string,
+    currentDate: Date
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_expired')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_expired_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject.replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 0,
+    };
+  },
+
+  generateAIAcceptedCounterMail(
+    player: Player,
+    buyerClubName: string,
+    fee: number,
+    sellerClubName: string,
+    currentDate: Date
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_ai_accepted_counter')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{FEE}', fee.toLocaleString('pl-PL'))
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_ai_acc_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject
+        .replace('{BUYER_CLUB}', buyerClubName)
+        .replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 2,
+    };
+  },
+
+  generateAICounteredMail(
+    player: Player,
+    buyerClubName: string,
+    aiCounterFee: number,
+    round: number,
+    sellerClubName: string,
+    currentDate: Date,
+    offerId: string
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_ai_countered')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{AI_COUNTER_FEE}', aiCounterFee.toLocaleString('pl-PL'))
+      .replace('{ROUND}', round.toString())
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_ai_ctr_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject
+        .replace('{BUYER_CLUB}', buyerClubName)
+        .replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 2,
+      metadata: { type: 'INCOMING_TRANSFER_OFFER', offerId },
+    };
+  },
+
+  generateAIRejectedCounterMail(
+    player: Player,
+    buyerClubName: string,
+    sellerClubName: string,
+    currentDate: Date
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_ai_rejected_counter')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_ai_rej_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject
+        .replace('{BUYER_CLUB}', buyerClubName)
+        .replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 1,
+    };
+  },
+
+  generatePlayerAcceptedConfirmMail(
+    player: Player,
+    buyerClubName: string,
+    fee: number,
+    timing: string,
+    sellerClubName: string,
+    currentDate: Date,
+    offerId: string
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_player_accepted_confirm')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{FEE}', fee.toLocaleString('pl-PL'))
+      .replace('{TIMING}', timing)
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_plr_acc_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject
+        .replace('{PLAYER}', `${player.firstName} ${player.lastName}`),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 3,
+      metadata: { type: 'INCOMING_TRANSFER_OFFER', offerId },
+    };
+  },
+
+  generatePlayerRefusedMail(
+    player: Player,
+    buyerClubName: string,
+    sellerClubName: string,
+    currentDate: Date
+  ): MailMessage {
+    const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_player_refused')!;
+    const body = template.body
+      .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace('{CLUB}', sellerClubName);
+    return {
+      id: `incoming_plr_ref_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      sender: template.sender,
+      role: template.role,
+      subject: template.subject
+        .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
+        .replace('{BUYER_CLUB}', buyerClubName),
+      body,
+      date: currentDate,
+      isRead: false,
+      type: template.type,
+      priority: 1,
+    };
+  },
 };

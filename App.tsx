@@ -34,6 +34,7 @@ import { ContractManagementView } from './components/views/ContractManagementVie
 import { FreeAgentNegotiationView } from './components/views/FreeAgentNegotiationView';
 import { TransferOfferView } from './components/views/TransferOfferView';
 import { TransferPlayerNegotiationView } from './components/views/TransferPlayerNegotiationView';
+import { IncomingOfferView } from './components/views/IncomingOfferView';
 import { CLDrawView } from './components/views/CLDrawView';
 import { CLGroupDrawView } from './components/views/CLGroupDrawView';
 import { PolishCupBracketView } from './components/views/PolishCupBracketView';
@@ -209,6 +210,8 @@ case ViewState.POLISH_CUP_BRACKET:
         return <TransferOfferView />;
       case ViewState.TRANSFER_PLAYER_NEGOTIATION:
         return <TransferPlayerNegotiationView />;
+      case ViewState.INCOMING_OFFER:
+        return <IncomingOfferView />;
 
          case ViewState.COACH_CARD:
         return <CoachCard />;

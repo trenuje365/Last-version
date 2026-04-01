@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, EventKind, CompetitionType, Club, MailMessage, MailType } from '../../types';
+import { ViewState, EventKind, CompetitionType, Club, MailMessage, MailType, IncomingOfferStatus } from '../../types';
 import { CalendarEngine } from '../../services/CalendarEngine';
 import stadionBg from '../../Graphic/themes/stadion.png';
 import { Card } from '../ui/Card';
@@ -37,6 +37,7 @@ export const Dashboard: React.FC = () => {
     fixtures,
     confirmSeasonEnd,
     setElHistoryInitialRound,
+    incomingOffers,
   } = useGame();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,6 +85,15 @@ const boardConfidence = useMemo(() => {
      const netFunds = FinanceService.calculateAvailableFunds(myClub.budget, squad);
      return netFunds.toLocaleString('pl-PL');
   }, [myClub, players, userTeamId]);
+
+  const pendingIncomingOffersCount = useMemo(() =>
+    incomingOffers.filter(o =>
+      o.status === IncomingOfferStatus.EMAIL_SENT ||
+      o.status === IncomingOfferStatus.REMINDER_SENT ||
+      o.status === IncomingOfferStatus.AI_COUNTERED ||
+      o.status === IncomingOfferStatus.AWAITING_CONFIRMATION
+    ).length
+  , [incomingOffers]);
 
   const isTransferWindowOpen = useMemo(() => {
     if (!myClub) return false;
@@ -788,6 +798,15 @@ const boardConfidence = useMemo(() => {
               <TileButton label="HISTORIA" icon="📜" onClick={() => navigateTo(ViewState.MATCH_HISTORY_BROWSER)} disabled={isJumping} />             
               <TileButton label="RYNEK PRACY" icon="💼" onClick={() => navigateTo(ViewState.JOB_MARKET)} disabled={isJumping} />
               <TileButton label="EDYTOR" icon="✍️" onClick={() => navigateTo(ViewState.EDITOR)} disabled={isJumping} />
+              <TileButton
+                label="AKTYWNOŚĆ RYNKOWA"
+                icon="🔄"
+                onClick={() => navigateTo(ViewState.TRANSFER_NEWS)}
+                disabled={isJumping}
+                badge={pendingIncomingOffersCount > 0
+                  ? <span className="w-2.5 h-2.5 rounded-full bg-red-500 block" />
+                  : null}
+              />
            </div>
         </div>
 

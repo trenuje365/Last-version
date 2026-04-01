@@ -53,4 +53,10 @@ export const CLUBS_AFRICAN = [
     capacity: 15000, 
     reputation: 8 
   }
+
+
+  
 ];
+
+export const generateAfricanClubId = (name: string): string =>
+  'AFR_' + name.toUpperCase().replace(/[^A-Z0-9]/g, '_');

@@ -113,7 +113,7 @@ export const TransferOfferView: React.FC = () => {
 
   const marketValue = useMemo(() => {
     if (!player || !sellerClub) return 500_000;
-    const sellerTier = parseInt(sellerClub.leagueId.split('_')[2] || '1', 10);
+    const sellerTier = FinanceService.getClubTier(sellerClub);
     return FinanceService.calculateMarketValue(player, sellerClub.reputation, sellerTier);
   }, [player, sellerClub]);
   const suggestedFee = useMemo(() => {

@@ -54,6 +54,106 @@ const DEF_COUNT = 10;
 const MID_COUNT = 10;
 const FWD_COUNT = 9;
 
+const buildStandardSlots = (): { pos: PlayerPosition }[] => [
+  ...Array(3).fill({ pos: PlayerPosition.GK }),
+  ...Array(8).fill({ pos: PlayerPosition.DEF }),
+  ...Array(10).fill({ pos: PlayerPosition.MID }),
+  ...Array(9).fill({ pos: PlayerPosition.FWD }),
+];
+
+const getLocalRegionForInternationalClub = (country: string, continent: 'Asia' | 'Africa' | 'North America' | 'South America'): Region => {
+  const map: Record<string, Region> = {
+    ARG: Region.ARGENTINA,
+    BRA: Region.BRAZIL,
+    URU: Region.SOUTH_AMERICAN,
+    COL: Region.SOUTH_AMERICAN,
+    ECU: Region.SOUTH_AMERICAN,
+    CHI: Region.SOUTH_AMERICAN,
+    PAR: Region.SOUTH_AMERICAN,
+    PER: Region.SOUTH_AMERICAN,
+    BOL: Region.SOUTH_AMERICAN,
+    VEN: Region.SOUTH_AMERICAN,
+    JPN: Region.JAPAN,
+    KOR: Region.KOREA,
+    PRK: Region.KOREA,
+    KSA: Region.ARABIA,
+    UAE: Region.ARABIA,
+    QAT: Region.ARABIA,
+    OMA: Region.ARABIA,
+    KUW: Region.ARABIA,
+    IRQ: Region.ARABIA,
+    IRN: Region.ARABIA,
+    JOR: Region.ARABIA,
+    LBN: Region.ARABIA,
+    SYR: Region.ARABIA,
+    YEM: Region.ARABIA,
+    AFG: Region.ARABIA,
+    BGD: Region.ARABIA,
+    IND: Region.ARABIA,
+    NPL: Region.ARABIA,
+    PAK: Region.ARABIA,
+    LKA: Region.ARABIA,
+    MDV: Region.ARABIA,
+    CHN: Region.JAPAN,
+    HKG: Region.JAPAN,
+    IDN: Region.JAPAN,
+    THA: Region.JAPAN,
+    VIE: Region.JAPAN,
+    MYS: Region.JAPAN,
+    PHL: Region.JAPAN,
+    SGP: Region.JAPAN,
+    KHM: Region.JAPAN,
+    LAO: Region.JAPAN,
+    MMR: Region.JAPAN,
+    MNG: Region.JAPAN,
+    BTN: Region.JAPAN,
+    KAZ: Region.KAZAKH,
+    KGZ: Region.KAZAKH,
+    TJK: Region.KAZAKH,
+    UZB: Region.KAZAKH,
+    TKM: Region.KAZAKH,
+    EGY: Region.ARABIA,
+    TUN: Region.ARABIA,
+    MAR: Region.ARABIA,
+    ALG: Region.ARABIA,
+    LBY: Region.ARABIA,
+    MRT: Region.ARABIA,
+    SDN: Region.ARABIA,
+    USA: Region.ENGLAND,
+    CAN: Region.ENGLAND,
+    MEX: Region.IBERIA,
+    CRC: Region.IBERIA,
+    HON: Region.IBERIA,
+    GUA: Region.IBERIA,
+    SLV: Region.IBERIA,
+    NIC: Region.IBERIA,
+    PAN: Region.IBERIA,
+    DOM: Region.IBERIA,
+    CUB: Region.IBERIA,
+    JAM: Region.ENGLAND,
+    TTO: Region.ENGLAND,
+    HAI: Region.FRANCE,
+  };
+
+  if (map[country]) return map[country];
+  if (continent === 'Africa') return Region.SSA;
+  if (continent === 'North America') return Region.IBERIA;
+  if (continent === 'South America') return Region.SOUTH_AMERICAN;
+  return Region.ARABIA;
+};
+
+const getForeignRegionForInternationalClub = (continent: 'Asia' | 'Africa' | 'North America' | 'South America'): Region => {
+  const pools: Record<'Asia' | 'Africa' | 'North America' | 'South America', Region[]> = {
+    Asia: [Region.JAPAN, Region.KOREA, Region.ARABIA, Region.KAZAKH, Region.SSA, Region.IBERIA, Region.BRAZIL],
+    Africa: [Region.SSA, Region.ARABIA, Region.IBERIA, Region.FRANCE, Region.ENGLAND, Region.BRAZIL],
+    'North America': [Region.IBERIA, Region.ENGLAND, Region.BRAZIL, Region.ARGENTINA, Region.FRANCE],
+    'South America': [Region.SOUTH_AMERICAN, Region.BRAZIL, Region.ARGENTINA, Region.IBERIA, Region.ENGLAND],
+  };
+
+  const pool = pools[continent];
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
 export const SquadValidator = {
   isValidSize: (count: number) => count >= 29 && count <= 35,
   
@@ -468,6 +568,97 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       } as Player;
     });
 
-    return squad;
+    const clubBudget = FinanceService.calculateInitialBudget(tier, reputation);
+    const wagePool = FinanceService.getWagePool(clubBudget);
+    const totalSquadWeight = squad.reduce((sum, p) =>
+      sum + FinanceService.calculateSalaryWeight(p.overallRating, p.age), 0
+    );
+
+    return squad.map(p => ({
+      ...p,
+      annualSalary: Math.floor((FinanceService.calculateSalaryWeight(p.overallRating, p.age) / totalSquadWeight) * wagePool),
+      marketValue: FinanceService.calculateMarketValue(p, reputation, tier)
+    })) as Player[];
+  },
+
+  generateIntercontinentalSquad: (
+    clubId: string,
+    tier: number,
+    reputation: number,
+    country: string,
+    continent: 'Asia' | 'Africa' | 'North America'
+  ): Player[] => {
+    const usedNames = new Set<string>();
+    const localRegion = getLocalRegionForInternationalClub(country, continent);
+    const slots = buildStandardSlots();
+
+    const squad = slots.map((slot, index) => {
+      let region: Region;
+      if (index < 21) {
+        region = localRegion;
+      } else if (index < 27) {
+        region = getForeignRegionForInternationalClub(continent);
+      } else {
+        region = NameGeneratorService.getRandomForeignRegion();
+      }
+
+      let namePair;
+      let fullName;
+      let attempts = 0;
+      do {
+        namePair = NameGeneratorService.getRandomName(region);
+        fullName = `${namePair.firstName} ${namePair.lastName}`;
+        attempts++;
+      } while (usedNames.has(fullName) && attempts < 50);
+      usedNames.add(fullName);
+
+      const age = 17 + Math.floor(Math.random() * 18);
+      const genData = PlayerAttributesGenerator.generateAttributes(slot.pos, tier, reputation, age, true);
+
+      return {
+        id: `INT_${clubId}_${String(index).padStart(2, '0')}`,
+        firstName: namePair.firstName,
+        lastName: namePair.lastName,
+        clubId,
+        position: slot.pos,
+        nationality: region,
+        age,
+        fatigueDebt: 0,
+        overallRating: genData.overall,
+        attributes: genData.attributes,
+        stats: {
+          matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,
+          yellowCards: 0, redCards: 0, cleanSheets: 0,
+          seasonalChanges: {}, ratingHistory: []
+        },
+        health: { status: HealthStatus.HEALTHY },
+        condition: 100,
+        suspensionMatches: 0,
+        contractEndDate: new Date(new Date().getFullYear() + 1 + Math.floor(Math.random() * 3), 5, 30).toISOString(),
+        annualSalary: 0,
+        marketValue: 0,
+        isUntouchable: true,
+        negotiationStep: 0,
+        negotiationLockoutUntil: null,
+        contractLockoutUntil: null,
+        boardLockoutUntil: null,
+        isNegotiationPermanentBlocked: false,
+        transferLockoutUntil: null,
+        freeAgentLockoutUntil: null,
+        history: []
+      } as Player;
+    });
+
+    const clubBudget = FinanceService.calculateInitialBudget(tier, reputation);
+    const wagePool = FinanceService.getWagePool(clubBudget);
+    const totalSquadWeight = squad.reduce((sum, p) =>
+      sum + FinanceService.calculateSalaryWeight(p.overallRating, p.age), 0
+    );
+
+    return squad.map(p => ({
+      ...p,
+      annualSalary: Math.floor((FinanceService.calculateSalaryWeight(p.overallRating, p.age) / totalSquadWeight) * wagePool),
+      marketValue: FinanceService.calculateMarketValue(p, reputation, tier)
+    })) as Player[];
   }
 };

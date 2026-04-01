@@ -42,7 +42,7 @@ export const TransferExecutionService = {
     transferLockoutDate.setMonth(transferLockoutDate.getMonth() + 3);
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
-    const buyerTier = parseInt(buyerClub.leagueId.split('_')[2] || '1', 10);
+    const buyerTier = FinanceService.getClubTier(buyerClub);
 
     const updatedHistory = [...(player.history || [])];
     if (updatedHistory.length > 0) {
@@ -98,6 +98,7 @@ export const TransferExecutionService = {
           ...club,
           budget: club.budget - offer.fee - offer.bonus,
           signingBonusPool: Math.max(0, club.signingBonusPool - offer.bonus),
+          rosterIds: [...club.rosterIds, player.id],
           financeHistory: [buyerBonusLog, buyerFeeLog, ...(club.financeHistory || [])].slice(0, 50)
         };
       }
@@ -113,6 +114,7 @@ export const TransferExecutionService = {
         return {
           ...club,
           budget: club.budget + offer.fee,
+          rosterIds: club.rosterIds.filter(id => id !== player.id),
           financeHistory: [sellerIncomeLog, ...(club.financeHistory || [])].slice(0, 50)
         };
       }

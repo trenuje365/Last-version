@@ -162,7 +162,7 @@ export const TransferSellerLogicService = {
     sellerSquad: Player[],
     currentDate: Date
   ): number => {
-    const tier = parseInt(sellerClub.leagueId.split('_')[2] || '1', 10);
+    const tier = FinanceService.getClubTier(sellerClub);
     const baseValue = FinanceService.calculateMarketValue(player, sellerClub.reputation, tier);
 
     let multiplier = 1.0;

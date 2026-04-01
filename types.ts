@@ -33,6 +33,7 @@ export enum ViewState {
   FREE_AGENT_NEGOTIATION = 'FREE_AGENT_NEGOTIATION',
   TRANSFER_OFFER = 'TRANSFER_OFFER',
   TRANSFER_PLAYER_NEGOTIATION = 'TRANSFER_PLAYER_NEGOTIATION',
+  INCOMING_OFFER = 'INCOMING_OFFER',
 
 
   CL_DRAW = 'CL_DRAW',
@@ -145,10 +146,13 @@ export interface MailMessage {
     salary: number;
     years: number;
     bonus: number;
-    responseDate: string; 
+    responseDate: string;
   status: NegotiationStatus;
   isAiOffer: boolean;
     playerId: string;
+  } | {
+    type: 'INCOMING_TRANSFER_OFFER';
+    offerId: string;
   };
 }
 
@@ -427,6 +431,41 @@ export interface TransferClubBidInput {
   timing: TransferTiming;
 }
 
+export enum IncomingOfferStatus {
+  EMAIL_SENT = 'EMAIL_SENT',
+  REMINDER_SENT = 'REMINDER_SENT',
+  EXPIRED = 'EXPIRED',
+  REJECTED_BY_MANAGER = 'REJECTED_BY_MANAGER',
+  COUNTER_PENDING_AI = 'COUNTER_PENDING_AI',
+  AI_COUNTERED = 'AI_COUNTERED',
+  NEGOTIATION_IN_PROGRESS = 'NEGOTIATION_IN_PROGRESS',
+  AWAITING_CONFIRMATION = 'AWAITING_CONFIRMATION',
+  PLAYER_REFUSED = 'PLAYER_REFUSED',
+  COMPLETED = 'COMPLETED',
+  REJECTED_AT_CONFIRM = 'REJECTED_AT_CONFIRM',
+}
+
+export interface IncomingTransferOffer {
+  id: string;
+  playerId: string;
+  buyerClubId: string;
+  fee: number;
+  timing: TransferTiming;
+  status: IncomingOfferStatus;
+  createdAt: string;
+  emailSentAt: string;
+  reminderSentAt?: string;
+  aiMaxFee: number;
+  aiUrgency: 1 | 2 | 3;
+  counterFee?: number;
+  aiCounterFee?: number;
+  negotiationRound: number;
+  playerNegotiationStartedAt?: string;
+  playerNegotiationResolvesAt?: string;
+  playerNegotiationResult?: 'accepted' | 'refused';
+  boardPressure: boolean;
+}
+
 export interface TransferContractInput {
   salary: number;
   bonus: number;
@@ -517,6 +556,7 @@ export interface Club {
   name: string;
   shortName: string;
   leagueId: string;
+  tier?: number;
   colorsHex: string[];
   stadiumName: string;
   stadiumCapacity: number;

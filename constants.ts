@@ -5,6 +5,9 @@ import { RAW_CHAMPIONS_LEAGUE_CLUBS, generateEuropeanClubId } from './resources/
 import { RAW_EUROPA_LEAGUE_CLUBS, generateELClubId } from './resources/static_db/clubs/EuropeLeagueTeams';
 import { RAW_CONFERENCE_LEAGUE_CLUBS, generateCONFClubId } from './resources/static_db/clubs/ConferenceLeagueTeams';
 import { CLUBS_SOUTH_AMERICA, generateSAClubId } from './resources/static_db/clubs/SouthamericanTeams';
+import { CLUBS_ASIAN, generateAsianClubId } from './resources/static_db/clubs/asian_teams';
+import { CLUBS_AFRICAN, generateAfricanClubId } from './resources/static_db/clubs/african_teams';
+import { CLUBS_NORTH_AMERICA, generateNorthAmericaClubId } from './resources/static_db/clubs/northAME_teams';
 // TUTAJ WSTAW IMPORTY DRUŻYN NARODOWYCH
 import { FinanceService } from './services/FinanceService';
 import { NATIONAL_TEAMS_EUROPE } from './resources/static_db/NationalTeams/NationalTeamsEurope';
@@ -97,6 +100,7 @@ const generatePlaceholderClub = (leagueId: string, index: number, tier: number):
     name: `Klub Placeholder ${index}`,
     shortName: `P${index}`,
     leagueId,
+    tier,
     colorsHex: ['#808080', '#FFFFFF', '#000000'],
     budget: FinanceService.calculateInitialBudget(tier, 1),
     stadiumName: "Stadion Miejski TBD",
@@ -129,6 +133,7 @@ const loadClubsForTier = (tier: number, leagueId: string, limit: number): Club[]
       name: raw.name,
       shortName: raw.name.substring(0, 3).toUpperCase(),
       leagueId: assignedLeagueId,
+      tier: raw.tier,
       colorsHex: raw.colors,
       stadiumName: raw.stadium,
       stadiumCapacity: raw.capacity,
@@ -187,6 +192,7 @@ export const STATIC_CL_CLUBS: Club[] = RAW_CHAMPIONS_LEAGUE_CLUBS.map(raw => {
     name: raw.name,
     shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
     leagueId: 'L_CL',
+    tier: raw.tier,
     colorsHex: raw.colors,
     stadiumName: raw.stadium,
     stadiumCapacity: raw.capacity,
@@ -211,6 +217,7 @@ export const STATIC_EL_CLUBS: Club[] = RAW_EUROPA_LEAGUE_CLUBS.map(raw => {
     name: raw.name,
     shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
     leagueId: 'L_EL',
+    tier: raw.tier,
     colorsHex: raw.colors,
     stadiumName: raw.stadium,
     stadiumCapacity: raw.capacity,
@@ -235,6 +242,7 @@ export const STATIC_CONF_CLUBS: Club[] = RAW_CONFERENCE_LEAGUE_CLUBS.map(raw => 
     name: raw.name,
     shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
     leagueId: 'L_CONF',
+    tier: raw.tier,
     colorsHex: raw.colors,
     stadiumName: raw.stadium,
     stadiumCapacity: raw.capacity,
@@ -252,26 +260,51 @@ export const STATIC_CONF_CLUBS: Club[] = RAW_CONFERENCE_LEAGUE_CLUBS.map(raw => 
   };
 });
 
-export const STATIC_SA_CLUBS: Club[] = CLUBS_SOUTH_AMERICA.map(raw => ({
-  id: generateSAClubId(raw.name),
-  name: raw.name,
-  shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
-  leagueId: 'L_SA',
-  colorsHex: raw.colors,
-  stadiumName: raw.stadium,
-  stadiumCapacity: raw.capacity,
-  reputation: raw.reputation,
-  country: raw.country,
-  isDefaultActive: true,
-  colorPrimary: raw.colors[0],
-  colorSecondary: raw.colors[1] || '#FFFFFF',
-  rosterIds: [],
-  budget: 0,
-  boardStrictness: 5,
-  signingBonusPool: 0,
-  stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
-  isInPolishCup: false,
-}));
+const buildInternationalClub = (
+  raw: { name: string; country: string; tier: number; colors: string[]; stadium: string; capacity: number; reputation: number },
+  id: string,
+  leagueId: string
+): Club => {
+  const budget = FinanceService.calculateInitialBudget(raw.tier, raw.reputation);
+
+  return {
+    id,
+    name: raw.name,
+    shortName: raw.name.split(' ').pop()?.substring(0, 6).toUpperCase() || raw.name.substring(0, 6).toUpperCase(),
+    leagueId,
+    tier: raw.tier,
+    colorsHex: raw.colors,
+    stadiumName: raw.stadium,
+    stadiumCapacity: raw.capacity,
+    reputation: raw.reputation,
+    country: raw.country,
+    isDefaultActive: true,
+    colorPrimary: raw.colors[0],
+    colorSecondary: raw.colors[1] || '#FFFFFF',
+    rosterIds: [],
+    budget,
+    boardStrictness: 5,
+    signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
+    stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+    isInPolishCup: false,
+  };
+};
+
+export const STATIC_SA_CLUBS: Club[] = CLUBS_SOUTH_AMERICA.map(raw =>
+  buildInternationalClub(raw, generateSAClubId(raw.name), 'L_SA')
+);
+
+export const STATIC_ASIAN_CLUBS: Club[] = CLUBS_ASIAN.map(raw =>
+  buildInternationalClub(raw, generateAsianClubId(raw.name), 'L_ASIA')
+);
+
+export const STATIC_AFRICAN_CLUBS: Club[] = CLUBS_AFRICAN.map(raw =>
+  buildInternationalClub(raw, generateAfricanClubId(raw.name), 'L_AFRICA')
+);
+
+export const STATIC_NA_CLUBS: Club[] = CLUBS_NORTH_AMERICA.map(raw =>
+  buildInternationalClub(raw, generateNorthAmericaClubId(raw.name), 'L_NA')
+);
 
 // Populate league teamIds (Only include active teams in the league structure)
 STATIC_LEAGUES.forEach(l => {

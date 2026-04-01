@@ -409,6 +409,72 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     role: 'Prezes Zarządu',
     subject: '{CLUB} w Finale Ligi Konferencji! Gratulacje!',
     body: 'Panie Managerze,\n\nGRATULACJE! {CLUB} awansował do Finału Ligi Konferencji UEFA! To historyczny sukces, który przejdzie do annałów naszego klubu. Zarząd jest z Pana niezwykle dumny. Powodzenia w wielkim finale!\n\nZ wyrazami najwyższego uznania,\nZarząd {CLUB}'
+  },
+
+  // --- OFERTY TRANSFEROWE PRZYCHODZĄCE OD KLUBÓW AI ---
+  {
+    id: 'incoming_offer_initial',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: 'Oferta transferowa za {PLAYER}',
+    body: 'Panie Managerze,\n\nOtrzymaliśmy oficjalną ofertę transferową od klubu {BUYER_CLUB} ({BUYER_LEAGUE}) za zawodnika {PLAYER}.\n\nSzczegóły oferty:\n- Proponowana kwota: {FEE} PLN\n- Termin przejścia: {TIMING}\n\n{BOARD_PRESSURE_NOTE}Proszę o zapoznanie się z ofertą i podjęcie decyzji w ciągu 5 dni.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_reminder',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: 'PRZYPOMNIENIE: Oferta za {PLAYER} — zostały 3 dni',
+    body: 'Panie Managerze,\n\nPrzypominamy, że nadal oczekuje na odpowiedź oferta transferowa klubu {BUYER_CLUB} za zawodnika {PLAYER} na kwotę {FEE} PLN.\n\nJeśli nie udzieli Pan odpowiedzi w ciągu 3 dni, oferta automatycznie wygaśnie.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_expired',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: 'Oferta za {PLAYER} wygasła',
+    body: 'Panie Managerze,\n\nInformujemy, że oferta transferowa klubu {BUYER_CLUB} za zawodnika {PLAYER} wygasła z powodu braku odpowiedzi z naszej strony.\n\nJeśli zmieni Pan decyzję, {BUYER_CLUB} może złożyć nową ofertę w przyszłości.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_ai_accepted_counter',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: '{BUYER_CLUB} zaakceptował naszą cenę za {PLAYER}',
+    body: 'Panie Managerze,\n\nKlub {BUYER_CLUB} zaakceptował naszą kwotę {FEE} PLN za zawodnika {PLAYER}.\n\nRozpoczęliśmy negocjacje z zawodnikiem. O wynikach poinformujemy Pana w ciągu kilku dni.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_ai_countered',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: '{BUYER_CLUB} złożył kontrofertę za {PLAYER}',
+    body: 'Panie Managerze,\n\nKlub {BUYER_CLUB} nie zaakceptował naszej ceny i zaproponował kwotę {AI_COUNTER_FEE} PLN za zawodnika {PLAYER}.\n\nCzeka Pan na Pana decyzję (runda {ROUND}/3).\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_ai_rejected_counter',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: '{BUYER_CLUB} odrzucił negocjacje za {PLAYER}',
+    body: 'Panie Managerze,\n\nKlub {BUYER_CLUB} ostatecznie zrezygnował z transferu zawodnika {PLAYER}. Negocjacje zostały zakończone.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_player_accepted_confirm',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: '{PLAYER} wyraził zgodę — zatwierdź transfer',
+    body: 'Panie Managerze,\n\nZawodnik {PLAYER} zaakceptował warunki kontraktu zaproponowane przez {BUYER_CLUB}.\n\nKwota transferu: {FEE} PLN\nTermin przejścia: {TIMING}\n\nCzekamy na Pana ostateczną decyzję — czy zatwierdza Pan ten transfer?\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+  },
+  {
+    id: 'incoming_offer_player_refused',
+    type: MailType.SYSTEM,
+    sender: 'Dział Transferowy',
+    role: 'Kierownik ds. Transferów',
+    subject: '{PLAYER} odrzucił ofertę {BUYER_CLUB}',
+    body: 'Panie Managerze,\n\nInformujemy, że zawodnik {PLAYER} odmówił podjęcia rozmów z klubem {BUYER_CLUB}. Negocjacje zostały zakończone.\n\nZawodnik pozostaje w {CLUB}.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
   }
 ]; // <--- ZAMKNIĘCIE TABLICY
 

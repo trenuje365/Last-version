@@ -43,6 +43,13 @@ const leagueTag = (leagueId?: string) => {
   if (leagueId === 'L_PL_2') return 'I Liga';
   if (leagueId === 'L_PL_3') return 'II Liga';
   if (leagueId === 'L_PL_4') return 'III Liga';
+  if (leagueId === 'L_CL') return 'Liga Mistrzow';
+  if (leagueId === 'L_EL') return 'Liga Europy';
+  if (leagueId === 'L_CONF') return 'Liga Konferencji';
+  if (leagueId === 'L_SA') return 'Ameryka Poludniowa';
+  if (leagueId === 'L_ASIA') return 'Azja';
+  if (leagueId === 'L_AFRICA') return 'Afryka';
+  if (leagueId === 'L_NA') return 'Ameryka Polnocna';
   return leagueId;
 };
 
@@ -68,10 +75,10 @@ const formatValue = (value?: number) => {
 };
 
 export const TransferNewsView: React.FC = () => {
-  const { players, clubs, currentDate, navigateTo, viewPlayerDetails } = useGame();
+  const { players, clubs, currentDate, navigateTo, viewPlayerDetails, incomingOffers, navigateToIncomingOffer } = useGame();
 
   const [leagueFilter, setLeagueFilter] = useState('ALL');
-  const [activeTab, setActiveTab] = useState<'scouting' | 'released' | 'activity' | 'completed'>('activity');
+  const [activeTab, setActiveTab] = useState<'scouting' | 'released' | 'activity' | 'completed' | 'incoming'>('activity');
   const [scoutingMarketFilter, setScoutingMarketFilter] = useState<'POLAND' | 'REST_WORLD'>('POLAND');
 
   const clubMap = useMemo(() => new Map(clubs.map(club => [club.id, club])), [clubs]);
@@ -274,6 +281,16 @@ export const TransferNewsView: React.FC = () => {
 
   const activityCount = trsf.length + freeAgentNeg.length;
 
+  const activeIncomingOffers = useMemo(() => {
+    return incomingOffers.filter(o =>
+      o.status !== 'COMPLETED' &&
+      o.status !== 'REJECTED_BY_MANAGER' &&
+      o.status !== 'REJECTED_AT_CONFIRM' &&
+      o.status !== 'PLAYER_REFUSED' &&
+      o.status !== 'EXPIRED'
+    );
+  }, [incomingOffers]);
+
   return (
     <div
       className="min-h-screen bg-slate-950 text-slate-50 flex flex-col p-4 gap-4"
@@ -363,6 +380,16 @@ export const TransferNewsView: React.FC = () => {
             }`}
           >
             ✅ Sfinalizowane ({completed.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('incoming')}
+            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+              activeTab === 'incoming'
+                ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
+                : 'bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/[0.07]'
+            }`}
+          >
+            📨 OFERTY ZA MOICH ({activeIncomingOffers.length})
           </button>
         </div>
       </div>
@@ -648,6 +675,103 @@ export const TransferNewsView: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'incoming' && (
+          <div className="space-y-3">
+            {activeIncomingOffers.length === 0 && incomingOffers.filter(o => o.status === 'COMPLETED').length === 0 && (
+              <div className="text-center py-16 text-slate-500 text-sm font-black uppercase tracking-widest">
+                Brak aktywnych ofert za Twoich zawodników
+              </div>
+            )}
+            {activeIncomingOffers.map(offer => {
+              let player: Player | undefined;
+              for (const cId in players) {
+                player = players[cId]?.find(p => p.id === offer.playerId);
+                if (player) break;
+              }
+              const buyerClub = clubs.find(c => c.id === offer.buyerClubId);
+              if (!player || !buyerClub) return null;
+              const displayedFee = offer.status === 'AI_COUNTERED'
+                ? (offer.aiCounterFee ?? offer.fee)
+                : offer.fee;
+
+              const statusLabels: Record<string, { label: string; color: string }> = {
+                EMAIL_SENT: { label: 'Oczekuje na odpowiedź', color: 'text-amber-300' },
+                REMINDER_SENT: { label: 'Przypomnienie wysłane', color: 'text-orange-300' },
+                COUNTER_PENDING_AI: { label: 'AI rozpatruje kontrę', color: 'text-blue-300' },
+                AI_COUNTERED: { label: 'AI odpowiedziało — wymagana akcja', color: 'text-amber-400' },
+                NEGOTIATION_IN_PROGRESS: { label: 'Negocjacje z zawodnikiem w toku', color: 'text-blue-400' },
+                AWAITING_CONFIRMATION: { label: 'Wymagane zatwierdzenie', color: 'text-emerald-400' },
+              };
+              const st = statusLabels[offer.status] ?? { label: offer.status, color: 'text-slate-400' };
+              const needsAction =
+                offer.status === 'EMAIL_SENT' ||
+                offer.status === 'REMINDER_SENT' ||
+                offer.status === 'AI_COUNTERED' ||
+                offer.status === 'AWAITING_CONFIRMATION';
+
+              return (
+                <div
+                  key={offer.id}
+                  className="bg-white/[0.03] border border-white/10 rounded-[20px] p-5 flex items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${
+                      needsAction ? 'border-amber-500/40 bg-amber-500/10 text-amber-300' : 'border-white/10 bg-white/5 text-slate-400'
+                    }`}>
+                      {offer.aiUrgency === 3 ? '🔥 PILNA' : offer.aiUrgency === 2 ? 'NORMALNA' : 'NISKA'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-white truncate">
+                        {player.firstName} {player.lastName}
+                        <span className="ml-2 text-[10px] text-slate-400 font-normal">{player.position} · {player.overallRating} OVR</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        {buyerClub.name} oferuje <span className="text-amber-300 font-black">{displayedFee.toLocaleString('pl-PL')} PLN</span>
+                        {offer.boardPressure && <span className="ml-2 text-red-400 font-black">· zarząd naciska</span>}
+                      </p>
+                      <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${st.color}`}>{st.label}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigateToIncomingOffer(offer.id)}
+                    className="shrink-0 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black uppercase tracking-widest text-[9px] hover:bg-amber-500/30 transition-all"
+                  >
+                    Przejdź
+                  </button>
+                </div>
+              );
+            })}
+            {incomingOffers.filter(o =>
+              o.status === 'COMPLETED' || o.status === 'PLAYER_REFUSED' ||
+              o.status === 'REJECTED_BY_MANAGER' || o.status === 'REJECTED_AT_CONFIRM' || o.status === 'EXPIRED'
+            ).slice(0, 10).map(offer => {
+              let player: Player | undefined;
+              for (const cId in players) {
+                player = players[cId]?.find(p => p.id === offer.playerId);
+                if (player) break;
+              }
+              const buyerClub = clubs.find(c => c.id === offer.buyerClubId);
+              if (!player || !buyerClub) return null;
+              const closedLabels: Record<string, string> = {
+                COMPLETED: '✅ Transfer sfinalizowany',
+                PLAYER_REFUSED: '❌ Zawodnik odmówił',
+                REJECTED_BY_MANAGER: '🚫 Odrzucona przez Ciebie',
+                REJECTED_AT_CONFIRM: '🚫 Odrzucona przy zatwierdzeniu',
+                EXPIRED: '⌛ Wygasła',
+              };
+              return (
+                <div key={offer.id} className="bg-white/[0.02] border border-white/5 rounded-[16px] px-5 py-3 flex items-center justify-between gap-4 opacity-50">
+                  <div>
+                    <p className="text-xs font-black text-slate-300">{player.firstName} {player.lastName} ← {buyerClub.name}</p>
+                    <p className="text-[9px] text-slate-500 mt-0.5">{closedLabels[offer.status] ?? offer.status}</p>
+                  </div>
+                  <p className="text-[10px] font-black text-slate-500">{offer.fee.toLocaleString('pl-PL')} PLN</p>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -12,6 +12,9 @@ import { RAW_PL_CLUBS, generateClubId } from '../../resources/static_db/clubs/pl
 import { getClubLogo } from '../../resources/ClubLogoAssets';
 import { CLUBS_SOUTH_AMERICA } from '../../resources/static_db/clubs/SouthamericanTeams';
 import { generateSAClubId } from '../../resources/static_db/clubs/SouthamericanTeams';
+import { CLUBS_AFRICAN, generateAfricanClubId } from '../../resources/static_db/clubs/african_teams';
+import { CLUBS_ASIAN, generateAsianClubId } from '../../resources/static_db/clubs/asian_teams';
+import { CLUBS_NORTH_AMERICA, generateNorthAmericaClubId } from '../../resources/static_db/clubs/northAME_teams';
 
 const FLAG_COLUMNS = 5;
 
@@ -34,6 +37,9 @@ const FLAG_CODE: Record<string, string> = {
   SWE: 'se', SUI: 'ch', TUR: 'tr', UKR: 'ua', WAL: 'gb-wls',
   ARG: 'ar', BRA: 'br', URU: 'uy', COL: 'co', ECU: 'ec',
   CHI: 'cl', PAR: 'py', PER: 'pe', BOL: 'bo', VEN: 've',
+  KSA: 'sa', UAE: 'ae', JPN: 'jp',
+  EGY: 'eg', RSA: 'za', TUN: 'tn', MAR: 'ma',
+  USA: 'us', MEX: 'mx',
 };
 
 const COUNTRY_NAME: Record<string, string> = {
@@ -52,6 +58,9 @@ const COUNTRY_NAME: Record<string, string> = {
   SWE: 'Szwecja', SUI: 'Szwajcaria', TUR: 'Turcja', UKR: 'Ukraina', WAL: 'Walia',
   ARG: 'Argentyna', BRA: 'Brazylia', URU: 'Urugwaj', COL: 'Kolumbia', ECU: 'Ekwador',
   CHI: 'Chile', PAR: 'Paragwaj', PER: 'Peru', BOL: 'Boliwia', VEN: 'Wenezuela',
+  KSA: 'Arabia Saudyjska', UAE: 'ZEA', JPN: 'Japonia',
+  EGY: 'Egipt', RSA: 'RPA', TUN: 'Tunezja', MAR: 'Maroko',
+  USA: 'USA', MEX: 'Meksyk',
 };
 
 const flagUrl = (code: string) =>
@@ -103,6 +112,43 @@ CLUBS_SOUTH_AMERICA.forEach(c => {
   if (!SA_CLUB_MAP[c.country]) SA_CLUB_MAP[c.country] = [];
   SA_CLUB_MAP[c.country].push({ id, name: c.name, reputation: c.reputation, colors: c.colors });
 });
+Object.values(SA_CLUB_MAP).forEach(arr => arr.sort((a, b) => b.reputation - a.reputation));
+
+const AFRICA_COUNTRY_ORDER = ['EGY', 'MAR', 'TUN', 'RSA'];
+const AFRICA_CLUB_MAP: Record<string, ClubEntry[]> = {};
+CLUBS_AFRICAN.forEach(c => {
+  const id = generateAfricanClubId(c.name);
+  if (!AFRICA_CLUB_MAP[c.country]) AFRICA_CLUB_MAP[c.country] = [];
+  AFRICA_CLUB_MAP[c.country].push({ id, name: c.name, reputation: c.reputation, colors: c.colors });
+});
+Object.values(AFRICA_CLUB_MAP).forEach(arr => arr.sort((a, b) => b.reputation - a.reputation));
+
+const ASIA_COUNTRY_ORDER = ['KSA', 'JPN', 'UAE'];
+const ASIA_CLUB_MAP: Record<string, ClubEntry[]> = {};
+CLUBS_ASIAN.forEach(c => {
+  const id = generateAsianClubId(c.name);
+  if (!ASIA_CLUB_MAP[c.country]) ASIA_CLUB_MAP[c.country] = [];
+  ASIA_CLUB_MAP[c.country].push({ id, name: c.name, reputation: c.reputation, colors: c.colors });
+});
+Object.values(ASIA_CLUB_MAP).forEach(arr => arr.sort((a, b) => b.reputation - a.reputation));
+
+const NORTH_AMERICA_COUNTRY_ORDER = ['MEX', 'USA'];
+const NORTH_AMERICA_CLUB_MAP: Record<string, ClubEntry[]> = {};
+CLUBS_NORTH_AMERICA.forEach(c => {
+  const id = generateNorthAmericaClubId(c.name);
+  if (!NORTH_AMERICA_CLUB_MAP[c.country]) NORTH_AMERICA_CLUB_MAP[c.country] = [];
+  NORTH_AMERICA_CLUB_MAP[c.country].push({ id, name: c.name, reputation: c.reputation, colors: c.colors });
+});
+Object.values(NORTH_AMERICA_CLUB_MAP).forEach(arr => arr.sort((a, b) => b.reputation - a.reputation));
+
+const WORLD_REGIONS = [
+  { key: 'SA', label: 'Ameryka Poludniowa' },
+  { key: 'AFR', label: 'Afryka' },
+  { key: 'ASIA', label: 'Azja' },
+  { key: 'NA', label: 'Ameryka Polnocna' },
+] as const;
+
+type WorldRegionKey = typeof WORLD_REGIONS[number]['key'];
 
 const ClubColorBadge: React.FC<{ club: ClubEntry }> = ({ club }) => {
   const logo = getClubLogo(club.id);
@@ -145,6 +191,49 @@ const ClubRow: React.FC<{ club: ClubEntry; onSelect: () => void }> = ({ club, on
       <span className="text-slate-700 group-hover:text-slate-400 transition-colors text-base shrink-0">›</span>
     </div>
   </button>
+);
+
+const WorldClubGrid: React.FC<{
+  countryOrder: string[];
+  clubMap: Record<string, ClubEntry[]>;
+  onSelectClub: (clubId: string) => void;
+}> = ({ countryOrder, clubMap, onSelectClub }) => (
+  <div className="grid grid-cols-3 gap-6">
+    {countryOrder.filter(code => clubMap[code]?.length > 0).map(code => (
+      <div key={code}>
+        <div className="flex items-center gap-3 mb-3">
+          <img src={flagUrl(code)} alt={COUNTRY_NAME[code]} className="h-6 w-9 object-cover rounded shadow-lg" />
+          <span className="text-sm font-black uppercase tracking-[0.18em] text-white">{COUNTRY_NAME[code]}</span>
+          <div className="flex-1 h-px bg-white/[0.06]" />
+          <span className="text-[10px] text-slate-600 font-medium">{clubMap[code].length} klubów</span>
+        </div>
+        <div className="space-y-1">
+          {clubMap[code].map((club, idx) => {
+            const c0 = club.colors?.[0] ?? '#6366f1';
+            const c1 = club.colors?.[1] ?? c0;
+            const c2 = club.colors?.[2] ?? c1;
+            return (
+              <button
+                key={club.id}
+                onClick={() => onSelectClub(club.id)}
+                className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.05] hover:border-white/[0.14] bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-150"
+              >
+                <span className="w-4 text-[10px] font-black text-slate-700 group-hover:text-slate-500 transition-colors text-right shrink-0">{idx + 1}</span>
+                <div
+                  className="w-9 h-7 rounded-md shrink-0 overflow-hidden"
+                  style={{ background: `linear-gradient(135deg, ${c0} 0%, ${c0} 50%, ${c1} 50%, ${c1} 100%)`, border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <div className="w-full h-full" style={{ background: `linear-gradient(to bottom, ${c2}22, transparent)` }} />
+                </div>
+                <span className="flex-1 text-[11px] font-black text-slate-200 group-hover:text-white transition-colors text-left tracking-widest truncate uppercase">{club.name}</span>
+                <span className="text-slate-700 group-hover:text-slate-400 transition-colors text-xs shrink-0">›</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </div>
 );
 
 // ─── REPREZENTACJE ───────────────────────────────────────────────────────────
@@ -394,6 +483,7 @@ export const EuropeanClubsView: React.FC = () => {
           selectedNTId, setSelectedNTId, previousViewState } = useGame();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [activeContinent, setActiveContinent] = useState<string>('Europe');
+  const [activeWorldRegion, setActiveWorldRegion] = useState<WorldRegionKey>('SA');
   const selectedNT = nationalTeams.find(t => t.id === selectedNTId) ?? null;
   const setSelectedNT = (t: NationalTeam | null) => setSelectedNTId(t?.id ?? null);
 
@@ -618,6 +708,22 @@ export const EuropeanClubsView: React.FC = () => {
 
             {activeTab === 'clubs' && selectedCountry === 'WORLD' && (
               <div className="p-6">
+                <div className="flex flex-wrap gap-2 justify-center mb-6">
+                  {WORLD_REGIONS.map(region => (
+                    <button
+                      key={region.key}
+                      onClick={() => setActiveWorldRegion(region.key)}
+                      className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        activeWorldRegion === region.key
+                          ? 'bg-sky-500 text-white shadow-[0_0_16px_rgba(14,165,233,0.28)]'
+                          : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.07] border border-white/[0.08]'
+                      }`}
+                    >
+                      {region.label}
+                    </button>
+                  ))}
+                </div>
+                {activeWorldRegion === 'SA' && (
                 <div className="grid grid-cols-3 gap-6">
                   {SA_COUNTRY_ORDER.filter(code => SA_CLUB_MAP[code]?.length > 0).map(code => (
                     <div key={code}>
@@ -659,6 +765,16 @@ export const EuropeanClubsView: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                )}
+                {activeWorldRegion === 'AFR' && (
+                  <WorldClubGrid countryOrder={AFRICA_COUNTRY_ORDER} clubMap={AFRICA_CLUB_MAP} onSelectClub={viewClubDetails} />
+                )}
+                {activeWorldRegion === 'ASIA' && (
+                  <WorldClubGrid countryOrder={ASIA_COUNTRY_ORDER} clubMap={ASIA_CLUB_MAP} onSelectClub={viewClubDetails} />
+                )}
+                {activeWorldRegion === 'NA' && (
+                  <WorldClubGrid countryOrder={NORTH_AMERICA_COUNTRY_ORDER} clubMap={NORTH_AMERICA_CLUB_MAP} onSelectClub={viewClubDetails} />
+                )}
               </div>
             )}
 

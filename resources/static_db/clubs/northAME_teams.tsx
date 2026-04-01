@@ -65,3 +65,6 @@ export const CLUBS_NORTH_AMERICA = [
   },
 
  ];
+
+export const generateNorthAmericaClubId = (name: string): string =>
+  'NA_' + name.toUpperCase().replace(/[^A-Z0-9]/g, '_');

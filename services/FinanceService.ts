@@ -227,6 +227,16 @@ export const FinanceService = {
     return Math.floor(baseBudget * variability);
   },
 
+  getClubTier: (club?: Pick<Club, 'leagueId' | 'tier'> | null): number => {
+    if (!club) return 4;
+    if (typeof club.tier === 'number' && Number.isFinite(club.tier)) {
+      return club.tier;
+    }
+
+    const parsedTier = parseInt((club.leagueId || '').split('_')[2] || '4', 10);
+    return Number.isFinite(parsedTier) ? parsedTier : 4;
+  },
+
   calculateEuropeanInitialBudget: (
     tier: number,
     reputation: number,
@@ -815,7 +825,7 @@ export const FinanceService = {
 
   calculateTicketPriceForClub: (club: Club): number => {
     if (!isEuropeanCommercialClub(club)) {
-      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      const tier = FinanceService.getClubTier(club);
       return FinanceService.calculateTicketPrice(tier, club.reputation);
     }
 
@@ -834,7 +844,7 @@ export const FinanceService = {
 
   calculateMatchTicketRevenueForClub: (attendance: number, club: Club): { revenue: number; avgPrice: number } => {
     if (!isEuropeanCommercialClub(club)) {
-      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      const tier = FinanceService.getClubTier(club);
       return FinanceService.calculateMatchTicketRevenue(attendance, tier, club.reputation);
     }
 
@@ -863,7 +873,7 @@ export const FinanceService = {
 
   calculateSeasonTicketPackageForClub: (club: Club): { revenue: number; ticketsSold: number; seasonTicketPrice: number } => {
     if (!isEuropeanCommercialClub(club)) {
-      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      const tier = FinanceService.getClubTier(club);
       const revenue = FinanceService.calculateSeasonTicketRevenue(club.stadiumCapacity, club.reputation, tier);
       const ticketsSold = Math.floor(club.stadiumCapacity * (0.10 + ((club.reputation / 10) * 0.20)));
       const ticketPrice = FinanceService.calculateTicketPrice(tier, club.reputation);
@@ -913,7 +923,7 @@ export const FinanceService = {
     parking: number;
   } => {
     if (!isEuropeanCommercialClub(club)) {
-      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      const tier = FinanceService.getClubTier(club);
       return FinanceService.calculateMatchdayAdditionalRevenues(attendance, tier, club.reputation);
     }
 
@@ -940,7 +950,7 @@ export const FinanceService = {
 
   calculateVIPBoxRevenueForClub: (club: Club): number => {
     if (!isEuropeanCommercialClub(club)) {
-      const tier = parseInt(club.leagueId.split('_')[2] || '1', 10);
+      const tier = FinanceService.getClubTier(club);
       if (tier !== 1 || club.stadiumCapacity <= 15_000) return 0;
       return FinanceService.calculateVIPBoxRevenue(club.stadiumCapacity, club.reputation);
     }

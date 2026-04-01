@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MailMessage, MailType } from '../../types';
+import { MailMessage, MailType, ViewState } from '../../types';
 import { useGame } from '../../context/GameContext';
 
 interface MailDetailsModalProps {
@@ -9,7 +9,7 @@ interface MailDetailsModalProps {
 }
 
 export const MailDetailsModal: React.FC<MailDetailsModalProps> = ({ mail, onClose }) => {
-const { finalizeFreeAgentContract } = useGame();
+const { finalizeFreeAgentContract, navigateToIncomingOffer } = useGame();
 
   const getTypeColor = (type: MailType) => {
     switch (type) {
@@ -79,6 +79,18 @@ const { finalizeFreeAgentContract } = useGame();
               <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Wysłano:</span>
               <span className="text-[10px] font-black text-slate-400 uppercase">{mail.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
            </div>
+
+ {mail.metadata?.type === 'INCOMING_TRANSFER_OFFER' && (() => {
+                const offerId = mail.metadata.offerId;
+                return (
+                  <button
+                    onClick={() => { navigateToIncomingOffer(offerId); onClose(); }}
+                    className="px-10 py-4 bg-amber-500 text-white font-black italic uppercase tracking-widest text-xs rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl mr-4"
+                  >
+                    PRZEJDŹ DO OFERTY
+                  </button>
+                );
+              })()}
 
  {mail.metadata?.type === 'CONTRACT_OFFER' && mail.metadata.accepted && (
                 <button 
