@@ -650,7 +650,7 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
     const template = MAIL_TEMPLATES.find(t => t.id === 'incoming_offer_expired')!;
     const body = template.body
       .replace('{PLAYER}', `${player.firstName} ${player.lastName}`)
-      .replace('{BUYER_CLUB}', buyerClubName)
+      .replace(/{BUYER_CLUB}/g, buyerClubName)
       .replace('{CLUB}', sellerClubName);
     return {
       id: `incoming_expired_${Date.now()}_${Math.random().toString(36).slice(2)}`,

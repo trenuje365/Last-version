@@ -42,6 +42,10 @@ export const PlayerCard: React.FC = () => {
 const [showHistory, setShowHistory] = React.useState(false);
   const isContractLocked = player.contractLockoutUntil && new Date(currentDate) < new Date(player.contractLockoutUntil);
   const isTransferLocked = player.transferLockoutUntil && new Date(currentDate) < new Date(player.transferLockoutUntil);
+  const pendingTransferClub = player.transferPendingClubId
+    ? clubs.find(c => c.id === player.transferPendingClubId)
+    : null;
+  const hasPendingTransfer = !!player.transferPendingClubId && !!player.transferReportDate;
   const hasUserTransferAgreement = !!(userTeamId && transferOffers.find(offer =>
     offer.playerId === player.id &&
     offer.buyerClubId === userTeamId &&
@@ -113,6 +117,13 @@ const [showHistory, setShowHistory] = React.useState(false);
                 <div className="mb-4 animate-pulse">
                    <span className="bg-amber-500 text-black text-[10px] font-black px-4 py-1 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]">
                      LISTA TRANSFEROWA
+                   </span>
+                </div>
+              )}
+              {hasPendingTransfer && (
+                <div className="mb-4">
+                   <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-4 py-1 rounded-full border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                     TRS • TRANSFER UZGODNIONY
                    </span>
                 </div>
               )}
@@ -320,6 +331,22 @@ const [showHistory, setShowHistory] = React.useState(false);
                   {club.id === 'FREE_AGENTS' ? '🚫' : '📅'}
                 </div>
               </div>
+              {hasPendingTransfer && (
+                <div className="bg-transparent p-3 rounded-[20px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-colors">
+                  <div>
+                    <span className="block text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-1 drop-shadow">Zaplanowany transfer</span>
+                    <span className="text-sm font-black text-white italic uppercase drop-shadow">
+                      {pendingTransferClub?.name ?? player.transferPendingClubId}
+                    </span>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                      {player.transferReportDate ? `Data przejscia: ${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}` : 'Transfer uzgodniony'}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-inner">
+                    TRS
+                  </div>
+                </div>
+              )}
               <div className="bg-transparent p-3 rounded-[20px] border border-emerald-500/20 flex items-center justify-between group hover:border-emerald-500/40 transition-all shadow-lg">
                 <div>
                   <span className="block text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-1 drop-shadow">Cena Rynkowa</span>
@@ -389,23 +416,23 @@ const [showHistory, setShowHistory] = React.useState(false);
                   </div>
                 </button>
                 <button
-                  disabled={isContractLocked}
+                  disabled={isContractLocked || hasPendingTransfer}
                   onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
                   className={`group relative h-12 rounded-[18px] flex items-center justify-center gap-3 transition-all
-                    ${isContractLocked
+                    ${isContractLocked || hasPendingTransfer
                       ? 'bg-slate-800 border-slate-700 opacity-50 cursor-not-allowed'
                       : 'bg-blue-600/10 border-blue-500/20 hover:bg-blue-600/20 hover:border-blue-500/40 active:scale-95 shadow-xl'
                     }`}
                 >
                   <span className="text-xl group-hover:scale-110 transition-transform">
-                    {isContractLocked ? '⏳' : '✍️'}
+                    {isContractLocked || hasPendingTransfer ? '⏳' : '✍️'}
                   </span>
                   <div className="text-left">
                     <span className="block text-[8px] font-black uppercase tracking-widest drop-shadow">
-                      {isContractLocked ? 'BLOKADA CZASOWA' : 'NOWE WARUNKI'}
+                      {hasPendingTransfer ? 'TRANSFER UZGODNIONY' : isContractLocked ? 'BLOKADA CZASOWA' : 'NOWE WARUNKI'}
                     </span>
                     <span className="text-[11px] font-black text-white italic uppercase drop-shadow">
-                      {isContractLocked ? 'UMOWA NIEDAWNO PODPISANA' : 'PRZEDŁUŻ UMOWĘ'}
+                      {hasPendingTransfer ? 'NIE MOZNA PRZEDLUZYC UMOWY' : isContractLocked ? 'UMOWA NIEDAWNO PODPISANA' : 'PRZEDŁUŻ UMOWĘ'}
                     </span>
                   </div>
                 </button>

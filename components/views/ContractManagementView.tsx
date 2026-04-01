@@ -56,6 +56,10 @@ export const ContractManagementView: React.FC = () => {
 
   const isLocked = player.boardLockoutUntil && new Date(currentDate) < new Date(player.boardLockoutUntil);
   const lockDateLabel = player.boardLockoutUntil ? new Date(player.boardLockoutUntil).toLocaleDateString('pl-PL') : "";
+  const pendingTransferClub = player.transferPendingClubId
+    ? clubs.find(c => c.id === player.transferPendingClubId)
+    : null;
+  const hasPendingTransfer = !!player.transferPendingClubId && !!player.transferReportDate;
 
   const requestBoardApproval = () => {
     setIsProcessing(true);
@@ -382,7 +386,18 @@ export const ContractManagementView: React.FC = () => {
               ) : (
                 <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-[50px] p-8 flex flex-col gap-6 relative overflow-y-auto custom-scrollbar">
                    
-                   { (player.isNegotiationPermanentBlocked || (player.negotiationStep || 0) >= 3 || (player.negotiationLockoutUntil && new Date(currentDate) < new Date(player.negotiationLockoutUntil))) && !isOfferSent ? (
+                   { hasPendingTransfer && !isOfferSent ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 animate-fade-in py-12">
+                         <span className="text-7xl">🚫</span>
+                         <h4 className="text-3xl font-black text-amber-400 uppercase italic">Transfer już uzgodniony</h4>
+                         <p className="text-slate-300 italic text-lg max-w-md">
+                            {player.firstName} {player.lastName} ma już podpisane przejście do {pendingTransferClub?.name ?? player.transferPendingClubId}.
+                            {' '}Nowa umowa w obecnym klubie jest zablokowana do czasu realizacji transferu
+                            {player.transferReportDate ? ` (${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}).` : '.'}
+                         </p>
+                         <button onClick={() => navigateTo(ViewState.SQUAD_VIEW)} className="mt-4 px-10 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-white transition-all">Powrót do kadry</button>
+                      </div>
+                   ) : (player.isNegotiationPermanentBlocked || (player.negotiationStep || 0) >= 3 || (player.negotiationLockoutUntil && new Date(currentDate) < new Date(player.negotiationLockoutUntil))) && !isOfferSent ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 animate-fade-in py-12">
                          <span className="text-7xl">⛔</span>
                          <h4 className="text-3xl font-black text-red-500 uppercase italic">Rozmowy Wstrzymane</h4>

@@ -61,6 +61,10 @@ export const IncomingTransferService = {
       return { shouldGenerate: false, source: null };
     }
 
+    if (player.transferPendingClubId) {
+      return { shouldGenerate: false, source: null };
+    }
+
     if (buyerClub.rosterIds.length >= 30) return { shouldGenerate: false, source: null };
     if (buyerClub.id === sellerClub.id) return { shouldGenerate: false, source: null };
 

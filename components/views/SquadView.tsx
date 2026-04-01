@@ -77,6 +77,7 @@ export const SquadView: React.FC = () => {
         loc === 'START' ? index : undefined
       );
       updateLineup(userTeamId, newLineup);
+      fixSpecialRoles(newLineup.startingXI);
       setSelectedSlot(null);
     }
   };
@@ -91,10 +92,31 @@ export const SquadView: React.FC = () => {
     updateLineup(userTeamId, newLineup);
   };
 
+  const fixSpecialRoles = (newStartingXI: (string | null)[]) => {
+    if (!userTeamId || !myClub) return;
+    const xiIds = newStartingXI.filter((id): id is string => id !== null);
+    const xiPlayers = myPlayers.filter(p => xiIds.includes(p.id));
+    if (xiPlayers.length === 0) return;
+    setClubs(prev => prev.map(c => {
+      if (c.id !== userTeamId) return c;
+      const captainId = c.captainId && xiIds.includes(c.captainId)
+        ? c.captainId
+        : [...xiPlayers].sort((a, b) => b.attributes.leadership - a.attributes.leadership)[0]?.id ?? null;
+      const penaltyTakerId = c.penaltyTakerId && xiIds.includes(c.penaltyTakerId)
+        ? c.penaltyTakerId
+        : [...xiPlayers].sort((a, b) => b.attributes.finishing - a.attributes.finishing)[0]?.id ?? null;
+      const freeKickTakerId = c.freeKickTakerId && xiIds.includes(c.freeKickTakerId)
+        ? c.freeKickTakerId
+        : [...xiPlayers].sort((a, b) => b.attributes.freeKicks - a.attributes.freeKicks)[0]?.id ?? null;
+      return { ...c, captainId, penaltyTakerId, freeKickTakerId };
+    }));
+  };
+
   const handleAutoPick = () => {
     if(!userTeamId) return;
     const newLineup = { ...LineupService.autoPickLineup(userTeamId, myPlayers, currentTactic.id) };
     updateLineup(userTeamId, newLineup);
+    fixSpecialRoles(newLineup.startingXI);
   };
 
   const benchPlayers = useMemo(() => {
@@ -153,6 +175,10 @@ export const SquadView: React.FC = () => {
 
     const healthInfo = PlayerPresentationService.getHealthDisplay(player);
     const condColor = PlayerPresentationService.getConditionColorClass(player.condition);
+    const pendingTransferClub = player.transferPendingClubId
+      ? clubs.find(c => c.id === player.transferPendingClubId)
+      : null;
+    const hasPendingTransfer = !!player.transferPendingClubId && !!player.transferReportDate;
     const isSuspended = (player.suspensionMatches || 0) > 0;
     const isSevereInjured = player.health.status === HealthStatus.INJURED && player.health.injury?.severity === InjurySeverity.SEVERE;
     const isOverfatigued = player.condition < 60;
@@ -194,6 +220,14 @@ export const SquadView: React.FC = () => {
               {player.isOnTransferList && (
                 <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[8px] font-black rounded border border-amber-500/30 shadow-sm shrink-0 leading-none">
                      LISTA
+                </span>
+              )}
+              {hasPendingTransfer && (
+                <span
+                  title={`Transfer uzgodniony z ${pendingTransferClub?.name ?? player.transferPendingClubId}${player.transferReportDate ? `\nData przejscia: ${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}` : ''}`}
+                  className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded border border-emerald-500/30 shadow-sm shrink-0 leading-none cursor-help"
+                >
+                  TRS
                 </span>
               )}
               {/* Badge zainteresowania transferowego — pojawia się gdy ≥1 klub AI obserwuje zawodnika */}

@@ -784,8 +784,8 @@ export const TransferNewsView: React.FC = () => {
               const statusLabels: Record<string, { label: string; color: string }> = {
                 EMAIL_SENT: { label: 'Oczekuje na odpowiedź', color: 'text-amber-300' },
                 REMINDER_SENT: { label: 'Przypomnienie wysłane', color: 'text-orange-300' },
-                COUNTER_PENDING_AI: { label: 'AI rozpatruje kontrę', color: 'text-blue-300' },
-                AI_COUNTERED: { label: 'AI odpowiedziało — wymagana akcja', color: 'text-amber-400' },
+                COUNTER_PENDING_AI: { label: 'Rozpatrywanie oferty', color: 'text-blue-300' },
+                AI_COUNTERED: { label: 'Przyszła odpowiedz, wymagana akcja', color: 'text-amber-400' },
                 NEGOTIATION_IN_PROGRESS: { label: 'Negocjacje z zawodnikiem w toku', color: 'text-blue-400' },
                 AWAITING_CONFIRMATION: { label: 'Wymagane zatwierdzenie', color: 'text-emerald-400' },
               };

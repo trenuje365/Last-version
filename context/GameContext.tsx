@@ -3825,6 +3825,20 @@ const finalResult: SimulationOutput = {
       };
 
       setTransferOffers(prev => [agreedOffer, ...prev].slice(0, 100));
+      setPlayers(prev => ({
+        ...prev,
+        [userTeamId]: (prev[userTeamId] || []).map(p =>
+          p.id === player!.id
+            ? {
+                ...p,
+                transferPendingClubId: buyerClub.id,
+                transferReportDate: agreedOffer.effectiveDate || player!.contractEndDate,
+                interestedClubs: [],
+                isOnTransferList: false,
+              }
+            : p
+        )
+      }));
       setIncomingOffers(prev => prev.map(o => {
         if (o.id === offerId) return { ...o, status: IncomingOfferStatus.COMPLETED };
         if (

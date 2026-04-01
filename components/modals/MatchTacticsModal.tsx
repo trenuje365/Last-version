@@ -6,7 +6,7 @@ import { LineupService } from '../../services/LineupService';
 
 interface MatchTacticsModalProps {
   isOpen: boolean;
-  onClose: (newLineup: Lineup, subsCount: number, subsHistory: SubstitutionRecord[]) => void;
+  onClose: (newLineup: Lineup, subsCount: number, subsHistory: SubstitutionRecord[], captainId: string | null, penaltyTakerId: string | null, freeKickTakerId: string | null) => void;
   club: any;
   lineup: Lineup;
   players: Player[];
@@ -18,7 +18,7 @@ interface MatchTacticsModalProps {
   injs?: Record<string, InjurySeverity>;
 }
 
-export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({ 
+export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({
   isOpen, onClose, club, lineup, players, fatigue, subsCount, subsHistory, minute, sentOffIds = [], injs = {}
 }) => {
   if (!isOpen) return null;
@@ -28,6 +28,18 @@ export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({
   const [currentSubsHistory, setCurrentSubsHistory] = useState<SubstitutionRecord[]>(subsHistory);
   const [selectedSlot, setSelectedSlot] = useState<{ id: string | null, index?: number, loc: 'START' | 'BENCH' } | null>(null);
   const [selectedExpectedRole, setSelectedExpectedRole] = useState<string | null>(null);
+  const [localCaptainId, setLocalCaptainId] = useState<string | null>(club?.captainId ?? null);
+  const [localPenaltyTakerId, setLocalPenaltyTakerId] = useState<string | null>(club?.penaltyTakerId ?? null);
+  const [localFreeKickTakerId, setLocalFreeKickTakerId] = useState<string | null>(club?.freeKickTakerId ?? null);
+  const [roleMenu, setRoleMenu] = useState<{ x: number; y: number; playerId: string } | null>(null);
+
+  const handleRoleAssign = (role: 'captain' | 'penalty' | 'freekick') => {
+    if (!roleMenu) return;
+    if (role === 'captain') setLocalCaptainId(roleMenu.playerId);
+    if (role === 'penalty') setLocalPenaltyTakerId(roleMenu.playerId);
+    if (role === 'freekick') setLocalFreeKickTakerId(roleMenu.playerId);
+    setRoleMenu(null);
+  };
 
   const tactic = TacticRepository.getById(currentLineup.tacticId);
   const substitutedOffIds = new Set(currentSubsHistory.map(s => s.playerOutId));
@@ -116,8 +128,9 @@ export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({
     const conditionLabelClass = p ? (f < 40 ? 'text-red-500' : f < 75 ? 'text-orange-500' : 'text-white') : 'text-white';
 
     return (
-      <div 
-        onClick={() => !isRedBlocked && handleSlotClick(pId, loc, index, expectedRole)}
+      <div
+        onClick={() => { setRoleMenu(null); !isRedBlocked && handleSlotClick(pId, loc, index, expectedRole); }}
+        onContextMenu={(e) => { if (loc === 'START' && p && !isOut) { e.preventDefault(); setRoleMenu({ x: e.clientX, y: e.clientY, playerId: p.id }); setSelectedSlot(null); } }}
         className={`relative w-full h-20 mb-3 rounded-[24px] transition-all duration-500 group overflow-visible
           ${isSelected 
             ? 'bg-blue-500/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)] scale-[1.02] z-30' 
@@ -164,6 +177,15 @@ export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({
                     )}
                     {loc === 'START' && !isNaturalPos && (
                       <span className="text-[7px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded border border-amber-500/30 font-black">ZAWODNIK NA NIE SWOJEJ POZYCJI</span>
+                    )}
+                    {loc === 'START' && localCaptainId === p.id && (
+                      <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 text-[8px] font-black rounded border border-yellow-500/30 leading-none shrink-0">C</span>
+                    )}
+                    {loc === 'START' && localPenaltyTakerId === p.id && (
+                      <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded border border-emerald-500/30 leading-none shrink-0">PK</span>
+                    )}
+                    {loc === 'START' && localFreeKickTakerId === p.id && (
+                      <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[8px] font-black rounded border border-blue-500/30 leading-none shrink-0">FK</span>
                     )}
                   </div>
                   <span className={`text-[9px] font-bold uppercase tracking-widest ${PlayerPresentationService.getPositionColorClass(p.position)}`}>
@@ -248,7 +270,7 @@ export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({
            </div>
            
            <button 
-             onClick={() => onClose(currentLineup, currentSubsCount, currentSubsHistory)}
+             onClick={() => onClose(currentLineup, currentSubsCount, currentSubsHistory, localCaptainId, localPenaltyTakerId, localFreeKickTakerId)}
              className="relative group px-16 py-6 bg-white text-slate-950 font-black italic uppercase tracking-tighter text-xl rounded-[30px] transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(255,255,255,0.1)] border-b-4 border-slate-300"
            >
              <span className="relative z-10">ZATWIERDŹ PROTOKÓŁ ⚡</span>
@@ -362,6 +384,31 @@ export const MatchTacticsModal: React.FC<MatchTacticsModalProps> = ({
            </div>
         </footer>
       </div>
+
+      {roleMenu && (
+        <>
+          <div className="fixed inset-0 z-[1100]" onClick={() => setRoleMenu(null)} />
+          <div
+            className="fixed z-[1101] bg-slate-900/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden"
+            style={{ left: roleMenu.x, top: roleMenu.y }}
+          >
+            <button onClick={() => handleRoleAssign('captain')} className="flex items-center gap-3 w-full px-5 py-3 hover:bg-yellow-500/10 transition-colors text-left">
+              <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 text-[8px] font-black rounded border border-yellow-500/30 leading-none">C</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-widest">Kapitan</span>
+            </button>
+            <div className="h-px bg-white/5 mx-3" />
+            <button onClick={() => handleRoleAssign('penalty')} className="flex items-center gap-3 w-full px-5 py-3 hover:bg-emerald-500/10 transition-colors text-left">
+              <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded border border-emerald-500/30 leading-none">PK</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-widest">Wykonawca PK</span>
+            </button>
+            <div className="h-px bg-white/5 mx-3" />
+            <button onClick={() => handleRoleAssign('freekick')} className="flex items-center gap-3 w-full px-5 py-3 hover:bg-blue-500/10 transition-colors text-left">
+              <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[8px] font-black rounded border border-blue-500/30 leading-none">FK</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-widest">Wykonawca FK</span>
+            </button>
+          </div>
+        </>
+      )}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }

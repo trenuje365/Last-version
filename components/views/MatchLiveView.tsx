@@ -77,10 +77,10 @@ const BigJerseyIcon = ({ primary, secondary, size = "w-16 h-16" }: { primary: st
 );
 
 export const MatchLiveView = () => {
-  const { 
-    navigateTo, userTeamId, clubs, fixtures, players, 
+  const {
+    navigateTo, userTeamId, clubs, fixtures, players,
     lineups, currentDate, setLastMatchSummary, applySimulationResult, viewPlayerDetails,seasonNumber, coaches,
-    roundResults,
+    roundResults, setClubs,
     activeMatchState: matchState, setActiveMatchState: setMatchState
   } = useGame();
   
@@ -403,13 +403,13 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
     }
   }, [activeVAR?.phase, activeVAR?.verdict, setMatchState]);
 
-  const handleTacticsClose = (newLineup: Lineup, subsCount: number, subsHistory: SubstitutionRecord[]) => {
+  const handleTacticsClose = (newLineup: Lineup, subsCount: number, subsHistory: SubstitutionRecord[], captainId: string | null, penaltyTakerId: string | null, freeKickTakerId: string | null) => {
     setMatchState(prev => {
       if (!prev) return prev;
       const isHome = userSide === 'HOME';
       return {
         ...prev,
-        isPaused: true, 
+        isPaused: true,
         homeLineup: isHome ? newLineup : prev.homeLineup,
         awayLineup: !isHome ? newLineup : prev.awayLineup,
         subsCountHome: isHome ? subsCount : prev.subsCountHome,
@@ -418,6 +418,9 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
         awaySubsHistory: !isHome ? subsHistory : prev.awaySubsHistory
       };
     });
+    if (userTeamId) {
+      setClubs(prev => prev.map(c => c.id !== userTeamId ? c : { ...c, captainId, penaltyTakerId, freeKickTakerId }));
+    }
     setIsTacticsOpen(false);
   };
 
