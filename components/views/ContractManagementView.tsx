@@ -389,10 +389,10 @@ export const ContractManagementView: React.FC = () => {
                    { hasPendingTransfer && !isOfferSent ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 animate-fade-in py-12">
                          <span className="text-7xl">🚫</span>
-                         <h4 className="text-3xl font-black text-amber-400 uppercase italic">Transfer już uzgodniony</h4>
+                         <h4 className="text-3xl font-black text-amber-400 uppercase italic">Transfer uzgodniony</h4>
                          <p className="text-slate-300 italic text-lg max-w-md">
-                            {player.firstName} {player.lastName} podpisał kontrakt z {pendingTransferClub?.name ?? player.transferPendingClubId}.
-                            {' '}Czas realizacji transferu
+                            {player.firstName} {player.lastName} podpisał kontrakt z {pendingTransferClub?.name ?? player.transferPendingClubId}
+                            {' '}i przechodzi do nich
                             {player.transferReportDate ? ` (${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}).` : '.'}
                          </p>
                          <button onClick={() => navigateTo(ViewState.SQUAD_VIEW)} className="mt-4 px-10 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-white transition-all">Powrót do kadry</button>

@@ -3674,6 +3674,7 @@ const finalResult: SimulationOutput = {
     const squad = players[userTeamId] || [];
     const player = squad.find(p => p.id === playerId);
     if (player) {
+      if (player.transferPendingClubId) return;
       updatePlayer(userTeamId, playerId, { isOnTransferList: !player.isOnTransferList });
     }
   };

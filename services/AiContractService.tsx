@@ -36,6 +36,48 @@ const _buildTransferLockoutUntil = (currentDate: Date): string => {
   return lockoutDate.toISOString();
 };
 
+const _getTransferListOpportunity = (
+  player: Player,
+  buyerClub: Club,
+  sellerClub: Club
+): { scoreBonus: number; budgetBoost: number } => {
+  if (!player.isOnTransferList) return { scoreBonus: 0, budgetBoost: 0 };
+
+  const repDelta = sellerClub.reputation - buyerClub.reputation;
+  const buyerIdealOvr = 30 + buyerClub.reputation * 4.5;
+  const sellerIdealOvr = 30 + sellerClub.reputation * 4.5;
+  const qualityVsSeller = player.overallRating - sellerIdealOvr;
+
+  let scoreBonus = 0;
+  let budgetBoost = 0;
+
+  if (repDelta >= -1 && repDelta <= 2) {
+    scoreBonus += 12;
+    budgetBoost += 0.10;
+  } else if (repDelta <= 5 && player.overallRating >= buyerIdealOvr - 2) {
+    scoreBonus += 6;
+    budgetBoost += 0.05;
+  }
+
+  if (sellerClub.reputation >= buyerClub.reputation) scoreBonus += 4;
+
+  if (qualityVsSeller >= 4) {
+    scoreBonus += 12;
+    budgetBoost += 0.10;
+  } else if (qualityVsSeller >= 1) {
+    scoreBonus += 8;
+    budgetBoost += 0.05;
+  }
+
+  if (player.age <= 29) scoreBonus += 3;
+  if (player.age >= 33) scoreBonus -= 2;
+
+  return {
+    scoreBonus: Math.max(0, scoreBonus),
+    budgetBoost: Math.min(0.20, Math.max(0, budgetBoost))
+  };
+};
+
 export const AiContractService = {
   /**
    * Przetwarza wszystkie kluby AI w poszukiwaniu kończących się kontraktów.
@@ -454,7 +496,7 @@ processAiRecruitment: (
       const clubStrategy = hashClub(club.id) % 4;
 
       const squad = updatedPlayersMap[club.id] || [];
-      if (squad.length >= 28) continue;
+      if (squad.length >= 32) continue;
       if (club.budget <= 250_000) continue;
 
       // Dynamiczna diagnoza potrzeb
@@ -492,13 +534,14 @@ processAiRecruitment: (
 
         const sellerClub = sellerClubMap.get(p.clubId || '');
         if (!sellerClub) return false;
+        const marketOpportunity = _getTransferListOpportunity(p, club, sellerClub);
 
         const sellerSquad = updatedPlayersMap[p.clubId || ''] || [];
         const askingPrice = TransferSellerLogicService.estimateAskingPrice(p, sellerClub, sellerSquad, currentDate);
         const proposedSalary = FinanceLogic.getFairMarketSalary(p.overallRating);
 
-        const budgetCapNormal = clubStrategy === 2 ? 0.65 : 0.50;
-        const budgetCapBargain = clubStrategy === 2 ? 0.45 : 0.35;
+        const budgetCapNormal = Math.min(0.78, (clubStrategy === 2 ? 0.65 : 0.50) + marketOpportunity.budgetBoost);
+        const budgetCapBargain = Math.min(0.60, (clubStrategy === 2 ? 0.45 : 0.35) + marketOpportunity.budgetBoost);
         if (bargainRange && askingPrice > club.budget * budgetCapBargain) return false;
         if (normalRange && askingPrice > club.budget * budgetCapNormal) return false;
         if (clubStrategy === 1 && p.age > 26) return false;
@@ -513,17 +556,35 @@ processAiRecruitment: (
       let sortedCandidates = [...candidates];
       if (clubStrategy === 1) {
         // Youth investor: najmłodszy, potem najwyższy OVR
-        sortedCandidates.sort((a, b) => a.age - b.age || b.overallRating - a.overallRating);
+        sortedCandidates.sort((a, b) => {
+          const aSeller = sellerClubMap.get(a.clubId || '');
+          const bSeller = sellerClubMap.get(b.clubId || '');
+          const aBonus = aSeller ? _getTransferListOpportunity(a, club, aSeller).scoreBonus : 0;
+          const bBonus = bSeller ? _getTransferListOpportunity(b, club, bSeller).scoreBonus : 0;
+          return a.age - b.age || (b.overallRating + bBonus) - (a.overallRating + aBonus);
+        });
       } else if (clubStrategy === 0) {
         // Bargain hunter: lista transferowa i wygasające kontrakty najpierw, potem tańszy OVR
         sortedCandidates.sort((a, b) => {
-          const aVal = (a.isOnTransferList ? 20 : 0) + (new Date(a.contractEndDate).getTime() - currentDate.getTime() < 365 * 86_400_000 ? 10 : 0);
-          const bVal = (b.isOnTransferList ? 20 : 0) + (new Date(b.contractEndDate).getTime() - currentDate.getTime() < 365 * 86_400_000 ? 10 : 0);
+          const aSeller = sellerClubMap.get(a.clubId || '');
+          const bSeller = sellerClubMap.get(b.clubId || '');
+          const aVal = (a.isOnTransferList ? 20 : 0)
+            + (new Date(a.contractEndDate).getTime() - currentDate.getTime() < 365 * 86_400_000 ? 10 : 0)
+            + (aSeller ? _getTransferListOpportunity(a, club, aSeller).scoreBonus : 0);
+          const bVal = (b.isOnTransferList ? 20 : 0)
+            + (new Date(b.contractEndDate).getTime() - currentDate.getTime() < 365 * 86_400_000 ? 10 : 0)
+            + (bSeller ? _getTransferListOpportunity(b, club, bSeller).scoreBonus : 0);
           return bVal - aVal || a.overallRating - b.overallRating;
         });
       } else {
         // Star chaser / pragmatist: najwyższy OVR
-        sortedCandidates.sort((a, b) => b.overallRating - a.overallRating);
+        sortedCandidates.sort((a, b) => {
+          const aSeller = sellerClubMap.get(a.clubId || '');
+          const bSeller = sellerClubMap.get(b.clubId || '');
+          const aBonus = aSeller ? _getTransferListOpportunity(a, club, aSeller).scoreBonus : 0;
+          const bBonus = bSeller ? _getTransferListOpportunity(b, club, bSeller).scoreBonus : 0;
+          return (b.overallRating + bBonus) - (a.overallRating + aBonus);
+        });
       }
       const best = sortedCandidates[0];
       const sellerClub = sellerClubMap.get(best.clubId || '');
@@ -620,7 +681,7 @@ processAiRecruitment: (
       if (club.budget <= 500_000) continue;
 
       const squad = updatedPlayersMap[club.id] || [];
-      if (squad.length >= 28) continue;
+      if (squad.length >= 32) continue;
 
       // Jeden aktywny zakup na raz
       const alreadyBuying = Object.values(updatedPlayersMap)

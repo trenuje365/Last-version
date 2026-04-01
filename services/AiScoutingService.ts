@@ -195,6 +195,7 @@ export const AiScoutingService = {
           need.urgency,
           club,
           allPlayers,
+          clubs,
           coachSeed,
           currentDate
         );
@@ -349,6 +350,7 @@ export const AiScoutingService = {
     urgency: number,
     club: Club,
     allPlayers: Player[],
+    allClubs: Club[],
     coachSeed: number,
     currentDate: Date
   ): { player: Player; score: number }[] => {
@@ -374,7 +376,14 @@ export const AiScoutingService = {
       if (p.overallRating < minOvr || p.overallRating > maxOvr) return false;
       // W zasięgu finansowym (wartość rynkowa lub wynagrodzenie * 3 jako proxy)
       const estimatedCost = p.marketValue || p.annualSalary * 3;
-      if (estimatedCost > maxAffordableValue && p.clubId !== 'FREE_AGENTS') return false;
+      const sellerClub = allClubs.find(c => c.id === p.clubId);
+      const affordabilityMultiplier = AiScoutingService._getTransferListAffordabilityMultiplier(
+        p,
+        club,
+        sellerClub,
+        idealOvr
+      );
+      if (estimatedCost > maxAffordableValue * affordabilityMultiplier && p.clubId !== 'FREE_AGENTS') return false;
       // Nie kontuzjowany ciężko (klub nie interesuje się kontuzjowanymi na długo)
       if (p.health.status === HealthStatus.INJURED && (p.health.injury?.daysRemaining || 0) > 60) return false;
       return true;
@@ -383,6 +392,7 @@ export const AiScoutingService = {
     // Oceń każdego kandydata
     return candidates.map(player => {
       let score = 0;
+      const sellerClub = allClubs.find(c => c.id === player.clubId);
 
       // 1. Dopasowanie OVR (max 40 pkt)
       const ovrDiff = Math.abs(player.overallRating - idealOvr);
@@ -399,6 +409,7 @@ export const AiScoutingService = {
 
       // 3. Dostępność (max 20 pkt)
       if (player.isOnTransferList) score += 15; // klub wystawił na sprzedaż
+      score += AiScoutingService._getTransferListMarketOpportunityBonus(player, club, sellerClub, idealOvr);
       const daysToExpiry = Math.floor((new Date(player.contractEndDate).getTime() - currentDate.getTime()) / 86_400_000);
       if (daysToExpiry < 180) score += 12; // kontrakt wygasa → łatwiej pozyskać
       else if (daysToExpiry < 365) score += 6;
@@ -665,6 +676,60 @@ export const AiScoutingService = {
     return discovered
       .sort((a, b) => b.score - a.score)
       .slice(0, 2);
+  },
+
+  _getTransferListMarketOpportunityBonus: (
+    player: Player,
+    buyingClub: Club,
+    sellerClub: Club | undefined,
+    buyerIdealOvr: number
+  ): number => {
+    if (!player.isOnTransferList || !sellerClub) return 0;
+
+    const repDelta = sellerClub.reputation - buyingClub.reputation;
+    const sellerIdealOvr = 30 + sellerClub.reputation * 4.5;
+    const qualityVsSeller = player.overallRating - sellerIdealOvr;
+
+    let bonus = 0;
+
+    if (repDelta >= -1 && repDelta <= 2) bonus += 10;
+    else if (repDelta <= 5 && player.overallRating >= buyerIdealOvr - 2) bonus += 5;
+
+    if (sellerClub.reputation >= buyingClub.reputation) bonus += 4;
+
+    if (qualityVsSeller >= 4) bonus += 12;
+    else if (qualityVsSeller >= 1) bonus += 8;
+    else if (player.overallRating >= buyerIdealOvr + 2) bonus += 4;
+
+    if (player.age <= 29) bonus += 3;
+    if (player.age >= 33) bonus -= 2;
+
+    return Math.max(0, bonus);
+  },
+
+  _getTransferListAffordabilityMultiplier: (
+    player: Player,
+    buyingClub: Club,
+    sellerClub: Club | undefined,
+    buyerIdealOvr: number
+  ): number => {
+    if (!player.isOnTransferList || !sellerClub) return 1;
+
+    const repDelta = sellerClub.reputation - buyingClub.reputation;
+    const sellerIdealOvr = 30 + sellerClub.reputation * 4.5;
+    const qualityVsSeller = player.overallRating - sellerIdealOvr;
+
+    let multiplier = 1;
+
+    if (repDelta >= -1 && repDelta <= 2) multiplier += 0.20;
+    else if (repDelta <= 5 && player.overallRating >= buyerIdealOvr - 2) multiplier += 0.10;
+
+    if (qualityVsSeller >= 4) multiplier += 0.20;
+    else if (qualityVsSeller >= 1) multiplier += 0.10;
+
+    if (player.age <= 28) multiplier += 0.05;
+
+    return Math.min(1.45, multiplier);
   },
 
   /**

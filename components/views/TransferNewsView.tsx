@@ -320,6 +320,7 @@ export const TransferNewsView: React.FC = () => {
         if (!player.history || player.history.length < 2) return false;
         const lastEntry = player.history[player.history.length - 1];
         if (!lastEntry.fromYear || !lastEntry.fromMonth) return false;
+        if (lastEntry.clubId === 'FREE_AGENTS') return false;
 
         const entryDate = new Date(lastEntry.fromYear, lastEntry.fromMonth - 1, 1);
         return entryDate >= seasonStart;

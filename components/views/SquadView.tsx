@@ -224,7 +224,7 @@ export const SquadView: React.FC = () => {
               )}
               {hasPendingTransfer && (
                 <span
-                  title={`Transfer uzgodniony z ${pendingTransferClub?.name ?? player.transferPendingClubId}${player.transferReportDate ? `\nData przejscia: ${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}` : ''}`}
+                  title={`Transfer do ${pendingTransferClub?.name ?? player.transferPendingClubId}${player.transferReportDate ? `\nData przejscia: ${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}` : ''}`}
                   className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded border border-emerald-500/30 shadow-sm shrink-0 leading-none cursor-help"
                 >
                   TRS

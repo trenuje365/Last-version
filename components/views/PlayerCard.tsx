@@ -441,9 +441,12 @@ const [showHistory, setShowHistory] = React.useState(false);
 
             {player.clubId === userTeamId && !isMatchContext && (
               <button
+                disabled={hasPendingTransfer}
                 onClick={() => toggleTransferList(player.id)}
                 className={`w-full mt-1 py-2.5 rounded-[18px] font-black italic uppercase tracking-widest text-[10px] transition-all border-2 active:scale-95 drop-shadow
-                  ${player.isOnTransferList
+                  ${hasPendingTransfer
+                    ? "relative bg-slate-800 border-slate-700 text-transparent opacity-60 cursor-not-allowed after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-slate-300 after:content-['TRANSFER_UZGODNIONY']"
+                    : player.isOnTransferList
                     ? 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
                     : 'bg-amber-600/20 border-amber-500/40 text-amber-500 hover:bg-amber-600/30'}`}
               >
