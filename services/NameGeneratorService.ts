@@ -5,6 +5,7 @@ import { CZSK_MALE_FIRSTNAMES, CZSK_MALE_LASTNAMES } from '../resources/static_d
 import { SSA_MALE_FIRSTNAMES, SSA_MALE_LASTNAMES } from '../resources/static_db/names/ssa_data';
 import { IBERIA_MALE_FIRSTNAMES, IBERIA_MALE_LASTNAMES } from '../resources/static_db/names/iberia_data';
 import { SCANDINAVIA_MALE_FIRSTNAMES, SCANDINAVIA_MALE_LASTNAMES } from '../resources/static_db/names/scandinavia_data';
+import { SWEDISH_MALE_FIRSTNAMES, SWEDISH_MALE_LASTNAMES } from '../resources/static_db/names/swedish_data';
 import { EXUSSR_MALE_FIRSTNAMES, EXUSSR_MALE_LASTNAMES } from '../resources/static_db/names/exussr_data';
 import { ES_MALE_FIRSTNAMES, ES_MALE_LASTNAMES } from '../resources/static_db/names/es_data';
 import { EN_MALE_FIRSTNAMES, EN_MALE_LASTNAMES } from '../resources/static_db/names/en_data';
@@ -73,6 +74,11 @@ export const NameGeneratorService = {
         return {
           firstName: getRandomElement(MEXICAN_MALE_FIRSTNAMES),
           lastName: getRandomElement(MEXICAN_MALE_LASTNAMES)
+        };
+      case Region.SWEDEN:
+        return {
+          firstName: getRandomElement(SWEDISH_MALE_FIRSTNAMES),
+          lastName: getRandomElement(SWEDISH_MALE_LASTNAMES)
         };
       case Region.SCANDINAVIA:
         return {

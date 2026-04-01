@@ -15,6 +15,16 @@ const TIMING_LABELS: Record<TransferTiming, string> = {
 };
 
 export const IncomingTransferService = {
+  buildOfferSeed(
+    currentDate: Date | string,
+    buyerClubId: string,
+    playerId: string
+  ): number {
+    const dateKey = typeof currentDate === 'string'
+      ? currentDate
+      : currentDate.toISOString().split('T')[0];
+    return IncomingTransferService.hashString(`${dateKey}::${buyerClubId}::${playerId}`);
+  },
 
   getTimingLabel(timing: TransferTiming): string {
     return TIMING_LABELS[timing] ?? timing;
@@ -24,10 +34,6 @@ export const IncomingTransferService = {
     return FinanceService.getClubTier(club);
   },
 
-  /**
-   * Sprawdza czy klub AI powinien złożyć ofertę za danego zawodnika danego dnia.
-   * Zwraca true jeśli oferta powinna być złożona (losowe prawdopodobieństwo).
-   */
   shouldGenerateOffer(
     player: Player,
     buyerClub: Club,
@@ -35,8 +41,7 @@ export const IncomingTransferService = {
     activeIncomingOffers: IncomingTransferOffer[],
     seed: number,
     currentDate: Date | string
-  ): boolean {
-    // Blokuj jeśli już istnieje aktywna oferta od tego samego kupującego za tego samego zawodnika
+  ): { shouldGenerate: boolean; source: 'SHORTLIST' | 'SPONTANEOUS' | null } {
     const hasActiveOffer = activeIncomingOffers.some(
       o =>
         o.playerId === player.id &&
@@ -47,41 +52,64 @@ export const IncomingTransferService = {
         o.status !== IncomingOfferStatus.REJECTED_AT_CONFIRM &&
         o.status !== IncomingOfferStatus.PLAYER_REFUSED
     );
-    if (hasActiveOffer) return false;
+    if (hasActiveOffer) return { shouldGenerate: false, source: null };
 
-    // Blokuj jeśli zawodnik jest zablokowany transferowo
     if (
       player.transferLockoutUntil &&
       new Date(currentDate) < new Date(player.transferLockoutUntil)
-    ) return false;
+    ) {
+      return { shouldGenerate: false, source: null };
+    }
 
-    // Kupujący musi mieć mniejszy skład (max 30) i być innym klubem
-    if (buyerClub.rosterIds.length >= 30) return false;
-    if (buyerClub.id === sellerClub.id) return false;
+    if (buyerClub.rosterIds.length >= 30) return { shouldGenerate: false, source: null };
+    if (buyerClub.id === sellerClub.id) return { shouldGenerate: false, source: null };
 
-    // Bazowe prawdopodobieństwo
+    const isShortlisted = !!player.interestedClubs?.includes(buyerClub.id);
+    const isExceptionalTarget = IncomingTransferService.isExceptionalSpontaneousTarget(
+      player,
+      buyerClub,
+      sellerClub,
+      currentDate
+    );
+
     let prob = 0.004;
+    let source: 'SHORTLIST' | 'SPONTANEOUS' | null = null;
 
-    // Modyfikatory
     if (player.isOnTransferList) prob *= 3.0;
-    if (player.interestedClubs?.includes(buyerClub.id)) prob *= 3.0;
     if (player.overallRating >= 75) prob *= 2.0;
     if (player.contractEndDate) {
       const daysLeft = IncomingTransferService.daysUntil(player.contractEndDate, currentDate);
       if (daysLeft < 180) prob *= 1.8;
     }
 
-    // Klub AI z wyższą reputacją ma większy apetyt
     if (buyerClub.reputation > sellerClub.reputation) prob *= 1.3;
 
-    // Determinizm per klub per dzień (seed oparty o id klubu + dzień)
+    if (isShortlisted) {
+      prob *= 3.0;
+      prob *= 0.85;
+      source = 'SHORTLIST';
+    } else {
+      if (!isExceptionalTarget) {
+        return { shouldGenerate: false, source: null };
+      }
+
+      const discoveryRoll = IncomingTransferService.seededRandom(seed + 17);
+      if (discoveryRoll >= 0.15) {
+        return { shouldGenerate: false, source: null };
+      }
+
+      prob *= 0.15;
+      source = 'SPONTANEOUS';
+    }
+
     const rng = IncomingTransferService.seededRandom(seed);
-    return rng < prob;
+    const shouldGenerate = rng < prob;
+    return {
+      shouldGenerate,
+      source: shouldGenerate ? source : null,
+    };
   },
 
-  /**
-   * Oblicza ofertę AI: kwotę, aiMaxFee, urgency, timing.
-   */
   calculateOffer(
     player: Player,
     buyerClub: Club,
@@ -96,45 +124,45 @@ export const IncomingTransferService = {
     const rng2 = IncomingTransferService.seededRandom(seed + 2);
     const rng3 = IncomingTransferService.seededRandom(seed + 3);
 
-    // Urgency 1-3
     const urgency = rng1 < 0.25 ? 1 : rng1 < 0.65 ? 2 : 3;
 
-    // Mnożnik kwoty wg urgency
-    let feeMin: number, feeMax: number;
-    if (urgency === 1) { feeMin = 0.55; feeMax = 0.85; }
-    else if (urgency === 2) { feeMin = 0.85; feeMax = 1.15; }
-    else { feeMin = 1.15; feeMax = 1.60; }
+    let feeMin: number;
+    let feeMax: number;
+    if (urgency === 1) {
+      feeMin = 0.55;
+      feeMax = 0.85;
+    } else if (urgency === 2) {
+      feeMin = 0.85;
+      feeMax = 1.15;
+    } else {
+      feeMin = 1.15;
+      feeMax = 1.60;
+    }
 
     const feeMultiplier = feeMin + rng2 * (feeMax - feeMin);
     const fee = Math.round(marketValue * feeMultiplier / 1000) * 1000;
 
-    // aiMaxFee — elastyczność AI na kontrę gracza
-    const maxMultiplier = 1.10 + rng3 * 0.20; // 1.10 - 1.30
+    const maxMultiplier = 1.10 + rng3 * 0.20;
     const aiMaxFee = Math.min(
       Math.round(fee * maxMultiplier / 1000) * 1000,
       buyerClub.budget
     );
 
-    // Timing
     const timing = IncomingTransferService.selectTiming(isInsideTransferWindow, rng1, rng2);
 
     return { fee, aiMaxFee, aiUrgency: urgency as 1 | 2 | 3, timing };
   },
 
-  selectTiming(isInsideWindow: boolean, rng1: number, rng2: number): TransferTiming {
+  selectTiming(isInsideWindow: boolean, _rng1: number, rng2: number): TransferTiming {
     if (isInsideWindow) {
       if (rng2 < 0.45) return TransferTiming.IMMEDIATE;
       if (rng2 < 0.75) return TransferTiming.IN_SIX_MONTHS;
       return TransferTiming.IN_TWELVE_MONTHS;
     }
-    // Poza oknem — nie może być IMMEDIATE
     if (rng2 < 0.55) return TransferTiming.IN_SIX_MONTHS;
     return TransferTiming.IN_TWELVE_MONTHS;
   },
 
-  /**
-   * Sprawdza czy zarząd naciska na sprzedaż.
-   */
   evaluateBoardPressure(
     offer: Pick<IncomingTransferOffer, 'fee'>,
     player: Player,
@@ -147,27 +175,19 @@ export const IncomingTransferService = {
     return false;
   },
 
-  /**
-   * Odpowiedź AI na kontrę gracza (po 1 dniu).
-   * Zwraca: 'ACCEPT' | 'COUNTER' | 'REJECT' oraz ewentualną nową kwotę.
-   */
   processAICounterResponse(
     offer: IncomingTransferOffer,
     seed: number
   ): { verdict: 'ACCEPT' | 'COUNTER' | 'REJECT'; newFee?: number } {
     const currentDemand = offer.counterFee ?? offer.fee;
 
-    // Jeśli żądanie gracza mieści się w budżecie AI — akceptuje
     if (currentDemand <= offer.aiMaxFee) {
       return { verdict: 'ACCEPT', newFee: currentDemand };
     }
 
-    // Przekracza aiMaxFee
     const rng = IncomingTransferService.seededRandom(seed);
 
-    // Urgency 3 — AI jest bardziej elastyczne
     if (offer.aiUrgency === 3 && rng < 0.40) {
-      // AI lekko podbija swoje max ale nie dorówna żądaniu
       const compromise = Math.round(offer.aiMaxFee * (1.02 + rng * 0.05) / 1000) * 1000;
       if (compromise < currentDemand) {
         return { verdict: 'COUNTER', newFee: compromise };
@@ -186,10 +206,6 @@ export const IncomingTransferService = {
     return { verdict: 'REJECT' };
   },
 
-  /**
-   * Symuluje wynik negocjacji z zawodnikiem w tle.
-   * Wynik zależy od reputacji kupującego vs sprzedającego.
-   */
   simulatePlayerNegotiation(
     player: Player,
     buyerClub: Club,
@@ -200,7 +216,6 @@ export const IncomingTransferService = {
     const rng = IncomingTransferService.seededRandom(seed);
     const repDelta = buyerClub.reputation - sellerClub.reputation;
 
-    // Baza akceptacji
     let acceptChance = 0.55;
 
     if (repDelta >= 3) acceptChance = 0.85;
@@ -209,7 +224,6 @@ export const IncomingTransferService = {
     else if (repDelta === -1) acceptChance = 0.40;
     else acceptChance = 0.25;
 
-    // Korekty
     if (player.isOnTransferList) acceptChance += 0.15;
     const daysLeft = IncomingTransferService.daysUntil(player.contractEndDate, currentDate);
     if (daysLeft < 180) acceptChance += 0.10;
@@ -218,10 +232,6 @@ export const IncomingTransferService = {
     return rng < acceptChance ? 'accepted' : 'refused';
   },
 
-  /**
-   * Przetwarza timery aktywnych ofert dla bieżącego dnia.
-   * Zwraca oferty ze zaktualizowanymi statusami oraz listę akcji do wykonania.
-   */
   processDailyTimers(
     offers: IncomingTransferOffer[],
     currentDateStr: string
@@ -299,6 +309,29 @@ export const IncomingTransferService = {
     const d = new Date(isoDate);
     d.setDate(d.getDate() + days);
     return d.toISOString().split('T')[0];
+  },
+
+  isExceptionalSpontaneousTarget(
+    player: Player,
+    buyerClub: Club,
+    sellerClub: Club,
+    currentDate: Date | string
+  ): boolean {
+    const daysLeft = IncomingTransferService.daysUntil(player.contractEndDate, currentDate);
+    const isElitePlayer = player.overallRating >= 80;
+    const isWonderkid = player.age <= 21 && player.overallRating >= 72;
+    const isContractOpportunity = daysLeft > 0 && daysLeft < 150 && player.overallRating >= 70;
+    const isStepUpMove = buyerClub.reputation >= sellerClub.reputation + 4 && player.overallRating >= 74;
+
+    return isElitePlayer || isWonderkid || isContractOpportunity || isStepUpMove;
+  },
+
+  hashString(value: string): number {
+    let hash = 0;
+    for (let i = 0; i < value.length; i++) {
+      hash = (hash * 31 + value.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash);
   },
 
   seededRandom(seed: number): number {

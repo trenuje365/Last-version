@@ -357,7 +357,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
       'SUI': [Region.FRANCE, Region.GERMANY, Region.ITALY],
       'ESP': [Region.SPAIN], 'AND': [Region.IBERIA], 'POR': [Region.IBERIA],
       'FRA': [Region.FRANCE], 'ITA': [Region.ITALY], 'SMR': [Region.ITALY],
-      'NOR': [Region.SCANDINAVIA], 'SWE': [Region.SCANDINAVIA], 'DEN': [Region.SCANDINAVIA],
+      'NOR': [Region.SCANDINAVIA], 'SWE': [Region.SWEDEN], 'DEN': [Region.SCANDINAVIA],
       'ISL': [Region.SCANDINAVIA], 'FRO': [Region.SCANDINAVIA],
       'FIN': [Region.FINLAND], 'TUR': [Region.TURKEY],
       'GEO': [Region.GEORGIA], 'ARM': [Region.ARMENIA],
@@ -403,6 +403,8 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
 
     const getSouthAmericanBoostedRegion = (): Region => {
       if (Math.random() < 0.005) return Region.MEXICO;
+      const swedenChance = ['ENG', 'ITA', 'NED', 'GER', 'AUT', 'FRA', 'BEL'].includes(country) ? 0.08 : 0.005;
+      if (country !== 'SWE' && Math.random() < swedenChance) return Region.SWEDEN;
       const brazilWeight    = country === 'POR' ? 25 : country === 'ITA' ? 12 : country === 'ESP' ? 10 : 1;
       const argentinaWeight = country === 'POR' ? 10 : country === 'ITA' ?  8 : country === 'ESP' ? 15 : 1;
       const beneluxWeight   = ['ENG','GER','FRA','ITA','ESP'].includes(country) ? 5 : 1;
@@ -446,7 +448,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         nationality: region,
         age,
         fatigueDebt: 0,
-        overallRating: genData.overall,
+        overallRating: region === Region.SWEDEN ? Math.min(genData.overall, 93) : genData.overall,
         attributes: genData.attributes,
         stats: {
           matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,

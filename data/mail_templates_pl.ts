@@ -417,8 +417,8 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     type: MailType.SYSTEM,
     sender: 'Dział Transferowy',
     role: 'Kierownik ds. Transferów',
-    subject: 'Oferta transferowa za {PLAYER}',
-    body: 'Panie Managerze,\n\nOtrzymaliśmy oficjalną ofertę transferową od klubu {BUYER_CLUB} ({BUYER_LEAGUE}) za zawodnika {PLAYER}.\n\nSzczegóły oferty:\n- Proponowana kwota: {FEE} PLN\n- Termin przejścia: {TIMING}\n\n{BOARD_PRESSURE_NOTE}Proszę o zapoznanie się z ofertą i podjęcie decyzji w ciągu 5 dni.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
+    subject: 'Do rozpatrzenia: oferta za {PLAYER}',
+    body: 'Panie Managerze,\n\nW zakładce "Oferty za moich" czeka na Pana nowa oferta transferowa od klubu {BUYER_CLUB} ({BUYER_LEAGUE}) za zawodnika {PLAYER}.\n\nSzczegóły oferty:\n- Proponowana kwota: {FEE} PLN\n- Termin przejścia: {TIMING}\n\n{BOARD_PRESSURE_NOTE}Proszę przejść do Aktywności Rynkowej i podjąć decyzję w ciągu 5 dni.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
   },
   {
     id: 'incoming_offer_reminder',
@@ -477,4 +477,3 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
     body: 'Panie Managerze,\n\nInformujemy, że zawodnik {PLAYER} odmówił podjęcia rozmów z klubem {BUYER_CLUB}. Negocjacje zostały zakończone.\n\nZawodnik pozostaje w {CLUB}.\n\nPozdrawiam,\nDział Transferowy {CLUB}'
   }
 ]; // <--- ZAMKNIĘCIE TABLICY
-

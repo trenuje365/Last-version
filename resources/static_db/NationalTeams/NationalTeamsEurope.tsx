@@ -47,7 +47,7 @@ export const NATIONAL_TEAMS_EUROPE = [
   { name: "Słowenia", continent: "Europe", tier: 3, colors: ["#FFFFFF","#005DA4","#ED1C24"], stadium: "Stožice", capacity: 16038, reputation: 10, region: Region.BALKANS },
   { name: "Szkocja", continent: "Europe", tier: 2, colors: ["#0065BD","#FFFFFF","#0065BD"], stadium: "Hampden Park", capacity: 51866, reputation: 12, region: Region.ENGLAND },
   { name: "Szwajcaria", continent: "Europe", tier: 2, colors: ["#FF0000","#FFFFFF","#FF0000"], stadium: "St. Jakob-Park", capacity: 38512, reputation: 15, region: Region.GERMANY },
-  { name: "Szwecja", continent: "Europe", tier: 2, colors: ["#006AA7","#FECC00","#006AA7"], stadium: "Friends Arena", capacity: 50000, reputation: 15, region: Region.SCANDINAVIA },
+  { name: "Szwecja", continent: "Europe", tier: 2, colors: ["#006AA7","#FECC00","#006AA7"], stadium: "Friends Arena", capacity: 50000, reputation: 15, region: Region.SWEDEN },
   { name: "Turcja", continent: "Europe", tier: 2, colors: ["#E30A17","#FFFFFF","#E30A17"], stadium: "Atatürk Olympic", capacity: 76092, reputation: 16, region: Region.TURKEY },
   { name: "Ukraina", continent: "Europe", tier: 2, colors: ["#005BBB","#FFD500","#005BBB"], stadium: "NSK Olimpiyskiy", capacity: 70050, reputation: 13, region: Region.EX_USSR },
   { name: "Walia", continent: "Europe", tier: 3, colors: ["#FFFFFF","#D30731","#006400"], stadium: "Millennium Stadium", capacity: 74500, reputation: 11, region: Region.ENGLAND },

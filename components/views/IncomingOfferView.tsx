@@ -26,6 +26,7 @@ export const IncomingOfferView: React.FC = () => {
     navigateWithoutHistory,
     respondToIncomingOffer,
     confirmIncomingTransfer,
+    setTransferNewsActiveTab,
   } = useGame();
 
   const offer = useMemo(
@@ -102,13 +103,20 @@ export const IncomingOfferView: React.FC = () => {
   };
 
   const currentDisplayFee = isAICountered ? (offer.aiCounterFee ?? offer.fee) : offer.fee;
+  const buyerCountryLabel = buyerClub.country ?? buyerLeague?.name ?? buyerClub.leagueId;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent text-white flex items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('https://i.ibb.co/JwgrBtvC/biuro2-1.png')] bg-cover bg-center opacity-20" />
-      <div className="absolute inset-0 bg-black/55" />
+      <div
+        className="absolute inset-0 bg-black/35"
+        style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+      />
 
-      <div className="relative z-10 w-full max-w-4xl bg-slate-900/85 border border-white/10 rounded-[42px] shadow-[0_40px_120px_rgba(0,0,0,0.75)] overflow-hidden">
+      <div
+        className="relative z-10 w-full max-w-4xl bg-slate-900/62 border border-white/10 rounded-[42px] shadow-[0_40px_120px_rgba(0,0,0,0.55)] overflow-hidden"
+        style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
+      >
 
         {/* Header */}
         <div className="p-8 border-b border-white/10 flex items-center justify-between">
@@ -122,7 +130,10 @@ export const IncomingOfferView: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => navigateWithoutHistory(ViewState.DASHBOARD)}
+            onClick={() => {
+              setTransferNewsActiveTab('incoming');
+              navigateWithoutHistory(ViewState.TRANSFER_NEWS);
+            }}
             className="px-6 py-3 rounded-2xl bg-white text-slate-900 font-black uppercase tracking-widest text-xs"
           >
             Zamknij
@@ -145,7 +156,7 @@ export const IncomingOfferView: React.FC = () => {
             )}
 
             {/* Kupujący klub */}
-            <div className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+            <div className="rounded-[28px] border border-white/10 bg-black/10 p-5">
               <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500 mb-4">Kupujący Klub</p>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between gap-4">
@@ -153,8 +164,8 @@ export const IncomingOfferView: React.FC = () => {
                   <span className="font-black text-white text-right">{buyerClub.name}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-slate-400">Liga</span>
-                  <span className="font-black text-slate-200 text-right">{buyerLeague?.name ?? buyerClub.leagueId}</span>
+                  <span className="text-slate-400">Kraj</span>
+                  <span className="font-black text-slate-200 text-right">{buyerCountryLabel}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-400">Reputacja</span>
@@ -164,7 +175,7 @@ export const IncomingOfferView: React.FC = () => {
             </div>
 
             {/* Zawodnik */}
-            <div className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+            <div className="rounded-[28px] border border-white/10 bg-black/10 p-5">
               <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500 mb-4">Zawodnik</p>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between gap-4">
@@ -193,7 +204,7 @@ export const IncomingOfferView: React.FC = () => {
           <div className="space-y-4">
 
             {/* Szczegóły oferty */}
-            <div className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+            <div className="rounded-[28px] border border-white/10 bg-black/10 p-5">
               <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500 mb-4">Oferta</p>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between gap-4">
