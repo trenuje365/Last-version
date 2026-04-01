@@ -6,7 +6,7 @@ import { ViewState } from '../../types';
 type ManualCategory = 'INTRO' | 'ENGINE' | 'CUP_LOGIC' | 'TACTICS' | 'PLAYERS' | 'REFEREE' | 'LEAGUE' | 'MATCHDAY' | 'FINANCE' | 'CONTRACTS' | 'INJURIES' | 'TRAINING' | 'CALENDAR' | 'TIPS';
 
 export const GameManual: React.FC = () => {
-  const { navigateTo } = useGame();
+  const { navigateTo, previousViewState } = useGame();
   const [activeTab, setActiveTab] = useState<ManualCategory>('INTRO');
 
   const categories: { id: ManualCategory; label: string; icon: string }[] = [
@@ -973,7 +973,7 @@ export const GameManual: React.FC = () => {
             </div>
          </div>
          <button 
-           onClick={() => navigateTo(ViewState.START_MENU)}
+           onClick={() => navigateTo(previousViewState ?? ViewState.START_MENU)}
            className="group px-12 py-5 rounded-2xl bg-white text-slate-900 font-black italic uppercase tracking-widest text-xs hover:scale-105 transition-all active:scale-95 shadow-[0_20px_50px_rgba(255,255,255,0.2)] flex items-center gap-4"
          >
            POWRÓT DO MENU <span className="text-xl">↩</span>

@@ -251,9 +251,6 @@ if (todayFixtures.length === 0) {
       if (fixture.leagueId === 'L_PL_1') roundResults.league1Results.push(matchResult);
       else if (fixture.leagueId === 'L_PL_2') roundResults.league2Results.push(matchResult);
       else if (fixture.leagueId === 'L_PL_3') roundResults.league3Results.push(matchResult);
-      else if (fixture.leagueId === CompetitionType.SUPER_CUP) {
-         roundResults.league1Results.push(matchResult);
-      }
       currentClubs = currentClubs.map(c => {
         if (c.id === home.id || c.id === away.id) {
           const isHome = c.id === home.id;
@@ -371,7 +368,10 @@ if (todayFixtures.length === 0) {
             ...c,
             budget: c.budget + netChange,
             financeHistory: [...financeLogsToAdd, ...(c.financeHistory || [])].slice(0, 50),
-            stats: {
+            stats: fixture.leagueId === CompetitionType.SUPER_CUP ? {
+              ...c.stats,
+              form: newForm
+            } : {
               ...c.stats,
               played: c.stats.played + 1,
               wins: c.stats.wins + (pts === 3 ? 1 : 0),

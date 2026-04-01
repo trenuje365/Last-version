@@ -5,7 +5,7 @@ import { REGION_NATIONALITY_LABEL } from '../../constants';
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
 
 export const PlayerCard: React.FC = () => {
- const { viewedPlayerId, players, clubs, navigateTo, navigateWithoutHistory, previousViewState, userTeamId, toggleTransferList, currentDate, transferOffers } = useGame();
+ const { viewedPlayerId, players, clubs, navigateTo, navigateWithoutHistory, previousViewState, userTeamId, toggleTransferList, currentDate, transferOffers, isResigned } = useGame();
 
   const data = useMemo(() => {
     if (!viewedPlayerId) return null;
@@ -472,7 +472,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                       ? "Jestem zajęty. Proszę o kontakt w innym terminie."
                       : "OTWÓRZ BIURO NEGOCJACJI 🤝"}
                   </button>
-                ) : (
+                ) : !isResigned ? (
                   <button
                     disabled={!!isTransferLocked || hasUserTransferAgreement || hasPendingTransfer}
                     onClick={() => navigateWithoutHistory(ViewState.TRANSFER_OFFER)}
@@ -484,7 +484,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                   >
                     ZŁÓŻ OFERTĘ TRANSFEROWĄ 💰
                   </button>
-                )}
+                ) : null}
               </div>
             )}
           </div>

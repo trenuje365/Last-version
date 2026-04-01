@@ -308,6 +308,28 @@ export const STATIC_NA_CLUBS: Club[] = CLUBS_NORTH_AMERICA.map(raw =>
   buildInternationalClub(raw, generateNorthAmericaClubId(raw.name), 'L_NA')
 );
 
+export const UNEMPLOYED_MANAGER_CLUB_ID = 'UNEMPLOYED_MANAGER';
+
+export const UNEMPLOYED_MANAGER_CLUB: Club = {
+  id: UNEMPLOYED_MANAGER_CLUB_ID,
+  name: 'Bez klubu',
+  shortName: 'BEZ',
+  leagueId: 'NONE',
+  tier: 99,
+  colorsHex: ['#334155', '#1e293b', '#0f172a'],
+  stadiumName: '',
+  stadiumCapacity: 0,
+  reputation: 0,
+  isDefaultActive: false,
+  colorPrimary: '#334155',
+  colorSecondary: '#1e293b',
+  rosterIds: [],
+  stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
+  boardStrictness: 0,
+  signingBonusPool: 0,
+  budget: 0,
+};
+
 // Populate league teamIds (Only include active teams in the league structure)
 STATIC_LEAGUES.forEach(l => {
   l.teamIds = STATIC_CLUBS

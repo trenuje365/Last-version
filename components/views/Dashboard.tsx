@@ -38,6 +38,8 @@ export const Dashboard: React.FC = () => {
     confirmSeasonEnd,
     setElHistoryInitialRound,
     incomingOffers,
+    isResigned,
+    resignFromClub,
   } = useGame();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,6 +48,8 @@ export const Dashboard: React.FC = () => {
   const [isFinanceModalOpen, setIsFinanceModalOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
 
   useEffect(() => {
     setIsProcessing(false);
@@ -150,6 +154,11 @@ const boardConfidence = useMemo(() => {
         disabled: isJumping,
         info: 'Zakończenie sezonu — przejdź do kolejnego!',
       };
+    }
+
+    // ── Rezygnacja — gracz tylko obserwuje ───────────────────────────────
+    if (isResigned) {
+      return { text: isJumping ? 'PRZETWARZANIE...' : 'NASTĘPNY DZIEŃ', action: advanceDay, isMatch: false, disabled: isJumping };
     }
 
     // ── Zdarzenia gracza (participation === 'player') ─────────────────────
@@ -727,7 +736,9 @@ const boardConfidence = useMemo(() => {
               </div>
               <div className="py-[20.5px] px-7 relative z-10">
                  <div className="flex items-center gap-5 mb-8">
-                    {getClubLogo(myClub?.id || '') ? (
+                    {isResigned ? (
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-slate-800 border border-white/10 shadow-2xl text-3xl shrink-0">👨‍💼</div>
+                    ) : getClubLogo(myClub?.id || '') ? (
                       <div className="relative z-50 w-[74px] h-[74px] shrink-0 transform -rotate-3 group-hover:rotate-0 transition-transform">
                         <img
                           src={getClubLogo(myClub?.id || '')}
@@ -742,8 +753,8 @@ const boardConfidence = useMemo(() => {
                       </div>
                     )}
                     <div>
-                       <h3 className="text-xl font-black italic uppercase tracking-tighter text-white leading-tight">{myClub?.name}</h3>
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Status: Aktywny</p>
+                       <h3 className="text-xl font-black italic uppercase tracking-tighter text-white leading-tight">{isResigned ? 'BEZ KLUBU' : myClub?.name}</h3>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">{isResigned ? 'Obserwator' : 'Status: Aktywny'}</p>
                     </div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
@@ -759,13 +770,14 @@ const boardConfidence = useMemo(() => {
               </div>
            </Card>
 
+           {!isResigned && (
            <div className="space-y-4 shrink-0">
               {[
                 { label: 'Budżet Transferowy', value: `${currentBudget} PLN`, color: 'text-blue-400', icon: '💰', p: 80, onClick: () => setIsFinanceModalOpen(true) },
                 { label: 'Zaufanie Zarządu', value: `${boardConfidence}%`, color: boardConfidence > 70 ? 'text-emerald-400' : (boardConfidence > 40 ? 'text-amber-400' : 'text-red-500'), icon: '📈', p: boardConfidence },
               ].map((stat, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   onClick={stat.onClick}
                   className={`bg-slate-900/40 p-5 rounded-[28px] border border-white/5 flex flex-col gap-3 backdrop-blur-md hover:border-white/10 transition-all group shadow-xl ${stat.onClick ? 'cursor-pointer hover:bg-white/5' : ''}`}
                 >
@@ -782,11 +794,12 @@ const boardConfidence = useMemo(() => {
                 </div>
               ))}
            </div>
+           )}
 
        <div className="flex-1 grid grid-cols-2 gap-0.5">
-              <TileButton label="TRENING" icon="🏋️‍♂️" onClick={() => navigateTo(ViewState.TRAINING_VIEW)} primary disabled={isJumping} />
-              <TileButton label="PLANER" icon="📅" onClick={() => navigateTo(ViewState.CALENDAR_DEBUG)} disabled={isJumping} />
-              <TileButton label="KADRA" icon="👕" onClick={() => navigateTo(ViewState.SQUAD_VIEW)} disabled={isJumping} />
+              <TileButton label="TRENING" icon="🏋️‍♂️" onClick={() => navigateTo(ViewState.TRAINING_VIEW)} primary disabled={isJumping || isResigned} />
+              <TileButton label="PLANER" icon="📅" onClick={() => navigateTo(ViewState.CALENDAR_DEBUG)} disabled={isJumping || isResigned} />
+              <TileButton label="KADRA" icon="👕" onClick={() => navigateTo(ViewState.SQUAD_VIEW)} disabled={isJumping || isResigned} />
               <TileButton 
                  label="EUROPA I ŚWIAT" 
                  icon="🌍" 
@@ -797,7 +810,6 @@ const boardConfidence = useMemo(() => {
               <TileButton label="STATYSTYKI" icon="🏆" onClick={() => navigateTo(ViewState.LEAGUE_STATS)} disabled={isJumping} />
               <TileButton label="HISTORIA" icon="📜" onClick={() => navigateTo(ViewState.MATCH_HISTORY_BROWSER)} disabled={isJumping} />             
               <TileButton label="RYNEK PRACY" icon="💼" onClick={() => navigateTo(ViewState.JOB_MARKET)} disabled={isJumping} />
-              <TileButton label="EDYTOR" icon="✍️" onClick={() => navigateTo(ViewState.EDITOR)} disabled={isJumping} />
               <TileButton
                 label="AKTYWNOŚĆ RYNKOWA"
                 icon="🔄"
@@ -883,6 +895,41 @@ const boardConfidence = useMemo(() => {
            </div> {/* Zamknięcie dla <div className="relative z-10 flex flex-col h-full"> */}
            </Card>
         </div>
+
+        <div className="w-44 flex flex-col gap-3 shrink-0">
+          <button onClick={() => navigateTo(ViewState.EDITOR)}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] bg-slate-900/40 border border-white/5 hover:border-white/15 hover:bg-white/5 transition-all group">
+            <span className="text-2xl group-hover:scale-110 transition-transform">✍️</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors">EDYTOR</span>
+          </button>
+          <button disabled
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] bg-slate-900/40 border border-white/5 opacity-30 cursor-not-allowed">
+            <span className="text-2xl">💾</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">ZAPIS GRY</span>
+          </button>
+          <button onClick={() => navigateTo(ViewState.GAME_MANUAL)}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] bg-slate-900/40 border border-white/5 hover:border-white/15 hover:bg-white/5 transition-all group">
+            <span className="text-2xl group-hover:scale-110 transition-transform">📖</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors">INSTRUKCJA</span>
+          </button>
+          <button
+            onClick={() => !isResigned && setShowResignConfirm(true)}
+            disabled={isResigned}
+            className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border transition-all group
+              ${isResigned
+                ? 'bg-slate-900/20 border-white/5 opacity-30 cursor-not-allowed'
+                : 'bg-amber-950/30 border-amber-900/20 hover:border-amber-500/30 hover:bg-amber-900/20'}`}>
+            <span className="text-2xl group-hover:scale-110 transition-transform">🏳️</span>
+            <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-colors ${isResigned ? 'text-slate-600' : 'text-amber-500/70 group-hover:text-amber-400'}`}>
+              {isResigned ? 'ZREZYGNOWANO' : 'REZYGNACJA'}
+            </span>
+          </button>
+          <div className="flex-1" />
+          <button onClick={() => setShowExitConfirm(true)}
+            className="w-full py-4 rounded-[24px] bg-red-600 border border-red-500 hover:bg-red-500 transition-all">
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">ZAKOŃCZ GRĘ</span>
+          </button>
+        </div>
       </div>
 
       <style>{`
@@ -897,6 +944,50 @@ const boardConfidence = useMemo(() => {
         @keyframes pulse-slow { 0%, 100% { opacity: 0.1; transform: scale(1); } 50% { opacity: 0.2; transform: scale(1.1); } }
         .animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
       `}</style>
+
+      {showResignConfirm && (
+        <div className="fixed inset-0 z-[2000] bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-slate-900 border border-white/10 rounded-[32px] p-8 flex flex-col items-center gap-6 shadow-2xl w-80">
+            <span className="text-4xl">🏳️</span>
+            <div className="text-center">
+              <p className="text-sm font-black uppercase tracking-widest text-white mb-2">REZYGNACJA Z KLUBU</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Ta decyzja jest nieodwracalna</p>
+            </div>
+            <div className="flex gap-3 w-full">
+              <button onClick={() => setShowResignConfirm(false)}
+                className="flex-1 py-3 rounded-[20px] bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:border-white/20 transition-all">
+                ANULUJ
+              </button>
+              <button onClick={() => { resignFromClub(); setShowResignConfirm(false); }}
+                className="flex-1 py-3 rounded-[20px] bg-amber-600 border border-amber-400 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-500 transition-all">
+                REZYGNUJĘ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[2000] bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-slate-900 border border-white/10 rounded-[32px] p-8 flex flex-col items-center gap-6 shadow-2xl w-80">
+            <span className="text-4xl">🚪</span>
+            <div className="text-center">
+              <p className="text-sm font-black uppercase tracking-widest text-white mb-2">WYJŚCIE Z GRY</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Niezapisany postęp zostanie utracony</p>
+            </div>
+            <div className="flex gap-3 w-full">
+              <button onClick={() => setShowExitConfirm(false)}
+                className="flex-1 py-3 rounded-[20px] bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:border-white/20 transition-all">
+                ANULUJ
+              </button>
+              <button onClick={() => window.location.reload()}
+                className="flex-1 py-3 rounded-[20px] bg-red-600 border border-red-400 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-500 transition-all">
+                WYJDŹ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </>
   );
