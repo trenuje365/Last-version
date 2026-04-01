@@ -98,9 +98,9 @@ export const ClubDetails: React.FC = () => {
         </span>
       )}
       {/* Badge zainteresowania — widoczny również w kadrach innych klubów */}
-      {player.interestedClubs && player.interestedClubs.length > 0 && (
+      {player.interestedClubs && player.interestedClubs.filter(id => id !== player.clubId).length > 0 && (
         <span
-          title={`Zainteresowane kluby:\n${player.interestedClubs.map(id => clubs.find(c => c.id === id)?.name ?? id).join('\n')}`}
+          title={`Zainteresowane kluby:\n${player.interestedClubs.filter(id => id !== player.clubId).map(id => clubs.find(c => c.id === id)?.name ?? id).join('\n')}`}
           className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[7px] font-black rounded-sm border border-blue-500/30 shadow-sm cursor-help"
         >
           INT

@@ -42,6 +42,7 @@ export const PlayerCard: React.FC = () => {
 const [showHistory, setShowHistory] = React.useState(false);
   const isContractLocked = player.contractLockoutUntil && new Date(currentDate) < new Date(player.contractLockoutUntil);
   const isTransferLocked = player.transferLockoutUntil && new Date(currentDate) < new Date(player.transferLockoutUntil);
+  const visibleInterestedClubs = (player.interestedClubs || []).filter(clubId => clubId !== player.clubId);
   const pendingTransferClub = player.transferPendingClubId
     ? clubs.find(c => c.id === player.transferPendingClubId)
     : null;
@@ -366,17 +367,17 @@ const [showHistory, setShowHistory] = React.useState(false);
                 Lista jest aktualizowana raz na miesiąc przez AiScoutingService.
                 W przyszłości: kliknięcie klubu → złożenie/odrzucenie oferty transferowej.
             ────────────────────────────────────────────────────────────────────── */}
-            {player.interestedClubs && player.interestedClubs.length > 0 && (
+            {visibleInterestedClubs.length > 0 && (
               <div className="flex flex-col gap-2 mt-1">
                 <h3 className="text-[10px] font-black text-violet-400 uppercase tracking-[0.4em] flex items-center gap-3 drop-shadow">
                   <span className="w-8 h-px bg-violet-400/30" /> Zainteresowanie Transferowe
                 </h3>
                 <div className="bg-slate-900/20 p-3 rounded-[20px] border border-violet-500/20">
                   <p className="text-[8px] font-black text-white uppercase tracking-widest mb-2 drop-shadow">
-                    Kluby obserwujące zawodnika ({player.interestedClubs.length})
+                    Kluby obserwujące zawodnika ({visibleInterestedClubs.length})
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {player.interestedClubs.map(clubId => {
+                    {visibleInterestedClubs.map(clubId => {
                       const interestedClub = clubs.find(c => c.id === clubId);
                       if (!interestedClub) return null;
                       return (
@@ -473,10 +474,10 @@ const [showHistory, setShowHistory] = React.useState(false);
                   </button>
                 ) : (
                   <button
-                    disabled={!!isTransferLocked || hasUserTransferAgreement}
+                    disabled={!!isTransferLocked || hasUserTransferAgreement || hasPendingTransfer}
                     onClick={() => navigateWithoutHistory(ViewState.TRANSFER_OFFER)}
                     className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4 ${
-                      (isTransferLocked || hasUserTransferAgreement)
+                      (isTransferLocked || hasUserTransferAgreement || hasPendingTransfer)
                         ? 'bg-slate-800 border-slate-900 text-slate-500 opacity-70 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-800 hover:scale-[1.02] active:scale-95'
                     }`}

@@ -36,6 +36,16 @@ const _buildTransferLockoutUntil = (currentDate: Date): string => {
   return lockoutDate.toISOString();
 };
 
+const _buildTransferOfferBanUntil = (currentDate: Date): string => {
+  const banDate = new Date(currentDate);
+  banDate.setFullYear(banDate.getFullYear() + 1);
+  return banDate.toISOString();
+};
+
+const _hasActiveTransferOfferBan = (player: Player, currentDate: Date): boolean => {
+  return !!player.transferOfferBanUntil && currentDate < new Date(player.transferOfferBanUntil);
+};
+
 const _getTransferListOpportunity = (
   player: Player,
   buyerClub: Club,
@@ -521,6 +531,7 @@ processAiRecruitment: (
       const candidates = available.filter(p => {
         if (p.clubId === club.id) return false;
         if (_hasActiveTransferLockout(p, currentDate)) return false;
+        if (_hasActiveTransferOfferBan(p, currentDate)) return false;
         if (!positionsToCheck.includes(p.position as PlayerPosition)) return false;
 
         const normalRange = p.overallRating >= idealOvr - 8 && p.overallRating <= idealOvr + 10;
@@ -708,6 +719,7 @@ processAiRecruitment: (
         .filter(p =>
           (p.interestedClubs || []).includes(club.id) &&
           !_hasActiveTransferLockout(p, currentDate) &&
+          !_hasActiveTransferOfferBan(p, currentDate) &&
           !p.isOnTransferList &&
           !p.transferPendingClubId &&
           positionsToCheck.includes(p.position as PlayerPosition) &&
@@ -858,8 +870,10 @@ processAiRecruitment: (
           transferPendingClubId: undefined,
           transferReportDate: undefined,
           isOnTransferList: false,
+          interestedClubs: (player.interestedClubs || []).filter(clubId => clubId !== buyerClubId),
           history: updatedHistory,
-          transferLockoutUntil: _buildTransferLockoutUntil(currentDate)
+          transferLockoutUntil: _buildTransferLockoutUntil(currentDate),
+          transferOfferBanUntil: _buildTransferOfferBanUntil(currentDate)
         };
 
         // Przenieś zawodnika

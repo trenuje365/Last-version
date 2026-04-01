@@ -47,6 +47,7 @@ export const TransferOfferView: React.FC = () => {
 
   const { player, buyerClub, sellerClub } = data || {};
   const [timing, setTiming] = useState<TransferTiming>(TransferTiming.IMMEDIATE);
+  const hasPendingTransfer = !!player?.transferPendingClubId && !!player?.transferReportDate;
 
   const sellerOpeningStance = useMemo(() => {
     if (!player || !buyerClub || !sellerClub) return null;
@@ -172,7 +173,8 @@ export const TransferOfferView: React.FC = () => {
   const activeStatus = submissionFeedback?.status || latestOffer?.status || null;
   const canOpenNegotiation = activeStatus === TransferOfferStatus.PLAYER_NEGOTIATION;
   const isTransferLocked = !!(player.transferLockoutUntil && new Date(currentDate) < new Date(player.transferLockoutUntil));
-  const isUnavailable = player.clubId === userTeamId || player.clubId === 'FREE_AGENTS';
+  const isTransferOfferBanned = !!(player.transferOfferBanUntil && new Date(currentDate) < new Date(player.transferOfferBanUntil));
+  const isUnavailable = player.clubId === userTeamId || player.clubId === 'FREE_AGENTS' || hasPendingTransfer;
   const clubRefusesTalks = timing === TransferTiming.CONTRACT_END
     ? !canSignPreContract
     : sellerOpeningStance?.allowTalks === false;
@@ -301,7 +303,9 @@ export const TransferOfferView: React.FC = () => {
               <div className="rounded-[24px] border border-red-500/25 bg-red-500/10 p-6 text-center">
                 <p className="text-lg font-black uppercase italic text-white">Tego zawodnika nie obsluzysz w tym module.</p>
                 <p className="text-sm text-slate-300 mt-3">
-                  Transfery wolnych agentow i zawodnikow z twojego klubu pozostaja w osobnych przeplywach.
+                  {hasPendingTransfer
+                    ? `Ten zawodnik ma juz uzgodniony transfer do ${clubs.find(c => c.id === player.transferPendingClubId)?.name || 'innego klubu'} i nie mozna skladac za niego nowej oferty.`
+                    : 'Transfery wolnych agentow i zawodnikow z twojego klubu pozostaja w osobnych przeplywach.'}
                 </p>
               </div>
             ) : (
@@ -309,7 +313,7 @@ export const TransferOfferView: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setTiming(TransferTiming.IMMEDIATE)}
-                    disabled={hasAnyActiveAgreement || isTransferCompleted}
+                    disabled={hasAnyActiveAgreement || isTransferCompleted || isTransferOfferBanned}
                     className={`py-3 rounded-[20px] border text-sm font-black transition-all ${
                       timing === TransferTiming.IMMEDIATE
                         ? 'bg-white text-slate-900 border-white'
@@ -320,7 +324,7 @@ export const TransferOfferView: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setTiming(TransferTiming.IN_SIX_MONTHS)}
-                    disabled={hasAnyActiveAgreement || isTransferCompleted}
+                    disabled={hasAnyActiveAgreement || isTransferCompleted || isTransferOfferBanned}
                     className={`py-3 rounded-[20px] border text-sm font-black transition-all ${
                       timing === TransferTiming.IN_SIX_MONTHS
                         ? 'bg-white text-slate-900 border-white'
@@ -331,7 +335,7 @@ export const TransferOfferView: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setTiming(TransferTiming.IN_TWELVE_MONTHS)}
-                    disabled={hasAnyActiveAgreement || isTransferCompleted}
+                    disabled={hasAnyActiveAgreement || isTransferCompleted || isTransferOfferBanned}
                     className={`py-3 rounded-[20px] border text-sm font-black transition-all ${
                       timing === TransferTiming.IN_TWELVE_MONTHS
                         ? 'bg-white text-slate-900 border-white'
@@ -342,7 +346,7 @@ export const TransferOfferView: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setTiming(TransferTiming.CONTRACT_END)}
-                    disabled={hasAnyActiveAgreement || isTransferCompleted}
+                    disabled={hasAnyActiveAgreement || isTransferCompleted || isTransferOfferBanned}
                     className={`py-3 rounded-[20px] border text-sm font-black transition-all ${
                       timing === TransferTiming.CONTRACT_END
                         ? 'bg-white text-slate-900 border-white'
@@ -366,7 +370,7 @@ export const TransferOfferView: React.FC = () => {
                       step="50000"
                       value={fee}
                       onChange={e => setFee(parseInt(e.target.value, 10))}
-                      disabled={isTransferLocked || clubRefusesTalks || hasAnyActiveAgreement || isTransferCompleted}
+                      disabled={isTransferLocked || isTransferOfferBanned || clubRefusesTalks || hasAnyActiveAgreement || isTransferCompleted}
                       className="w-full accent-emerald-500"
                     />
                   </div>
@@ -388,7 +392,16 @@ export const TransferOfferView: React.FC = () => {
                   </div>
                 )}
 
-                {!isTransferLocked && clubRefusesTalks && (
+                {!isTransferLocked && isTransferOfferBanned && (
+                  <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/10 p-5">
+                    <p className="text-sm font-black uppercase tracking-[0.2em]">Zawodnik po swiezym transferze</p>
+                    <p className="text-sm text-slate-200 mt-3">
+                      Ten zawodnik niedawno zmienil klub. Nowa oferta transferowa moze zostac zlozona dopiero po {new Date(player.transferOfferBanUntil!).toLocaleDateString('pl-PL')}.
+                    </p>
+                  </div>
+                )}
+
+                {!isTransferLocked && !isTransferOfferBanned && clubRefusesTalks && (
                   <div className="rounded-[24px] border border-red-500/30 bg-red-500/10 p-5">
                     <p className="text-sm font-black uppercase tracking-[0.2em]">Rozmowy niedostepne</p>
                     <p className="text-sm text-slate-200 mt-3">
@@ -435,11 +448,13 @@ export const TransferOfferView: React.FC = () => {
                 ) : (
                   <button
                     onClick={handleSubmit}
-                    disabled={isTransferLocked || clubRefusesTalks || hasAnyActiveAgreement || isTransferCompleted}
+                    disabled={isTransferLocked || isTransferOfferBanned || clubRefusesTalks || hasAnyActiveAgreement || isTransferCompleted}
                     className="w-full py-4 rounded-[24px] bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase tracking-[0.25em] text-sm shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isTransferLocked
                       ? 'ODRZUCONO'
+                      : isTransferOfferBanned
+                        ? 'ZAWODNIK PO SWIEZYM TRANSFERZE'
                       : isFutureAgreementSigned
                         ? 'Umowa od przyszlej daty juz podpisana'
                         : hasAnyActiveAgreement

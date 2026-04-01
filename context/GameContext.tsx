@@ -3961,6 +3961,14 @@ const finalResult: SimulationOutput = {
       };
     }
 
+    if (targetPlayer.transferOfferBanUntil && new Date(currentDate) < new Date(targetPlayer.transferOfferBanUntil)) {
+      return {
+        ok: false,
+        status: 'VALIDATION_ERROR',
+        message: `Ten zawodnik niedawno zmienil klub. Zlozenie nowej oferty bedzie mozliwe dopiero po ${new Date(targetPlayer.transferOfferBanUntil).toLocaleDateString('pl-PL')}.`
+      };
+    }
+
     if (offerInput.timing !== TransferTiming.CONTRACT_END && !sellerOpeningStance.allowTalks) {
       return {
         ok: false,

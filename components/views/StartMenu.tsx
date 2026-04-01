@@ -21,14 +21,14 @@ export const StartMenu: React.FC = () => {
               ✕
             </button>
             <p className="text-[13px] font-black text-emerald-500 uppercase tracking-widest mb-4">NOTA PRAWNA (DISCLAIMER)</p>
-            <div className="flex flex-col gap-3 text-[12px] font-black italic text-slate-300 tracking-wide leading-relaxed">
+            <div className="flex flex-col gap-3 text-[15px] font-black italic text-slate-300 tracking-wide leading-relaxed">
               <p>Niniejsza gra <span className="text-white">„Futbol Manager"</span> jest w całości niekomercyjnym, fanowskim projektem stworzonym dobrowolnie.</p>
-              <p>Gra jest całkowicie bezpłatna i nie służy generowaniu żadnych korzyści finansowych. Twórca nie czerpie i nie zamierza czerpać jakichkolwiek dochodów z jej udostępniania lub użytkowania.</p>
+              <p>Gra nie służy generowaniu żadnych korzyści finansowych. Twórca nie czerpie i nie zamierza czerpać jakichkolwiek dochodów z jej udostępniania lub użytkowania.</p>
               <p>Znaki towarowe, loga klubów, nazwy drużyn, barwy oraz wszelkie inne oznaczenia należące do rzeczywistych klubów piłkarskich, federacji, lig lub innych podmiotów trzecich zostały użyte wyłącznie w celach niekomercyjnych i <span className="text-yellow-500">bez uzyskania zgody ich prawowitych właścicieli</span>. Użycie to nie oznacza żadnej afiliacji ani powiązania z tymi podmiotami.</p>
               <p>Zbieżność imion i nazwisk rzeczywistych osób, jeśli wystąpi, jest całkowicie przypadkowa, ponieważ gra generuje fikcyjne postaci.</p>
               <p>Kod źródłowy gry jest <span className="text-yellow-500">open-source</span> i może być dowolnie modyfikowany oraz rozbudowywany według potrzeb użytkowników.</p>
               <p>Gra powstała jako dobrowolna, hobbystyczna inicjatywa i jest w całości bezpłatna.</p>
-              <p className="text-white">Twórca: JayJayBi &nbsp;|&nbsp; Data: marzec 2026</p>
+              <p className="text-white">Autor: JayJayBi &nbsp;|&nbsp; Data: marzec 2026</p>
               <p>Twórca nie ponosi odpowiedzialności za jakiekolwiek szkody wynikające z użytkowania gry.</p>
               <p>Wszelkie prawa do oryginalnych znaków towarowych, logo, nazw i wizerunków należą do ich prawowitych właścicieli.</p>
             </div>

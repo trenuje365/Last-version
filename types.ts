@@ -518,6 +518,7 @@ export interface Player {
   fatigueDebt: number; 
   isNegotiationPermanentBlocked: boolean; // Czy zawodnik obraził się na amen
   transferLockoutUntil: string | null;
+  transferOfferBanUntil?: string | null;
   freeAgentLockoutUntil: string | null;
   assignedNationalTeamId?: string | null;
   /** Lista ID klubów aktualnie zainteresowanych pozyskaniem tego zawodnika (aktualizowana ~1x/miesiąc przez AI) */

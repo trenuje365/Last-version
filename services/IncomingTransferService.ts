@@ -61,6 +61,13 @@ export const IncomingTransferService = {
       return { shouldGenerate: false, source: null };
     }
 
+    if (
+      player.transferOfferBanUntil &&
+      new Date(currentDate) < new Date(player.transferOfferBanUntil)
+    ) {
+      return { shouldGenerate: false, source: null };
+    }
+
     if (player.transferPendingClubId) {
       return { shouldGenerate: false, source: null };
     }
