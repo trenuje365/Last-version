@@ -338,7 +338,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                     <span className="text-sm font-black text-white italic uppercase drop-shadow">
                       {pendingTransferClub?.name ?? player.transferPendingClubId}
                     </span>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                    <p className="text-[8px] font-black text-amber-400 uppercase drop-shadow tracking-widest mt-1">
                       {player.transferReportDate ? `Data przejscia: ${new Date(player.transferReportDate).toLocaleDateString('pl-PL')}` : 'Transfer uzgodniony'}
                     </p>
                   </div>
@@ -429,10 +429,10 @@ const [showHistory, setShowHistory] = React.useState(false);
                   </span>
                   <div className="text-left">
                     <span className="block text-[8px] font-black uppercase tracking-widest drop-shadow">
-                      {hasPendingTransfer ? 'TRANSFER UZGODNIONY' : isContractLocked ? 'BLOKADA CZASOWA' : 'NOWE WARUNKI'}
+                      {hasPendingTransfer ? 'TRANSFER' : isContractLocked ? 'BLOKADA CZASOWA' : 'NOWE WARUNKI'}
                     </span>
-                    <span className="text-[11px] font-black text-white italic uppercase drop-shadow">
-                      {hasPendingTransfer ? 'NIE MOZNA PRZEDLUZYC UMOWY' : isContractLocked ? 'UMOWA NIEDAWNO PODPISANA' : 'PRZEDŁUŻ UMOWĘ'}
+                    <span className="text-[6px] font-black text-white italic uppercase drop-shadow">
+                      {hasPendingTransfer ? 'DO INNEGO KLUBU' : isContractLocked ? 'UMOWA NIEDAWNO PODPISANA' : 'PRZEDŁUŻ UMOWĘ'}
                     </span>
                   </div>
                 </button>
