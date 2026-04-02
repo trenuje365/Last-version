@@ -4,7 +4,7 @@ import { useGame } from '../../context/GameContext';
 import { ViewState, PlayerPosition, Player } from '../../types';
 
 const initialFilters = {
-  age: { min: 16, max: 45 },
+  age: { min: 16, max: 35 },
   pace: { min: 1, max: 99 },
   strength: { min: 1, max: 99 },
   stamina: { min: 1, max: 99 },
@@ -24,6 +24,7 @@ const _persisted = {
   posFilter: 'ALL' as string,
   searchTermPlayers: '' as string,
   filters: { ...initialFilters } as typeof initialFilters,
+  priceFilter: { min: 0, max: 200000000 } as { min: number; max: number },
 };
 
 export const JobMarketView: React.FC = () => {
@@ -35,6 +36,9 @@ export const JobMarketView: React.FC = () => {
   
   // Stan dla Listy Transferowej
   const [searchTermTransfer, setSearchTermTransfer] = useState('');
+  const [priceFilter, setPriceFilter] = useState(_persisted.priceFilter);
+  const [priceStep, setPriceStep] = useState(100000);
+  const [nationalityFilter, setNationalityFilter] = useState<'ALL' | 'LOCAL' | 'FOREIGN'>('ALL');
 
   const [filters, setFilters] = useState<typeof initialFilters>(_persisted.filters);
 
@@ -42,13 +46,14 @@ export const JobMarketView: React.FC = () => {
   useEffect(() => { _persisted.posFilter = posFilter; }, [posFilter]);
   useEffect(() => { _persisted.searchTermPlayers = searchTermPlayers; }, [searchTermPlayers]);
   useEffect(() => { _persisted.filters = filters; }, [filters]);
+  useEffect(() => { _persisted.priceFilter = priceFilter; }, [priceFilter]);
 
   // SKASOWANO KOD: const [searchTermCoaches, setSearchTermCoaches] = useState('');
 
   const handleFilterChange = (key: keyof typeof filters, field: 'min' | 'max', value: number) => {
     let val = isNaN(value) ? (field === 'min' ? 1 : 99) : value;
     const limitMin = key === 'age' ? 16 : 1;
-    const limitMax = key === 'age' ? 45 : 99;
+    const limitMax = key === 'age' ? 35 : 99;
     
     val = Math.max(limitMin, Math.min(limitMax, val));
 
@@ -95,8 +100,11 @@ export const JobMarketView: React.FC = () => {
       p.attributes.positioning >= filters.positioning.min && p.attributes.positioning <= filters.positioning.max &&
       p.attributes.goalkeeping >= filters.goalkeeping.min && p.attributes.goalkeeping <= filters.goalkeeping.max
     );
+    list = list.filter(p => (p.marketValue || 0) >= priceFilter.min && (p.marketValue || 0) <= priceFilter.max);
+    if (nationalityFilter === 'LOCAL') list = list.filter(p => clubs.find(c => c.id === p.clubId)?.leagueId?.startsWith('L_PL_'));
+    if (nationalityFilter === 'FOREIGN') list = list.filter(p => !clubs.find(c => c.id === p.clubId)?.leagueId?.startsWith('L_PL_'));
     return list.sort((a,b) => b.overallRating - a.overallRating);
-  }, [players, searchTermPlayers, posFilter, filters]);
+  }, [players, searchTermPlayers, posFilter, filters, priceFilter, nationalityFilter, clubs]);
 
   const freeAgentPlayers = useMemo(() => {
     let list = [...(players['FREE_AGENTS'] || [])];
@@ -133,6 +141,24 @@ export const JobMarketView: React.FC = () => {
       case PlayerPosition.FWD: return { color: 'text-rose-400', bg: 'bg-rose-500', glow: 'shadow-rose-500/40' };
       default: return { color: 'text-white', bg: 'bg-slate-500', glow: 'shadow-white/20' };
     }
+  };
+
+  const getContrastColor = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#ffffff';
+  };
+
+  const getClubTextColor = (bgHex: string, textHex?: string) => {
+    const getLum = (hex: string) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    };
+    if (!textHex) return getContrastColor(bgHex);
+    return Math.abs(getLum(bgHex) - getLum(textHex)) > 0.3 ? textHex : getContrastColor(bgHex);
   };
 
   return (
@@ -194,7 +220,7 @@ export const JobMarketView: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1 relative h-6">
                   <input type="number" value={filters.age.min} onChange={(e) => handleFilterChange('age', 'min', parseInt(e.target.value))} className="bg-transparent border-none w-10 text-left text-sm font-black text-emerald-400 outline-none tabular-nums" />
-                  <span className="absolute left-1/2 -translate-x-1/2 text-[9px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Zakres Wieku</span>
+                  <span className="absolute left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-400 uppercase tracking-widest whitespace-nowrap">Zakres Wieku</span>
                   <input type="number" value={filters.age.max} onChange={(e) => handleFilterChange('age', 'max', parseInt(e.target.value))} className="bg-transparent border-none w-10 text-right text-sm font-black text-rose-400 outline-none tabular-nums" />
                 </div>
                 <div className="relative h-8 flex items-center px-1">
@@ -202,12 +228,12 @@ export const JobMarketView: React.FC = () => {
                    <div 
                       className="absolute h-1 bg-emerald-500/30 rounded-full" 
                       style={{ 
-                        left: `${((filters.age.min - 16) / (45 - 16)) * 100}%`, 
-                        right: `${100 - ((filters.age.max - 16) / (45 - 16)) * 100}%` 
+                        left: `${((filters.age.min - 16) / (35 - 16)) * 100}%`, 
+                        right: `${100 - ((filters.age.max - 16) / (35 - 16)) * 100}%` 
                       }} 
                    />
-                   <input type="range" min="16" max="45" value={filters.age.min} onChange={(e) => handleFilterChange('age', 'min', parseInt(e.target.value))} className="dual-range-input accent-emerald-500" style={{ zIndex: filters.age.min > 30 ? 5 : 4 }} />
-                   <input type="range" min="16" max="45" value={filters.age.max} onChange={(e) => handleFilterChange('age', 'max', parseInt(e.target.value))} className="dual-range-input accent-rose-500" />
+                   <input type="range" min="16" max="35" value={filters.age.min} onChange={(e) => handleFilterChange('age', 'min', parseInt(e.target.value))} className="dual-range-input accent-emerald-500" style={{ zIndex: filters.age.min > 30 ? 5 : 4 }} />
+                   <input type="range" min="16" max="35" value={filters.age.max} onChange={(e) => handleFilterChange('age', 'max', parseInt(e.target.value))} className="dual-range-input accent-rose-500" />
                 </div>
               </div>
 
@@ -221,7 +247,7 @@ export const JobMarketView: React.FC = () => {
                   <div key={attr.k} className="space-y-1 group">
                     <div className="flex justify-between items-center px-1 relative h-6">
                       <input type="number" value={filters[attr.k as keyof typeof filters].min} onChange={(e) => handleFilterChange(attr.k as any, 'min', parseInt(e.target.value))} className="bg-transparent border-none w-10 text-left text-sm font-black text-blue-400 outline-none tabular-nums" />
-                      <span className="absolute left-1/2 -translate-x-1/2 text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors whitespace-nowrap">{attr.l}</span>
+                      <span className="absolute left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-400 uppercase tracking-widest group-hover:text-amber-300 transition-colors whitespace-nowrap">{attr.l}</span>
                       <input type="number" value={filters[attr.k as keyof typeof filters].max} onChange={(e) => handleFilterChange(attr.k as any, 'max', parseInt(e.target.value))} className="bg-transparent border-none w-10 text-right text-sm font-black text-indigo-400 outline-none tabular-nums" />
                     </div>
                     <div className="relative h-8 flex items-center px-1">
@@ -273,6 +299,16 @@ export const JobMarketView: React.FC = () => {
                     onClick={() => viewPlayerDetails(player.id)}
                     className={`group relative p-4 bg-black/20 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer overflow-hidden shadow-lg`}
                   >
+                    {(() => {
+                      const posColors: Record<string, string> = { GK: '#f59e0b', DEF: '#3b82f6', MID: '#10b981', FWD: '#f43f5e' };
+                      const posColor = posColors[player.position] || '#64748b';
+                      return (
+                        <div
+                          className="absolute inset-0 opacity-[0.12] pointer-events-none"
+                          style={{ background: `linear-gradient(135deg, ${posColor} 0%, transparent 100%)` }}
+                        />
+                      );
+                    })()}
                     <div className="relative z-10 flex items-center justify-between">
                        <div className="flex items-center gap-3">
                           <span className="text-[8px] font-mono text-slate-600 w-5 shrink-0 group-hover:text-emerald-500 transition-colors">
@@ -305,14 +341,59 @@ export const JobMarketView: React.FC = () => {
                  <h2 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">Lista Transferowa</h2>
                  <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Rynek klubowy</span>
               </div>
-              <div className="bg-black/40 p-3 rounded-xl border border-white/5 shadow-inner">
-                <input 
-                  type="text" 
-                  placeholder="FILTRUJ LISTĘ..." 
+              <div className="bg-black/40 p-4 rounded-2xl border border-white/10 flex flex-col gap-3">
+                <input
+                  type="text"
+                  placeholder="FILTRUJ LISTĘ..."
                   value={searchTermTransfer}
                   onChange={(e) => setSearchTermTransfer(e.target.value)}
-                  className="bg-transparent border-none outline-none text-[10px] font-black text-white w-full placeholder:text-slate-800 uppercase tracking-widest"
+                  className="bg-transparent border-none outline-none text-[10px] font-black text-white w-full placeholder:text-slate-500 uppercase tracking-widest"
                 />
+                <div className="border-t border-white/5" />
+                <div className="flex gap-4">
+                  <div className="flex flex-col gap-2 w-1/2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Filtr cenowy</span>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[10000, 100000, 250000, 1000000].map(step => (
+                        <button key={step} onClick={() => setPriceStep(step)}
+                          className={`py-1 rounded-lg text-[8px] font-black transition-all ${priceStep === step ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'}`}>
+                          {step >= 1000000 ? `${step / 1000000}M` : `${step / 1000}k`}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Od (MIN)</span>
+                      <div className="flex items-center gap-1 bg-black/40 rounded-xl border border-white/5 p-1">
+                        <button onClick={() => setPriceFilter(prev => ({ ...prev, min: Math.max(0, prev.min - priceStep) }))} className="w-5 h-5 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-emerald-400 font-black text-xs transition-all flex items-center justify-center shrink-0">−</button>
+                        <input type="number" placeholder="0" value={priceFilter.min || ''} onChange={(e) => setPriceFilter(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))} className="flex-1 bg-transparent border-none outline-none text-[10px] font-black text-emerald-400 text-center placeholder:text-slate-600 tabular-nums" />
+                        <button onClick={() => setPriceFilter(prev => ({ ...prev, min: Math.min(prev.max, prev.min + priceStep) }))} className="w-5 h-5 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-emerald-400 font-black text-xs transition-all flex items-center justify-center shrink-0">+</button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Do (MAX)</span>
+                      <div className="flex items-center gap-1 bg-black/40 rounded-xl border border-white/5 p-1">
+                        <button onClick={() => setPriceFilter(prev => ({ ...prev, max: Math.max(prev.min, prev.max - priceStep) }))} className="w-5 h-5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 font-black text-xs transition-all flex items-center justify-center shrink-0">−</button>
+                        <input type="number" placeholder="MAX" value={priceFilter.max === 200000000 ? '' : priceFilter.max} onChange={(e) => setPriceFilter(prev => ({ ...prev, max: parseInt(e.target.value) || 200000000 }))} className="flex-1 bg-transparent border-none outline-none text-[10px] font-black text-rose-400 text-center placeholder:text-slate-600 tabular-nums" />
+                        <button onClick={() => setPriceFilter(prev => ({ ...prev, max: Math.min(200000000, prev.max + priceStep) }))} className="w-5 h-5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-rose-400 font-black text-xs transition-all flex items-center justify-center shrink-0">+</button>
+                      </div>
+                    </div>
+                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest text-right">PLN</span>
+                  </div>
+                  <div className="flex flex-col gap-2 w-1/2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Zawodnicy na rynku</span>
+                    <div className="flex flex-col bg-black/30 p-1 rounded-xl border border-white/5 gap-0.5">
+                      {(['ALL', 'LOCAL', 'FOREIGN'] as const).map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => setNationalityFilter(opt)}
+                          className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all ${nationalityFilter === opt ? 'bg-white text-black' : 'text-slate-400 hover:text-slate-300'}`}
+                        >
+                          {opt === 'ALL' ? 'WSZYSCY' : opt === 'LOCAL' ? 'LOKALNI' : 'ZAGRANICZNI'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -334,10 +415,19 @@ export const JobMarketView: React.FC = () => {
                         className="group relative p-4 bg-black/40 rounded-xl border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer overflow-hidden shadow-lg"
                       >
                         {/* Identity Glow */}
-                        <div 
+                        <div
                           className="absolute inset-0 opacity-0 group-hover:opacity-5 pointer-events-none transition-opacity"
                           style={{ background: `linear-gradient(90deg, #f59e0b, transparent)` }}
                         />
+                        {/* Club Colors Gradient */}
+                        <div
+                          className="absolute inset-0 opacity-[0.12] pointer-events-none"
+                          style={{ background: `linear-gradient(135deg, ${club?.colorsHex?.[0] || 'transparent'} 0%, ${club?.colorsHex?.[1] || 'transparent'} 60%, transparent 100%)` }}
+                        />
+                        {/* Background Watermark */}
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-6xl font-black italic text-white/[0.04] select-none uppercase pointer-events-none group-hover:text-white/[0.07] transition-colors">
+                          LISTA TRANSFEROWA
+                        </div>
 
                         <div className="relative z-10 flex items-center justify-between">
                            <div className="flex items-center gap-4">
@@ -350,23 +440,33 @@ export const JobMarketView: React.FC = () => {
                                    <span className={`text-[12px] font-black uppercase tracking-tighter ${theme.color}`}>
                                      {player.position} • {player.overallRating} OVR
                                    </span>
-                                   <span className="text-[12px] text-slate-500 uppercase tracking-widest">• {club?.name || 'Bez klubu'}</span>
+                                   {club ? (
+                                     <span
+                                       className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded"
+                                       style={{
+                                         backgroundColor: club.colorsHex?.[0] || '#334155',
+                                         color: getClubTextColor(club.colorsHex?.[0] || '#334155', club.colorsHex?.[1])
+                                       }}
+                                     >
+                                       {club.name}
+                                     </span>
+                                   ) : (
+                                     <span className="text-[12px] text-slate-300 uppercase tracking-widest">Bez klubu</span>
+                                   )}
                                  </div>
 
 
 
                                  <div className="mt-2 flex items-center gap-2">
-                                    <span className="text-[8px] font-black text-slate-500 uppercase">Cena:</span>
-                                    <span className="text-xs font-black text-emerald-400 font-mono tabular-nums">
-                                       {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} PLN
-                                    </span>
+                                    <span className="text-[12px] font-black text-slate-300 uppercase">{player.age} LAT</span>
                                  </div>
 
                               </div>
                            </div>
-                           <div className="flex flex-col items-end">
-                              <span className="text-[10px] font-black text-amber-500 italic tabular-nums animate-pulse">LISTA</span>
-                              <span className="text-[12px] font-black text-slate-600 uppercase">{player.age}LAT</span>
+                           <div className="flex flex-col items-end gap-1">
+                              <span className="text-xs font-black text-emerald-400 font-mono tabular-nums">
+                                {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} PLN
+                              </span>
                            </div>
                         </div>
                       </div>
@@ -383,7 +483,7 @@ export const JobMarketView: React.FC = () => {
           </section>
 
           {/* COLUMN 4: FREE COACHES (USUNIĘTO WYSZUKIWARKĘ) */}
-          <section className="flex-1 bg-white/[0.02] border border-white/10 rounded-[40px] flex flex-col overflow-hidden shadow-2xl relative">
+          <section className="flex-1 bg-white/[0.02] border border-white/10 rounded-[40px] flex flex-col overflow-hidden shadow-2xl relative hidden">
             <div className="p-6 border-b border-white/10 flex flex-col gap-4 bg-white/[0.02]">
               <div className="flex justify-between items-center">
                  <h2 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">Trenerzy</h2>

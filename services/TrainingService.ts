@@ -41,8 +41,9 @@ export const TrainingService = {
 
       // 1. SZANSA NA WZROST (Trening + Gra)
       const attrKeys: (keyof PlayerAttributes)[] = [
-        'strength', 'stamina', 'pace', 'defending', 'passing', 'attacking', 
-        'finishing', 'technique', 'vision', 'dribbling', 'heading', 'positioning', 'goalkeeping'
+        'strength', 'stamina', 'pace', 'defending', 'passing', 'attacking',
+        'finishing', 'technique', 'vision', 'dribbling', 'heading', 'positioning', 'goalkeeping',
+        'freeKicks', 'penalties', 'corners', 'aggression', 'crossing', 'leadership', 'mentality', 'workRate'
       ];
 
       attrKeys.forEach(key => {
@@ -52,6 +53,7 @@ export const TrainingService = {
         pGrowth *= intensityMultiplier;
         if (cycle.primaryAttributes.includes(key)) pGrowth += 0.08;
         if (cycle.secondaryAttributes.includes(key)) pGrowth += 0.04;
+        if (player.trainingFocus === key) pGrowth += 0.06;
 
         // Bonus za wiek (młodzi rosną szybciej)
         if (player.age < 21) pGrowth *= 1.5;
@@ -84,10 +86,32 @@ export const TrainingService = {
           }
         }
 
-        // 2. SZANSA NA REGRES (Wiek + Brak gry)
-        let pRegress = 0.005;
-        if (player.age > 33) pRegress += 0.04;
-        if (!playedThisRound && player.age > 24) pRegress += 0.02; // Brak gry boli weteranów
+        // 2. SZANSA NA REGRES (Wiek + Brak gry + Typ atrybutu)
+        let pRegress = 0.003; // Baza: minimalna dla każdego
+
+        // KRZYWA WIEKOWA — stopniowa, nie klif
+        const age = player.age;
+        if (age >= 36) pRegress += 0.100;
+        else if (age >= 35) pRegress += 0.075;
+        else if (age >= 34) pRegress += 0.055;
+        else if (age >= 33) pRegress += 0.035;
+        else if (age >= 32) pRegress += 0.022;
+        else if (age >= 31) pRegress += 0.012;
+        else if (age >= 30) pRegress += 0.006;
+
+        // REGRES ZA BRAK GRY — wiek decyduje o skali
+        if (!playedThisRound) {
+          if (age >= 32) pRegress += 0.035;
+          else if (age >= 28) pRegress += 0.020;
+          else if (age >= 24) pRegress += 0.012;
+          else pRegress += 0.006; // młodzi też tracą bez gry
+        }
+
+        // MODYFIKATOR TYPU ATRYBUTU
+        const physicalAttrs = ['pace', 'stamina', 'strength'];
+        const mentalAttrs = ['vision', 'leadership', 'mentality', 'workRate', 'positioning'];
+        if (physicalAttrs.includes(key as string)) pRegress *= 1.5;
+        if (mentalAttrs.includes(key as string)) pRegress *= 0.55;
 
         if (Math.random() < pRegress) {
           const currentChange = seasonalChanges[key] || 0;

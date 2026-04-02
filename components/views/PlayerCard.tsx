@@ -68,19 +68,23 @@ const [showHistory, setShowHistory] = React.useState(false);
   const healthInfo = PlayerPresentationService.getHealthDisplay(player);
   const condColor = PlayerPresentationService.getConditionColorClass(player.condition);
 
-  const AttrBar = ({ label, value }: { label: string, value: number }) => {
+  const AttrBar = ({ label, value, change }: { label: string, value: number, change?: number }) => {
     let colorClass = "bg-slate-700";
     let glowClass = "";
     if (value >= 80) { colorClass = "bg-emerald-400"; glowClass = "shadow-[0_0_12px_rgba(52,211,153,0.6)]"; }
     else if (value >= 65) { colorClass = "bg-blue-400"; }
     else if (value >= 50) { colorClass = "bg-amber-400"; }
     else if (value > 0) { colorClass = "bg-red-500"; }
-    
+
     return (
       <div className="group flex flex-col gap-[2px] mb-1">
         <div className="flex justify-between items-center px-1">
            <span className="text-[8px] font-black text-white uppercase tracking-widest drop-shadow">{label}</span>
-           <span className={`text-[11px] font-black font-mono drop-shadow ${value >= 80 ? 'text-emerald-400' : 'text-white'}`}>{value}</span>
+           <div className="flex items-center gap-1">
+             {change !== undefined && change > 0 && <span className="text-emerald-400 text-[8px] font-black leading-none">▲</span>}
+             {change !== undefined && change < 0 && <span className="text-rose-400 text-[8px] font-black leading-none">▼</span>}
+             <span className={`text-[11px] font-black font-mono drop-shadow ${value >= 80 ? 'text-emerald-400' : 'text-white'}`}>{value}</span>
+           </div>
         </div>
         <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
            <div className={`h-full transition-all duration-1000 ${colorClass} ${glowClass}`} style={{ width: `${value}%` }} />
@@ -90,6 +94,7 @@ const [showHistory, setShowHistory] = React.useState(false);
   };
 
   const attrs = player.attributes || {} as PlayerAttributes;
+  const seasonalChanges = player.stats?.seasonalChanges || {};
 
 
 
@@ -203,32 +208,32 @@ const [showHistory, setShowHistory] = React.useState(false);
             <div className="flex-1 bg-transparent rounded-[24px] border border-white/5 p-5 flex flex-col justify-center">
               <div className="grid grid-cols-2 gap-x-8">
                 <div>
-                  <AttrBar label="Szybkość" value={attrs.pace} />
-                  <AttrBar label="Siła" value={attrs.strength} />
-                  <AttrBar label="Kondycja" value={attrs.stamina} />
-                  <AttrBar label="Obrona" value={attrs.defending} />
-                  <AttrBar label="Podania" value={attrs.passing} />
-                  <AttrBar label="Atak" value={attrs.attacking} />
-                  <AttrBar label="Wykończenie" value={attrs.finishing} />
-                  <AttrBar label="Technika" value={attrs.technique} />
-                  <AttrBar label="Drybling" value={attrs.dribbling} />
-                  <AttrBar label="Wizja" value={attrs.vision} />
-                  <AttrBar label="Ustawianie się" value={attrs.positioning} />
+                  <AttrBar label="Szybkość" value={attrs.pace} change={seasonalChanges['pace']} />
+                  <AttrBar label="Siła" value={attrs.strength} change={seasonalChanges['strength']} />
+                  <AttrBar label="Kondycja" value={attrs.stamina} change={seasonalChanges['stamina']} />
+                  <AttrBar label="Obrona" value={attrs.defending} change={seasonalChanges['defending']} />
+                  <AttrBar label="Podania" value={attrs.passing} change={seasonalChanges['passing']} />
+                  <AttrBar label="Atak" value={attrs.attacking} change={seasonalChanges['attacking']} />
+                  <AttrBar label="Wykończenie" value={attrs.finishing} change={seasonalChanges['finishing']} />
+                  <AttrBar label="Technika" value={attrs.technique} change={seasonalChanges['technique']} />
+                  <AttrBar label="Drybling" value={attrs.dribbling} change={seasonalChanges['dribbling']} />
+                  <AttrBar label="Wizja" value={attrs.vision} change={seasonalChanges['vision']} />
+                  <AttrBar label="Ustawianie się" value={attrs.positioning} change={seasonalChanges['positioning']} />
                 </div>
                 <div>
                   {player.position === 'GK'
-                    ? <AttrBar label="Bramkarstwo" value={attrs.goalkeeping} />
-                    : <AttrBar label="Główki" value={attrs.heading} />
+                    ? <AttrBar label="Bramkarstwo" value={attrs.goalkeeping} change={seasonalChanges['goalkeeping']} />
+                    : <AttrBar label="Główki" value={attrs.heading} change={seasonalChanges['heading']} />
                   }
                   <AttrBar label="Talent" value={attrs.talent} />
-                  <AttrBar label="Liderstwo" value={attrs.leadership} />
-                  <AttrBar label="Mentalność" value={attrs.mentality} />
-                  <AttrBar label="Pracowitość" value={attrs.workRate} />
-                  <AttrBar label="Agresja" value={attrs.aggression} />
-                  <AttrBar label="Rzuty Wolne" value={attrs.freeKicks} />
-                  <AttrBar label="Rzuty Karne" value={attrs.penalties} />
-                  <AttrBar label="Rzuty Rożne" value={attrs.corners} />
-                  <AttrBar label="Dośrodkowania" value={attrs.crossing} />
+                  <AttrBar label="Liderstwo" value={attrs.leadership} change={seasonalChanges['leadership']} />
+                  <AttrBar label="Mentalność" value={attrs.mentality} change={seasonalChanges['mentality']} />
+                  <AttrBar label="Pracowitość" value={attrs.workRate} change={seasonalChanges['workRate']} />
+                  <AttrBar label="Agresja" value={attrs.aggression} change={seasonalChanges['aggression']} />
+                  <AttrBar label="Rzuty Wolne" value={attrs.freeKicks} change={seasonalChanges['freeKicks']} />
+                  <AttrBar label="Rzuty Karne" value={attrs.penalties} change={seasonalChanges['penalties']} />
+                  <AttrBar label="Rzuty Rożne" value={attrs.corners} change={seasonalChanges['corners']} />
+                  <AttrBar label="Dośrodkowania" value={attrs.crossing} change={seasonalChanges['crossing']} />
                 </div>
               </div>
             </div>
@@ -354,7 +359,7 @@ const [showHistory, setShowHistory] = React.useState(false);
                   <span className="text-lg font-black text-emerald-400 font-mono italic tabular-nums leading-none drop-shadow">
                     {player.marketValue ? player.marketValue.toLocaleString('pl-PL') : '0'} <span className="text-xs opacity-60 ml-1">PLN</span>
                   </span>
-                  <p className="text-[7px] text-white uppercase mt-1 font-bold tracking-tighter drop-shadow">* Wycena na podstawie formy, wieku oraz reputacji ligi</p>
+                  <p className="text-[7px] text-white uppercase mt-1 font-bold tracking-tighter drop-shadow"></p>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl text-emerald-500 border border-emerald-500/20 shadow-inner">
                   🏷️

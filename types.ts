@@ -536,6 +536,7 @@ export interface Player {
   transferPendingClubId?: string;
   /** Data ISO kiedy zawodnik "melduje się" w nowym klubie (currentDate + 3 dni) */
   transferReportDate?: string;
+  trainingFocus?: keyof PlayerAttributes | null;
 }
 
 export interface TeamStats {

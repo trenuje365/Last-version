@@ -7,7 +7,7 @@ export const TRAINING_CYCLES: TrainingCycle[] = [
     description: 'Skupienie na inteligencji boiskowej. Główne wzrosty: Wizja i Ustawianie się. Wsparcie: Podania i Technika. Program o niskim obciążeniu, idealny do stabilizacji formy.',
     icon: '🧠',
     primaryAttributes: ['vision', 'positioning'],
-    secondaryAttributes: ['passing', 'technique'],
+    secondaryAttributes: ['passing', 'technique', 'mentality'],
     fatigueRisk: 0.3
   },
   {
@@ -16,7 +16,7 @@ export const TRAINING_CYCLES: TrainingCycle[] = [
     description: 'Ekstremalny nacisk na fizyczność. Główne wzrosty: Kondycja i Szybkość. Wsparcie: Obrona i Siła. UWAGA: Bardzo wysokie ryzyko kontuzji i drenaż energii zawodników.',
     icon: '⚡',
     primaryAttributes: ['stamina', 'pace'],
-    secondaryAttributes: ['defending', 'strength'],
+    secondaryAttributes: ['defending', 'strength', 'workRate', 'aggression'],
     fatigueRisk: 0.9
   },
   {
@@ -25,7 +25,7 @@ export const TRAINING_CYCLES: TrainingCycle[] = [
     description: 'Trening operowania piłką. Główne wzrosty: Podania i Technika. Wsparcie: Drybling i Wizja. Rozwija kreatywność kosztem braku nacisku na parametry siłowe.',
     icon: '👟',
     primaryAttributes: ['passing', 'technique'],
-    secondaryAttributes: ['dribbling', 'vision'],
+    secondaryAttributes: ['dribbling', 'vision', 'crossing'],
     fatigueRisk: 0.4
   },
   {
@@ -76,10 +76,10 @@ export const TRAINING_CYCLES: TrainingCycle[] = [
   {
     id: 'T_SET_PIECES',
     name: 'Stałe Fragmenty Gry',
-    description: 'Dopracowanie schematów. Główne wzrosty: Podania i Gra głową. Wsparcie: Wizja i Wykończenie. Poprawia skuteczność rzutów rożnych i wolnych.',
+    description: 'Trening rzutów wolnych, rożnych i jedenastek. Główne wzrosty: Rzuty Wolne i Rożne. Wsparcie: Jedenastki i Podania. Poprawia skuteczność stałych fragmentów gry.',
     icon: '🚩',
-    primaryAttributes: ['passing', 'heading'],
-    secondaryAttributes: ['vision', 'finishing'],
+    primaryAttributes: ['freeKicks', 'corners'],
+    secondaryAttributes: ['penalties', 'passing'],
     fatigueRisk: 0.2
   },
   {
@@ -91,5 +91,23 @@ export const TRAINING_CYCLES: TrainingCycle[] = [
     secondaryAttributes: ['technique'],
     fatigueRisk: 0.0,
     recoveryBonus: 0.5
+  },
+  {
+    id: 'T_HIGH_PRESS',
+    name: 'Wysoki Pressing',
+    description: 'Intensywny pressing wysoko na boisku. Główne wzrosty: Pracowitość i Agresja. Wsparcie: Obrona i Kondycja. Wymaga maksymalnej pracy nóg każdego zawodnika przez całe 90 minut.',
+    icon: '🔥',
+    primaryAttributes: ['workRate', 'aggression'],
+    secondaryAttributes: ['defending', 'stamina'],
+    fatigueRisk: 0.85
+  },
+  {
+    id: 'T_COUNTER_ATTACK',
+    name: 'Kontratak',
+    description: 'Błyskawiczne przejście do ataku po odbiorze piłki. Główne wzrosty: Szybkość i Atak. Wsparcie: Wykończenie i Pracowitość. Ideał dla drużyn preferujących szybkie przejście z obrony.',
+    icon: '💨',
+    primaryAttributes: ['pace', 'attacking'],
+    secondaryAttributes: ['finishing', 'workRate'],
+    fatigueRisk: 0.65
   }
 ];

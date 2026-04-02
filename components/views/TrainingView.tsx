@@ -4,11 +4,31 @@ import { ViewState } from '../../types';
 import { TRAINING_CYCLES } from '../../data/training_definitions_pl';
 
 export const TrainingView: React.FC = () => {
-  const { navigateTo, activeTrainingId, setActiveTrainingId, clubs, userTeamId, activeIntensity, setTrainingIntensity } = useGame();
+  const { navigateTo, activeTrainingId, setActiveTrainingId, clubs, userTeamId, activeIntensity, setTrainingIntensity, players, updatePlayer, viewPlayerDetails } = useGame();
   const [selectedId, setSelectedId] = useState<string | null>(activeTrainingId);
+  const teamPlayers = (userTeamId ? players[userTeamId] : []) || [];
 
   const myClub = clubs.find(c => c.id === userTeamId);
   const currentCycle = TRAINING_CYCLES.find(c => c.id === selectedId) || null;
+
+  const ATTR_LABELS: Record<string, string> = {
+    strength: 'Siła', stamina: 'Kondycja', pace: 'Szybkość', defending: 'Obrona',
+    passing: 'Podania', attacking: 'Atak', finishing: 'Wykończenie', technique: 'Technika',
+    vision: 'Wizja', dribbling: 'Drybling', heading: 'Gra głową', positioning: 'Ustawianie',
+    goalkeeping: 'Bramkarstwo', freeKicks: 'Rzuty wolne', penalties: 'Jedenastki',
+    corners: 'Rożne', aggression: 'Agresja', crossing: 'Dośrodkowania',
+    leadership: 'Przywództwo', mentality: 'Mentalność', workRate: 'Pracowitość'
+  };
+  const TRAINABLE_ATTRS = Object.entries(ATTR_LABELS);
+
+  const ATTR_ABBR: Record<string, string> = {
+    strength: 'SIŁ', stamina: 'KON', pace: 'SZY', defending: 'OBR',
+    heading: 'GŁW', positioning: 'UST', goalkeeping: 'BRA', passing: 'POD',
+    technique: 'TEC', vision: 'WIZ', dribbling: 'DRY', crossing: 'DŚR',
+    attacking: 'ATK', finishing: 'WYK', freeKicks: 'RWL', corners: 'RŻN',
+    penalties: 'KRN', aggression: 'AGR', leadership: 'PRZ', mentality: 'MEN', workRate: 'PRC'
+  };
+  const COLS = Object.keys(ATTR_ABBR);
 
   const handleSave = () => {
     if (selectedId) {
@@ -26,7 +46,7 @@ export const TrainingView: React.FC = () => {
           className="absolute inset-0 bg-cover bg-center scale-110"
           style={{ backgroundImage: "url('https://i.ibb.co/VcMTs5c6/traning.png')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/60 to-slate-950" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/95 via-slate-950/85 to-slate-950" />
         <div className="absolute inset-0 backdrop-blur-[2px]" />
       </div>
 
@@ -70,63 +90,116 @@ export const TrainingView: React.FC = () => {
       {/* GŁÓWNA PRZESTRZEŃ ROBOCZA */}
       <div className="relative z-10 flex-1 flex gap-8 p-12 min-h-0 overflow-hidden">
         
-        {/* LEWA STRONA: LISTA CYKLI */}
+        {/* LEWA STRONA: LISTA ZAWODNIKÓW */}
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-4">
-           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 pb-20">
+
+              {/* FOKUS INDYWIDUALNY ZAWODNIKÓW */}
+              <div className="pb-20">
+                <span className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-4 px-1">Fokus Indywidualny Zawodników</span>
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="text-[9px] font-bold border-collapse" style={{ minWidth: 'max-content' }}>
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="py-2 px-3 text-left text-slate-500 uppercase tracking-widest sticky left-0 bg-slate-950 z-10 whitespace-nowrap">ZAWODNIK</th>
+                        {COLS.map(k => (
+                          <th key={k} className="py-2 px-2 text-center text-slate-500 uppercase tracking-widest font-black">{ATTR_ABBR[k]}</th>
+                        ))}
+                        <th className="py-2 px-3 text-center text-slate-500 uppercase tracking-widest sticky right-0 bg-slate-950 z-10">FOKUS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...teamPlayers].sort((a, b) => {
+                        const ord: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+                        return (ord[a.position] ?? 4) - (ord[b.position] ?? 4);
+                      }).map((player, idx) => {
+                        const posColor = player.position === 'GK' ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                          : player.position === 'DEF' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
+                          : player.position === 'MID' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                          : 'bg-rose-500/20 border-rose-500/40 text-rose-400';
+                        const stickyBg = idx % 2 === 0 ? 'bg-slate-950' : 'bg-[#090e1a]';
+                        return (
+                          <tr key={player.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${idx % 2 !== 0 ? 'bg-white/[0.02]' : ''}`}>
+                            <td className={`py-2 px-3 sticky left-0 z-10 whitespace-nowrap ${stickyBg}`}>
+                              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border mr-2 ${posColor}`}>{player.position}</span>
+                              <button onClick={() => viewPlayerDetails(player.id)} className="font-black text-white hover:text-emerald-400 transition-colors cursor-pointer">{player.firstName[0]}. {player.lastName}</button>
+                              <span className="ml-2 text-slate-500 font-bold">OVR {player.overallRating}</span>
+                            </td>
+                            {COLS.map(k => {
+                              const val = (player.attributes[k as keyof typeof player.attributes] as number) ?? 0;
+                              const color = val >= 85 ? 'text-emerald-400' : val >= 75 ? 'text-white' : val >= 60 ? 'text-amber-400' : 'text-rose-400';
+                              return <td key={k} className={`py-2 px-2 text-center tabular-nums ${color}`}>{val}</td>;
+                            })}
+                            <td className={`py-2 px-2 sticky right-0 z-10 ${stickyBg}`}>
+                              <select
+                                value={player.trainingFocus || ''}
+                                onChange={e => updatePlayer(userTeamId!, player.id, { trainingFocus: (e.target.value as any) || null })}
+                                className="bg-slate-800 border border-white/10 text-white text-[9px] font-black rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-emerald-500/40 transition-all"
+                              >
+                                <option value="">— Brak —</option>
+                                {TRAINABLE_ATTRS.map(([key, label]) => (
+                                  <option key={key} value={key}>{label}</option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+        </div>
+
+        {/* PRAWA STRONA: PROGRAMY + DIAGNOSTYKA */}
+        <div className="w-[680px] shrink-0 flex flex-col gap-4 overflow-y-auto custom-scrollbar animate-slide-left pb-20">
+
+           {/* SIATKA PROGRAMÓW TRENINGOWYCH */}
+           <div className="grid grid-cols-2 gap-3">
               {TRAINING_CYCLES.map(cycle => {
                 const isActive = activeTrainingId === cycle.id;
                 const isSelected = selectedId === cycle.id;
-                
                 return (
                   <button
                     key={cycle.id}
                     onClick={() => setSelectedId(cycle.id)}
-                    className={`group relative p-8 rounded-[45px] border transition-all duration-500 text-left overflow-hidden
-                      ${isSelected 
-                        ? 'bg-emerald-600/15 border-emerald-500/50 shadow-[0_0_40px_rgba(16,185,129,0.15)] scale-[1.02]' 
+                    className={`group relative p-3 rounded-2xl border transition-all duration-300 text-left overflow-hidden
+                      ${isSelected
+                        ? 'bg-emerald-600/15 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
                         : 'bg-slate-900/40 border-white/5 hover:border-white/20 hover:bg-slate-900/60'}
                     `}
                   >
-                    <div className="absolute right-[-20px] bottom-[-20px] text-9xl opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rotate-12 pointer-events-none">
-                       {cycle.icon}
+                    {/* OPIS NA HOVER */}
+                    <div className="absolute inset-0 rounded-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center z-20 pointer-events-none" style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <p className="text-[10px] text-white font-medium leading-relaxed text-center italic">"{cycle.description}"</p>
                     </div>
 
-                    <div className="relative z-10 flex items-start gap-8">
-                       <div className={`w-20 h-20 rounded-[30px] flex items-center justify-center text-5xl shadow-2xl transition-transform group-hover:scale-110 group-hover:rotate-3 
-                        ${isSelected ? 'bg-emerald-500 border-2 border-emerald-300 shadow-emerald-500/30 text-white' : 'bg-slate-800 border border-white/10'}`}>
-                          {cycle.icon}
-                       </div>
-                       <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-4 mb-2">
-                             <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter truncate">{cycle.name}</h4>
-                             {isActive && (
-                               <span className="bg-blue-600/20 text-blue-400 text-[8px] px-3 py-1 rounded-full border border-blue-500/30 font-black tracking-widest uppercase shadow-lg">OBECNY</span>
-                             )}
-                          </div>
-                          <p className="text-sm text-slate-400 font-medium leading-relaxed italic pr-6 opacity-80">
-                             "{cycle.description}"
-                          </p>
-                       </div>
+                    <div className="relative z-10 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0 transition-transform group-hover:scale-110
+                        ${isSelected ? 'bg-emerald-500 border border-emerald-300 text-white' : 'bg-slate-800 border border-white/10'}`}>
+                        {cycle.icon}
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <h4 className="text-sm font-black text-white uppercase italic tracking-tighter truncate">{cycle.name}</h4>
+                        {isActive && (
+                          <span className="bg-blue-600/20 text-blue-400 text-[7px] px-2 py-0.5 rounded-full border border-blue-500/30 font-black tracking-widest uppercase shrink-0">OBECNY</span>
+                        )}
+                      </div>
                     </div>
-                    
+
                     {isSelected && (
-                      <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,1)]" />
+                      <div className="absolute right-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,1)]" />
                     )}
                   </button>
                 );
               })}
            </div>
-        </div>
 
-        {/* PRAWA STRONA: DIAGNOSTYKA SZCZEGÓŁOWA */}
-        <div className="w-[500px] shrink-0 flex flex-col animate-slide-left">
-           <div className="flex-1 bg-slate-900/60 rounded-[60px] border border-white/10 backdrop-blur-3xl p-12 flex flex-col shadow-[0_50px_100px_rgba(0,0,0,0.7)] relative overflow-hidden group">
-              
-              <div className="absolute top-0 right-0 p-10 opacity-[0.02] text-[15rem] font-black italic text-white select-none pointer-events-none">DANE</div>
+           {/* PANEL DIAGNOSTYKI */}
+           <div className="bg-slate-900/60 rounded-[40px] border border-white/10 backdrop-blur-3xl p-5 flex flex-col gap-4 shadow-[0_50px_100px_rgba(0,0,0,0.7)]">
 
-              {/* PANEL INTENSYWNOŚCI (STAGE 1 PRO) */}
-              <div className="relative z-20 mb-8 bg-black/40 p-4 rounded-[30px] border border-white/5">
-                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-3 block px-2">Poziom Intensywności</span>
+              {/* PANEL INTENSYWNOŚCI */}
+              <div className="bg-black/40 p-3 rounded-[20px] border border-white/5">
+                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2 block px-1">Intensywność</span>
                  <div className="flex gap-2">
                     {[
                       { id: 'LIGHT', label: 'LEKKI', color: 'border-emerald-500/50 text-emerald-400', active: 'bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)]' },
@@ -136,7 +209,7 @@ export const TrainingView: React.FC = () => {
                        <button
                           key={btn.id}
                           onClick={() => setTrainingIntensity(btn.id as any)}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all border ${activeIntensity === btn.id ? btn.active : `bg-white/5 ${btn.color} hover:bg-white/10`}`}
+                          className={`flex-1 py-2 rounded-lg text-[9px] font-black transition-all border ${activeIntensity === btn.id ? btn.active : `bg-white/5 ${btn.color} hover:bg-white/10`}`}
                        >
                           {btn.label}
                        </button>
@@ -145,109 +218,69 @@ export const TrainingView: React.FC = () => {
               </div>
 
               {currentCycle ? (
-                <div className="relative z-10 flex flex-col h-full animate-fade-in">
-                  <div className="flex justify-between items-start mb-12">
-                     <div>
-                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.5em] block mb-2">ANALIZA POTENCJAŁU</span>
-                        <h3 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
-                           Raport<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-700">Wpływu</span>
-                        </h3>
-                     </div>
-                     <div className="w-16 h-16 rounded-3xl bg-black/40 border border-white/10 flex items-center justify-center text-3xl shadow-inner">📊</div>
+                <div className="flex flex-col gap-3 animate-fade-in">
+
+                  {/* PRIORYTETOWE */}
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] block mb-2 px-1">Priorytet</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {currentCycle.primaryAttributes.map(attr => (
+                        <span key={attr} className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 uppercase italic tracking-tight">
+                          + {ATTR_LABELS[attr] || attr}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className="space-y-12 flex-1">
-                    {/* ATYBUTY WZROSTU */}
-                    <div className="space-y-6">
-                       <span className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-1">Prognozowane przyrosty</span>
-                       <div className="grid grid-cols-2 gap-4">
-                          {currentCycle.primaryAttributes.map(attr => (
-                            <div key={attr} className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-4 rounded-[28px] group hover:bg-emerald-500/20 transition-all shadow-lg">
-                               <div className="flex items-center gap-2 mb-1">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                  <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">PRIORYTET</span>
-                               </div>
-                               <span className="text-sm font-black text-white uppercase italic tracking-tighter group-hover:text-emerald-300 transition-colors">+ {attr}</span>
-                            </div>
-                          ))}
-                          {currentCycle.secondaryAttributes.map(attr => (
-                            <div key={attr} className="bg-blue-500/10 border border-blue-500/20 px-6 py-4 rounded-[28px] group hover:bg-blue-500/20 transition-all shadow-lg">
-                               <div className="flex items-center gap-2 mb-1">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                  <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">WSPARCIE</span>
-                               </div>
-                               <span className="text-sm font-black text-white uppercase italic tracking-tighter group-hover:text-blue-300 transition-colors">+ {attr}</span>
-                            </div>
-                          ))}
-                       </div>
-                    </div>
 
-                    {/* METRYKA STRESU (DYNAMICZNA) */}
-                    <div className="space-y-6 bg-black/20 p-8 rounded-[40px] border border-white/5">
-                       <div className="flex justify-between items-center px-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Obciążenie organizmu</span>
-                          {(() => {
-                             let totalRisk = currentCycle.fatigueRisk;
-                             if (activeIntensity === 'HEAVY') totalRisk += 0.3;
-                             if (activeIntensity === 'LIGHT') totalRisk -= 0.2;
-                             totalRisk = Math.max(0.1, Math.min(1.0, totalRisk));
-                             
-                             return (
-                                <span className={`text-3xl font-black italic tabular-nums ${totalRisk > 0.7 ? 'text-rose-500 shadow-rose-500/20' : (totalRisk > 0.4 ? 'text-amber-500' : 'text-emerald-500')}`}>
-                                   {Math.round(totalRisk * 100)}%
-                                </span>
-                             );
-                          })()}
-                       </div>
-                       <div className="h-4 w-full bg-black/40 rounded-full overflow-hidden p-1 border border-white/10 shadow-inner">
-                          {(() => {
-                             let totalRisk = currentCycle.fatigueRisk;
-                             if (activeIntensity === 'HEAVY') totalRisk += 0.3;
-                             if (activeIntensity === 'LIGHT') totalRisk -= 0.2;
-                             totalRisk = Math.max(0.1, Math.min(1.0, totalRisk));
-                             
-                             return (
-                               <div 
-                                  className={`h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(0,0,0,0.5)]
-                                     ${totalRisk > 0.7 ? 'bg-gradient-to-r from-rose-600 to-rose-400' : 
-                                       (totalRisk > 0.4 ? 'bg-gradient-to-r from-amber-600 to-amber-400' : 
-                                        'bg-gradient-to-r from-emerald-600 to-emerald-400')}`} 
-                                  style={{ width: `${totalRisk * 100}%` }} 
-                               />
-                             );
-                          })()}
-                       </div>
-                       <p className="text-[10px] text-slate-500 font-bold italic leading-relaxed text-center px-4">
-                          Intensywność cyklu wpływa na szybkość regeneracji energii oraz bazowe ryzyko urazów w trakcie mikrocyklu.
-                       </p>
+                  {/* WSPIERAJĄCE */}
+                  <div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] block mb-2 px-1">Wsparcie</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {currentCycle.secondaryAttributes.map(attr => (
+                        <span key={attr} className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 uppercase italic tracking-tight">
+                          + {ATTR_LABELS[attr] || attr}
+                        </span>
+                      ))}
                     </div>
+                  </div>
 
-                    {/* BONUSY SPECJALNE */}
-                    {currentCycle.recoveryBonus && (
-                      <div className="p-8 bg-gradient-to-br from-blue-600/20 to-blue-900/10 border border-blue-500/30 rounded-[40px] flex items-center gap-8 shadow-2xl animate-pulse-slow">
-                         <div className="text-6xl drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">🧘</div>
-                         <div>
-                            <span className="block text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2">SPECJALNY EFEKT REGENERACJI</span>
-                            <span className="text-lg font-black text-white italic uppercase tracking-tighter leading-tight">Maksymalne tempo odzyskiwania sił (+50%)</span>
-                         </div>
+                  {/* OBCIĄŻENIE */}
+                  {(() => {
+                    let totalRisk = currentCycle.fatigueRisk;
+                    if (activeIntensity === 'HEAVY') totalRisk += 0.3;
+                    if (activeIntensity === 'LIGHT') totalRisk -= 0.2;
+                    totalRisk = Math.max(0.1, Math.min(1.0, totalRisk));
+                    const color = totalRisk > 0.7 ? 'text-rose-500' : totalRisk > 0.4 ? 'text-amber-500' : 'text-emerald-500';
+                    const barColor = totalRisk > 0.7 ? 'bg-gradient-to-r from-rose-600 to-rose-400' : totalRisk > 0.4 ? 'bg-gradient-to-r from-amber-600 to-amber-400' : 'bg-gradient-to-r from-emerald-600 to-emerald-400';
+                    return (
+                      <div className="bg-black/20 p-3 rounded-2xl border border-white/5">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Obciążenie</span>
+                          <span className={`text-base font-black italic tabular-nums ${color}`}>{Math.round(totalRisk * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/10">
+                          <div className={`h-full rounded-full transition-all duration-1000 ${barColor}`} style={{ width: `${totalRisk * 100}%` }} />
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
 
-                  <div className="mt-12 pt-8 border-t border-white/10 flex items-center justify-between">
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">KOD PROCEDURY</span>
-                        <span className="text-xs font-mono text-slate-500 font-bold">{currentCycle.id}</span>
-                     </div>
-                     <div className="px-5 py-2 bg-white/5 rounded-full border border-white/10">
-                        <span className="text-[8px] font-black text-slate-500 tracking-widest uppercase">FM_LAB_2025</span>
-                     </div>
-                  </div>
+                  {/* BONUS REGENERACJI */}
+                  {currentCycle.recoveryBonus && (
+                    <div className="p-3 bg-gradient-to-br from-blue-600/20 to-blue-900/10 border border-blue-500/30 rounded-2xl flex items-center gap-3">
+                       <div className="text-2xl">🧘</div>
+                       <div>
+                          <span className="block text-[8px] font-black text-blue-400 uppercase tracking-[0.3em] mb-0.5">Regeneracja</span>
+                          <span className="text-[10px] font-black text-white italic uppercase tracking-tight">+50% odzysk sił</span>
+                       </div>
+                    </div>
+                  )}
+
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 animate-pulse">
-                   <div className="text-[10rem] mb-12">🔬</div>
-                   <p className="text-xl font-black uppercase tracking-[0.5em] italic text-slate-500">Wybierz cykl treningowy,<br/><span className="text-sm tracking-[0.3em]">aby rozpocząć symulację</span></p>
+                <div className="flex flex-col items-center justify-center text-center opacity-30 py-8">
+                   <div className="text-5xl mb-4">🔬</div>
+                   <p className="text-xs font-black uppercase tracking-[0.3em] italic text-slate-500">Wybierz cykl</p>
                 </div>
               )}
            </div>

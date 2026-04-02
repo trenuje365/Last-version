@@ -294,6 +294,149 @@ const repColor = (rep: number): string => {
 
 const tierStars = (tier: number): string => '★'.repeat(Math.max(0, 6 - tier)) + '☆'.repeat(Math.min(5, tier - 1));
 
+const EMOJI_FONT_STACK = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+
+const flagEmojiFromIso2 = (code: string): string => {
+  const normalized = code.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) return '\u{1F3F3}';
+  return String.fromCodePoint(
+    ...normalized.split('').map(char => 0x1F1E6 + (char.charCodeAt(0) - 65))
+  );
+};
+
+const subdivisionFlagEmoji = (tags: string): string => `\u{1F3F4}${tags}\u{E007F}`;
+
+const SPECIAL_NT_FLAGS: Record<string, string> = {
+  Anglia: subdivisionFlagEmoji('\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}'),
+  Szkocja: subdivisionFlagEmoji('\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}'),
+  Walia: subdivisionFlagEmoji('\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}'),
+};
+
+/*
+const NT_FLAG_CODE_MAP: Record<string, string> = {
+  Albania: 'AL', Andora: 'AD', Armenia: 'AM', Austria: 'AT', AzerbejdÅ¼an: 'AZ',
+  Belgia: 'BE', BiaÅ‚oruÅ›: 'BY', 'BoÅ›nia i Hercegowina': 'BA', BuÅ‚garia: 'BG', Chorwacja: 'HR',
+  Cypr: 'CY', CzarnogÃ³ra: 'ME', Czechy: 'CZ', Dania: 'DK', Estonia: 'EE',
+  Finlandia: 'FI', Francja: 'FR', Gibraltar: 'GI', Grecja: 'GR', Gruzja: 'GE',
+  Hiszpania: 'ES', Holandia: 'NL', Irlandia: 'IE', Islandia: 'IS', Izrael: 'IL',
+  Kazachstan: 'KZ', Kosovo: 'XK', Liechtenstein: 'LI', Litwa: 'LT', Luksemburg: 'LU',
+  'Åotwa': 'LV', 'Macedonia PÃ³Å‚nocna': 'MK', Malta: 'MT', 'MoÅ‚dawia': 'MD', Niemcy: 'DE',
+  Norwegia: 'NO', Polska: 'PL', Portugalia: 'PT', Rosja: 'RU', Rumunia: 'RO',
+  'San Marino': 'SM', Serbia: 'RS', 'SÅ‚owacja': 'SK', 'SÅ‚owenia': 'SI',
+  Szwajcaria: 'CH', Szwecja: 'SE', Turcja: 'TR', Ukraina: 'UA',
+  'WÄ™gry': 'HU', 'WÅ‚ochy': 'IT', 'Wyspy Owcze': 'FO',
+  Algieria: 'DZ', Angola: 'AO', Benin: 'BJ', Botswana: 'BW', 'Burkina Faso': 'BF',
+  Burundi: 'BI', Czad: 'TD', 'DÅ¼ibuti': 'DJ', Egipt: 'EG', Erytrea: 'ER',
+  Eswatini: 'SZ', Etiopia: 'ET', Gabon: 'GA', Gambia: 'GM', Ghana: 'GH',
+  Gwinea: 'GN', 'Gwinea Bissau': 'GW', 'Gwinea RÃ³wnikowa': 'GQ', Kamerun: 'CM', Kenia: 'KE',
+  Komory: 'KM', Kongo: 'CG', 'Demokratyczna Republika Konga': 'CD', Lesotho: 'LS', Liberia: 'LR',
+  Libia: 'LY', Madagaskar: 'MG', Malawi: 'MW', Mali: 'ML', Maroko: 'MA',
+  Mauretania: 'MR', Mauritius: 'MU', Mozambik: 'MZ', Namibia: 'NA', Niger: 'NE',
+  Nigeria: 'NG', 'Republika PoÅ‚udniowej Afryki': 'ZA', 'Republika ÅšrodkowoafrykaÅ„ska': 'CF', Rwanda: 'RW',
+  Senegal: 'SN', Seszele: 'SC', 'Sierra Leone': 'SL', Somalia: 'SO', Sudan: 'SD',
+  'Sudan PoÅ‚udniowy': 'SS', 'Wyspy ÅšwiÄ™tego Tomasza i KsiÄ…Å¼Ä™ca': 'ST', Tanzania: 'TZ', Togo: 'TG',
+  Tunezja: 'TN', Uganda: 'UG', 'WybrzeÅ¼e KoÅ›ci SÅ‚oniowej': 'CI', 'Wyspy Zielonego PrzylÄ…dka': 'CV',
+  Zambia: 'ZM', Zimbabwe: 'ZW',
+  Argentyna: 'AR', Brazylia: 'BR', Urugwaj: 'UY', Kolumbia: 'CO', Chile: 'CL',
+  Peru: 'PE', Ekwador: 'EC', Paragwaj: 'PY', Boliwia: 'BO', Wenezuela: 'VE',
+  'Stany Zjednoczone': 'US', Meksyk: 'MX', Kanada: 'CA', Kostaryka: 'CR', Panama: 'PA',
+  Honduras: 'HN', Salwador: 'SV', Gwatemala: 'GT', Nikaragua: 'NI', Belize: 'BZ',
+  Jamajka: 'JM', 'Trynidad i Tobago': 'TT', Haiti: 'HT', 'CuraÃ§ao': 'CW', Surinam: 'SR',
+  Kuba: 'CU', 'Republika Dominikany': 'DO', 'Antigua i Barbuda': 'AG', Aruba: 'AW',
+  Bahamy: 'BS', Barbados: 'BB', Bermudy: 'BM', Dominika: 'DM', Grenada: 'GD',
+  Kajmany: 'KY', Montserrat: 'MS', 'Saint Kitts i Nevis': 'KN', 'Saint Lucia': 'LC',
+  'Saint Vincent i Grenadyny': 'VC', 'Turks i Caicos': 'TC',
+  'Arabia Saudyjska': 'SA', Bahrajn: 'BH', Irak: 'IQ', Iran: 'IR', Jemen: 'YE',
+  Jordania: 'JO', Katar: 'QA', Kuwejt: 'KW', Liban: 'LB', Oman: 'OM',
+  Palestyna: 'PS', Syria: 'SY', ZEA: 'AE', Australia: 'AU', Chiny: 'CN',
+  Filipiny: 'PH', Indonezja: 'ID', Japonia: 'JP', 'KambodÅ¼a': 'KH', 'Korea PÅD': 'KR',
+  'Korea PÅN': 'KP', Laos: 'LA', Malezja: 'MY', Macau: 'MO', Mjanma: 'MM',
+  Singapur: 'SG', Tajlandia: 'TH', 'Timor Wschodni': 'TL', Wietnam: 'VN', Afganistan: 'AF',
+  Bangladesz: 'BD', Bhutan: 'BT', Hongkong: 'HK', Indie: 'IN', Kirgistan: 'KG',
+  Malediwy: 'MV', Mongolia: 'MN', Nepal: 'NP', Pakistan: 'PK', 'Sri Lanka': 'LK',
+  'TadÅ¼ykistan': 'TJ', Turkmenistan: 'TM', Uzbekistan: 'UZ',
+  'Nowa Zelandia': 'NZ', 'FidÅ¼i': 'FJ', 'Wyspy Salomona': 'SB', 'Papua-Nowa Gwinea': 'PG',
+  Tahiti: 'PF', 'Nowa Kaledonia': 'NC', Vanuatu: 'VU', Samoa: 'WS',
+  'Samoa AmerykaÅ„skie': 'AS', Tonga: 'TO', 'Wyspy Cooka': 'CK',
+};
+*/
+
+const NT_FLAG_CODE_MAP_SAFE: Record<string, string> = {
+  'Albania': 'AL', 'Andora': 'AD', 'Armenia': 'AM', 'Austria': 'AT', 'Azerbejdżan': 'AZ',
+  'Belgia': 'BE', 'Białoruś': 'BY', 'Bośnia i Hercegowina': 'BA', 'Bułgaria': 'BG', 'Chorwacja': 'HR',
+  'Cypr': 'CY', 'Czarnogóra': 'ME', 'Czechy': 'CZ', 'Dania': 'DK', 'Estonia': 'EE',
+  'Finlandia': 'FI', 'Francja': 'FR', 'Gibraltar': 'GI', 'Grecja': 'GR', 'Gruzja': 'GE',
+  'Hiszpania': 'ES', 'Holandia': 'NL', 'Irlandia': 'IE', 'Islandia': 'IS', 'Izrael': 'IL',
+  'Kazachstan': 'KZ', 'Kosovo': 'XK', 'Liechtenstein': 'LI', 'Litwa': 'LT', 'Luksemburg': 'LU',
+  'Łotwa': 'LV', 'Macedonia Północna': 'MK', 'Malta': 'MT', 'Mołdawia': 'MD', 'Niemcy': 'DE',
+  'Norwegia': 'NO', 'Polska': 'PL', 'Portugalia': 'PT', 'Rosja': 'RU', 'Rumunia': 'RO',
+  'San Marino': 'SM', 'Serbia': 'RS', 'Słowacja': 'SK', 'Słowenia': 'SI',
+  'Szwajcaria': 'CH', 'Szwecja': 'SE', 'Turcja': 'TR', 'Ukraina': 'UA',
+  'Węgry': 'HU', 'Włochy': 'IT', 'Wyspy Owcze': 'FO',
+  'Algieria': 'DZ', 'Angola': 'AO', 'Benin': 'BJ', 'Botswana': 'BW', 'Burkina Faso': 'BF',
+  'Burundi': 'BI', 'Czad': 'TD', 'Dżibuti': 'DJ', 'Egipt': 'EG', 'Erytrea': 'ER',
+  'Eswatini': 'SZ', 'Etiopia': 'ET', 'Gabon': 'GA', 'Gambia': 'GM', 'Ghana': 'GH',
+  'Gwinea': 'GN', 'Gwinea Bissau': 'GW', 'Gwinea Równikowa': 'GQ', 'Kamerun': 'CM', 'Kenia': 'KE',
+  'Komory': 'KM', 'Kongo': 'CG', 'Demokratyczna Republika Konga': 'CD', 'Lesotho': 'LS', 'Liberia': 'LR',
+  'Libia': 'LY', 'Madagaskar': 'MG', 'Malawi': 'MW', 'Mali': 'ML', 'Maroko': 'MA',
+  'Mauretania': 'MR', 'Mauritius': 'MU', 'Mozambik': 'MZ', 'Namibia': 'NA', 'Niger': 'NE',
+  'Nigeria': 'NG', 'Republika Południowej Afryki': 'ZA', 'Republika Środkowoafrykańska': 'CF', 'Rwanda': 'RW',
+  'Senegal': 'SN', 'Seszele': 'SC', 'Sierra Leone': 'SL', 'Somalia': 'SO', 'Sudan': 'SD',
+  'Sudan Południowy': 'SS', 'Wyspy Świętego Tomasza i Książęca': 'ST', 'Tanzania': 'TZ', 'Togo': 'TG',
+  'Tunezja': 'TN', 'Uganda': 'UG', 'Wybrzeże Kości Słoniowej': 'CI', 'Wyspy Zielonego Przylądka': 'CV',
+  'Zambia': 'ZM', 'Zimbabwe': 'ZW',
+  'Argentyna': 'AR', 'Brazylia': 'BR', 'Urugwaj': 'UY', 'Kolumbia': 'CO', 'Chile': 'CL',
+  'Peru': 'PE', 'Ekwador': 'EC', 'Paragwaj': 'PY', 'Boliwia': 'BO', 'Wenezuela': 'VE',
+  'Stany Zjednoczone': 'US', 'Meksyk': 'MX', 'Kanada': 'CA', 'Kostaryka': 'CR', 'Panama': 'PA',
+  'Honduras': 'HN', 'Salwador': 'SV', 'Gwatemala': 'GT', 'Nikaragua': 'NI', 'Belize': 'BZ',
+  'Jamajka': 'JM', 'Trynidad i Tobago': 'TT', 'Haiti': 'HT', 'Curaçao': 'CW', 'Surinam': 'SR',
+  'Kuba': 'CU', 'Republika Dominikany': 'DO', 'Antigua i Barbuda': 'AG', 'Aruba': 'AW',
+  'Bahamy': 'BS', 'Barbados': 'BB', 'Bermudy': 'BM', 'Dominika': 'DM', 'Grenada': 'GD',
+  'Kajmany': 'KY', 'Montserrat': 'MS', 'Saint Kitts i Nevis': 'KN', 'Saint Lucia': 'LC',
+  'Saint Vincent i Grenadyny': 'VC', 'Turks i Caicos': 'TC',
+  'Arabia Saudyjska': 'SA', 'Bahrajn': 'BH', 'Irak': 'IQ', 'Iran': 'IR', 'Jemen': 'YE',
+  'Jordania': 'JO', 'Katar': 'QA', 'Kuwejt': 'KW', 'Liban': 'LB', 'Oman': 'OM',
+  'Palestyna': 'PS', 'Syria': 'SY', 'ZEA': 'AE', 'Australia': 'AU', 'Chiny': 'CN',
+  'Filipiny': 'PH', 'Indonezja': 'ID', 'Japonia': 'JP', 'Kambodża': 'KH', 'Korea PŁD': 'KR',
+  'Korea PŁN': 'KP', 'Laos': 'LA', 'Malezja': 'MY', 'Macau': 'MO', 'Mjanma': 'MM',
+  'Singapur': 'SG', 'Tajlandia': 'TH', 'Timor Wschodni': 'TL', 'Wietnam': 'VN', 'Afganistan': 'AF',
+  'Bangladesz': 'BD', 'Bhutan': 'BT', 'Hongkong': 'HK', 'Indie': 'IN', 'Kirgistan': 'KG',
+  'Malediwy': 'MV', 'Mongolia': 'MN', 'Nepal': 'NP', 'Pakistan': 'PK', 'Sri Lanka': 'LK',
+  'Tadżykistan': 'TJ', 'Turkmenistan': 'TM', 'Uzbekistan': 'UZ',
+  'Nowa Zelandia': 'NZ', 'Fidżi': 'FJ', 'Wyspy Salomona': 'SB', 'Papua-Nowa Gwinea': 'PG',
+  'Tahiti': 'PF', 'Nowa Kaledonia': 'NC', 'Vanuatu': 'VU', 'Samoa': 'WS',
+  'Samoa Amerykańskie': 'AS', 'Tonga': 'TO', 'Wyspy Cooka': 'CK',
+};
+
+const getNTFlagEmoji = (name: string): string =>
+  SPECIAL_NT_FLAGS[name] ?? (NT_FLAG_CODE_MAP_SAFE[name] ? flagEmojiFromIso2(NT_FLAG_CODE_MAP_SAFE[name]) : '\u{1F3F3}');
+
+const getNTFlagImageCode = (name: string): string | null => {
+  if (name === 'Anglia') return 'gb-eng';
+  if (name === 'Szkocja') return 'gb-sct';
+  if (name === 'Walia') return 'gb-wls';
+  return NT_FLAG_CODE_MAP_SAFE[name]?.toLowerCase() ?? null;
+};
+
+const NTFlagBadge: React.FC<{ teamName: string; className?: string }> = ({ teamName, className = '' }) => {
+  const code = getNTFlagImageCode(teamName);
+  if (!code) {
+    return (
+      <div className={`flex items-center justify-center rounded-md border border-white/10 bg-white/5 text-xs font-black text-slate-200 ${className}`}>
+        {teamName.slice(0, 2).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${code}.png`}
+      alt={teamName}
+      className={`object-cover rounded-md border border-white/10 bg-white/5 ${className}`}
+    />
+  );
+};
+
 const NTCard: React.FC<{ team: NationalTeam; coachName: string; onSelect: () => void; showTier?: boolean; rank?: number }> = ({ team, onSelect, showTier, rank }) => (
   <button
     onClick={onSelect}
@@ -310,10 +453,7 @@ const NTCard: React.FC<{ team: NationalTeam; coachName: string; onSelect: () => 
           {rank}
         </span>
       )}
-      <div className="flex shrink-0 rounded-md overflow-hidden w-7 h-7 border border-white/10">
-        <div className="flex-1" style={{ backgroundColor: team.colorsHex[0] }} />
-        <div className="flex-1" style={{ backgroundColor: team.colorsHex[1] || '#222' }} />
-      </div>
+      <NTFlagBadge teamName={team.name} className="w-10 h-10" />
       <span className="flex-1 text-lg font-black italic uppercase tracking-wide text-white truncate">
         {team.name}
       </span>
@@ -343,6 +483,61 @@ const ratingBg = (r: number): string => {
 
 const avgRating = (players: Player[]): number =>
   players.length === 0 ? 0 : Math.round(players.reduce((s, p) => s + p.overallRating, 0) / players.length);
+
+const NT_FLAG_MAP: Record<string, string> = {
+  // Europa
+  "Albania": "🇦🇱", "Andora": "🇦🇩", "Armenia": "🇦🇲", "Austria": "🇦🇹", "Azerbejdżan": "🇦🇿",
+  "Belgia": "🇧🇪", "Białoruś": "🇧🇾", "Bośnia i Hercegowina": "🇧🇦", "Bułgaria": "🇧🇬", "Chorwacja": "🇭🇷",
+  "Cypr": "🇨🇾", "Czarnogóra": "🇲🇪", "Czechy": "🇨🇿", "Dania": "🇩🇰", "Estonia": "🇪🇪",
+  "Finlandia": "🇫🇮", "Francja": "🇫🇷", "Gibraltar": "🇬🇮", "Grecja": "🇬🇷", "Gruzja": "🇬🇪",
+  "Hiszpania": "🇪🇸", "Holandia": "🇳🇱", "Irlandia": "🇮🇪", "Islandia": "🇮🇸", "Izrael": "🇮🇱",
+  "Kazachstan": "🇰🇿", "Kosovo": "🇽🇰", "Liechtenstein": "🇱🇮", "Litwa": "🇱🇹", "Luksemburg": "🇱🇺",
+  "Łotwa": "🇱🇻", "Macedonia Północna": "🇲🇰", "Malta": "🇲🇹", "Mołdawia": "🇲🇩", "Niemcy": "🇩🇪",
+  "Norwegia": "🇳🇴", "Polska": "🇵🇱", "Portugalia": "🇵🇹", "Rosja": "🇷🇺", "Rumunia": "🇷🇴",
+  "San Marino": "🇸🇲", "Serbia": "🇷🇸", "Słowacja": "🇸🇰", "Słowenia": "🇸🇮", "Szkocja": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  "Szwajcaria": "🇨🇭", "Szwecja": "🇸🇪", "Turcja": "🇹🇷", "Ukraina": "🇺🇦", "Walia": "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+  "Węgry": "🇭🇺", "Włochy": "🇮🇹", "Wyspy Owcze": "🇫🇴", "Anglia": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  // Afryka
+  "Algieria": "🇩🇿", "Angola": "🇦🇴", "Benin": "🇧🇯", "Botswana": "🇧🇼", "Burkina Faso": "🇧🇫",
+  "Burundi": "🇧🇮", "Czad": "🇹🇩", "Dżibuti": "🇩🇯", "Egipt": "🇪🇬", "Erytrea": "🇪🇷",
+  "Eswatini": "🇸🇿", "Etiopia": "🇪🇹", "Gabon": "🇬🇦", "Gambia": "🇬🇲", "Ghana": "🇬🇭",
+  "Gwinea": "🇬🇳", "Gwinea Bissau": "🇬🇼", "Gwinea Równikowa": "🇬🇶", "Kamerun": "🇨🇲", "Kenia": "🇰🇪",
+  "Komory": "🇰🇲", "Kongo": "🇨🇬", "Demokratyczna Republika Konga": "🇨🇩", "Lesotho": "🇱🇸", "Liberia": "🇱🇷",
+  "Libia": "🇱🇾", "Madagaskar": "🇲🇬", "Malawi": "🇲🇼", "Mali": "🇲🇱", "Maroko": "🇲🇦",
+  "Mauretania": "🇲🇷", "Mauritius": "🇲🇺", "Mozambik": "🇲🇿", "Namibia": "🇳🇦", "Niger": "🇳🇪",
+  "Nigeria": "🇳🇬", "Republika Południowej Afryki": "🇿🇦", "Republika Środkowoafrykańska": "🇨🇫", "Rwanda": "🇷🇼",
+  "Senegal": "🇸🇳", "Seszele": "🇸🇨", "Sierra Leone": "🇸🇱", "Somalia": "🇸🇴", "Sudan": "🇸🇩",
+  "Sudan Południowy": "🇸🇸", "Wyspy Świętego Tomasza i Książęca": "🇸🇹", "Tanzania": "🇹🇿", "Togo": "🇹🇬",
+  "Tunezja": "🇹🇳", "Uganda": "🇺🇬", "Wybrzeże Kości Słoniowej": "🇨🇮", "Wyspy Zielonego Przylądka": "🇨🇻",
+  "Zambia": "🇿🇲", "Zimbabwe": "🇿🇼",
+  // Ameryka Południowa
+  "Argentyna": "🇦🇷", "Brazylia": "🇧🇷", "Urugwaj": "🇺🇾", "Kolumbia": "🇨🇴", "Chile": "🇨🇱",
+  "Peru": "🇵🇪", "Ekwador": "🇪🇨", "Paragwaj": "🇵🇾", "Boliwia": "🇧🇴", "Wenezuela": "🇻🇪",
+  // CONCACAF
+  "Stany Zjednoczone": "🇺🇸", "Meksyk": "🇲🇽", "Kanada": "🇨🇦", "Kostaryka": "🇨🇷", "Panama": "🇵🇦",
+  "Honduras": "🇭🇳", "Salwador": "🇸🇻", "Gwatemala": "🇬🇹", "Nikaragua": "🇳🇮", "Belize": "🇧🇿",
+  "Jamajka": "🇯🇲", "Trynidad i Tobago": "🇹🇹", "Haiti": "🇭🇹", "Curaçao": "🇨🇼", "Surinam": "🇸🇷",
+  "Kuba": "🇨🇺", "Republika Dominikany": "🇩🇴", "Antigua i Barbuda": "🇦🇬", "Aruba": "🇦🇼",
+  "Bahamy": "🇧🇸", "Barbados": "🇧🇧", "Bermudy": "🇧🇲", "Dominika": "🇩🇲", "Grenada": "🇬🇩",
+  "Kajmany": "🇰🇾", "Montserrat": "🇲🇸", "Saint Kitts i Nevis": "🇰🇳", "Saint Lucia": "🇱🇨",
+  "Saint Vincent i Grenadyny": "🇻🇨", "Turks i Caicos": "🇹🇨",
+  // Azja
+  "Arabia Saudyjska": "🇸🇦", "Bahrajn": "🇧🇭", "Irak": "🇮🇶", "Iran": "🇮🇷", "Jemen": "🇾🇪",
+  "Jordania": "🇯🇴", "Katar": "🇶🇦", "Kuwejt": "🇰🇼", "Liban": "🇱🇧", "Oman": "🇴🇲",
+  "Palestyna": "🇵🇸", "Syria": "🇸🇾", "ZEA": "🇦🇪", "Australia": "🇦🇺", "Chiny": "🇨🇳",
+  "Filipiny": "🇵🇭", "Indonezja": "🇮🇩", "Japonia": "🇯🇵", "Kambodża": "🇰🇭", "Korea PŁD": "🇰🇷",
+  "Korea PŁN": "🇰🇵", "Laos": "🇱🇦", "Malezja": "🇲🇾", "Macau": "🇲🇴", "Mjanma": "🇲🇲",
+  "Singapur": "🇸🇬", "Tajlandia": "🇹🇭", "Timor Wschodni": "🇹🇱", "Wietnam": "🇻🇳", "Afganistan": "🇦🇫",
+  "Bangladesz": "🇧🇩", "Bhutan": "🇧🇹", "Hongkong": "🇭🇰", "Indie": "🇮🇳", "Kirgistan": "🇰🇬",
+  "Malediwy": "🇲🇻", "Mongolia": "🇲🇳", "Nepal": "🇳🇵", "Pakistan": "🇵🇰", "Sri Lanka": "🇱🇰",
+  "Tadżykistan": "🇹🇯", "Turkmenistan": "🇹🇲", "Uzbekistan": "🇺🇿",
+  // Oceania
+  "Nowa Zelandia": "🇳🇿", "Fidżi": "🇫🇯", "Wyspy Salomona": "🇸🇧", "Papua-Nowa Gwinea": "🇵🇬",
+  "Tahiti": "🇵🇫", "Nowa Kaledonia": "🇳🇨", "Vanuatu": "🇻🇺", "Samoa": "🇼🇸",
+  "Samoa Amerykańskie": "🇦🇸", "Tonga": "🇹🇴", "Wyspy Cooka": "🇨🇰",
+};
+
+const getNTFlag = (name: string): string => NT_FLAG_MAP[name] ?? '🏳';
 
 const NTSquadView: React.FC<{ team: NationalTeam; coachName: string; playerById: Record<string, Player>; clubById: Record<string, string>; onPlayerClick: (id: string) => void }> = ({ team, coachName, playerById, clubById, onPlayerClick }) => {
   const squad = team.squadPlayerIds.map(id => playerById[id]).filter(Boolean) as Player[];
@@ -396,11 +591,7 @@ const NTSquadView: React.FC<{ team: NationalTeam; coachName: string; playerById:
       >
         <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${accent}, ${team.colorsHex[1] || accent}88, transparent)` }} />
         <div className="flex gap-4 px-5 py-4 items-center">
-          <div className="flex rounded-xl overflow-hidden shrink-0 border border-white/10" style={{ width: 52, height: 52 }}>
-            <div className="flex-1" style={{ backgroundColor: team.colorsHex[0] }} />
-            <div className="flex-1" style={{ backgroundColor: team.colorsHex[1] || '#222' }} />
-            <div className="flex-1" style={{ backgroundColor: team.colorsHex[2] || team.colorsHex[0] }} />
-          </div>
+          <NTFlagBadge teamName={team.name} className="w-[52px] h-[52px] rounded-xl" />
           <div className="flex-1 min-w-0">
             <div className={`text-xl leading-tight truncate ${T}`}>{team.name}</div>
             <div className={`text-[10px] mt-0.5 ${T}`}>
