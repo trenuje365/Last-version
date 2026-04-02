@@ -195,6 +195,7 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
 // --- REPREZENTAcjA ---
+{ day: 8, month: 9, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "REPREZENTACJA", priority: 30 },
   { day: 11, month: 9, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "REPREZENTACJA", priority: 30 },
 
 

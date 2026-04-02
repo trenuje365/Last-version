@@ -6,6 +6,7 @@ import { TRAINING_CYCLES } from '../../data/training_definitions_pl';
 export const TrainingView: React.FC = () => {
   const { navigateTo, activeTrainingId, setActiveTrainingId, clubs, userTeamId, activeIntensity, setTrainingIntensity, players, updatePlayer, viewPlayerDetails } = useGame();
   const [selectedId, setSelectedId] = useState<string | null>(activeTrainingId);
+  const [hoveredAttribute, setHoveredAttribute] = useState<{ label: string; x: number; y: number } | null>(null);
   const teamPlayers = (userTeamId ? players[userTeamId] : []) || [];
 
   const myClub = clubs.find(c => c.id === userTeamId);
@@ -37,9 +38,26 @@ export const TrainingView: React.FC = () => {
     }
   };
 
+  const tooltipStyle = hoveredAttribute
+    ? {
+        left: `${hoveredAttribute.x + 14}px`,
+        top: `${Math.max(hoveredAttribute.y - 10, 18)}px`,
+        transform: 'translateY(-100%)'
+      }
+    : undefined;
+
   return (
     <div className="fixed inset-0 w-full h-full flex flex-col animate-fade-in overflow-hidden relative bg-slate-950 font-sans">
-      
+      {hoveredAttribute && (
+        <div
+          className="fixed z-[120] pointer-events-none rounded-lg border border-emerald-400/30 bg-slate-950/95 px-2.5 py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-md"
+          style={tooltipStyle}
+        >
+          <span className="block text-[9px] font-black uppercase tracking-[0.28em] text-emerald-400/80">Atrybut</span>
+          <span className="block text-[10px] font-bold text-white whitespace-nowrap">{hoveredAttribute.label}</span>
+        </div>
+      )}
+
       {/* TŁO KINEMATYCZNE */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div 
@@ -127,7 +145,19 @@ export const TrainingView: React.FC = () => {
                             {COLS.map(k => {
                               const val = (player.attributes[k as keyof typeof player.attributes] as number) ?? 0;
                               const color = val >= 85 ? 'text-emerald-400' : val >= 75 ? 'text-white' : val >= 60 ? 'text-amber-400' : 'text-rose-400';
-                              return <td key={k} className={`py-2 px-2 text-center tabular-nums ${color}`}>{val}</td>;
+                              const attributeLabel = ATTR_LABELS[k] || k;
+                              return (
+                                <td
+                                  key={k}
+                                  title={attributeLabel}
+                                  className={`py-2 px-2 text-center tabular-nums ${color}`}
+                                  onMouseEnter={e => setHoveredAttribute({ label: attributeLabel, x: e.clientX, y: e.clientY })}
+                                  onMouseMove={e => setHoveredAttribute({ label: attributeLabel, x: e.clientX, y: e.clientY })}
+                                  onMouseLeave={() => setHoveredAttribute(null)}
+                                >
+                                  {val}
+                                </td>
+                              );
                             })}
                             <td className={`py-2 px-2 sticky right-0 z-10 ${stickyBg}`}>
                               <select

@@ -201,6 +201,7 @@ export const NationalTeamService = {
       negotiationLockoutUntil: null,
       contractLockoutUntil: null,
       freeAgentLockoutUntil: null,
+      freeAgentClubLockouts: {},
       isNegotiationPermanentBlocked: false,
       transferLockoutUntil: null,
     } as Player;

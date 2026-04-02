@@ -1,0 +1,60 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NATIONAL_TEAMS_AFC = void 0;
+const types_1 = require("../../../types");
+// Uwaga: kraje bez dedykowanego Region w enum używają najbliższego odpowiednika:
+// Azja Wsch./Płd.-Wsch. → Region.JAPAN | Azja Płd./Centralna → Region.ARABIA lub KAZAKH
+exports.NATIONAL_TEAMS_AFC = [
+    { name: "Arabia Saudyjska", continent: "Asia", tier: 4, colors: ['#006C35', '#FFFFFF', '#006C35'], stadium: "King Fahd International Stadium", capacity: 68752, reputation: 12, region: types_1.Region.ARABIA },
+    { name: "Bahrajn", continent: "Asia", tier: 4, colors: ['#CE1126', '#FFFFFF', '#CE1126'], stadium: "Bahrain National Stadium", capacity: 24000, reputation: 7, region: types_1.Region.ARABIA },
+    { name: "Irak", continent: "Asia", tier: 3, colors: ['#CE1126', '#FFFFFF', '#000000'], stadium: "Basra International Stadium", capacity: 65000, reputation: 10, region: types_1.Region.ARABIA },
+    { name: "Iran", continent: "Asia", tier: 2, colors: ['#239F40', '#FFFFFF', '#DA0000'], stadium: "Azadi Stadium", capacity: 78116, reputation: 13, region: types_1.Region.ARABIA },
+    { name: "Jemen", continent: "Asia", tier: 4, colors: ['#CE1126', '#FFFFFF', '#000000'], stadium: "Al-Thawra Stadium", capacity: 30000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Jordania", continent: "Asia", tier: 4, colors: ['#000000', '#FFFFFF', '#007A3D'], stadium: "Amman International Stadium", capacity: 25000, reputation: 9, region: types_1.Region.ARABIA },
+    { name: "Katar", continent: "Asia", tier: 4, colors: ['#8A1538', '#FFFFFF', '#8A1538'], stadium: "Lusail Stadium", capacity: 88966, reputation: 12, region: types_1.Region.ARABIA },
+    { name: "Kuwejt", continent: "Asia", tier: 4, colors: ['#007A3D', '#FFFFFF', '#CE1126'], stadium: "Jaber Al-Ahmad International Stadium", capacity: 60000, reputation: 9, region: types_1.Region.ARABIA },
+    { name: "Liban", continent: "Asia", tier: 4, colors: ['#CE1126', '#FFFFFF', '#CE1126'], stadium: "Beirut Municipal Stadium", capacity: 22000, reputation: 7, region: types_1.Region.ARABIA },
+    { name: "Oman", continent: "Asia", tier: 4, colors: ['#D21034', '#FFFFFF', '#009543'], stadium: "Sultan Qaboos Sports Complex", capacity: 39000, reputation: 9, region: types_1.Region.ARABIA },
+    { name: "Palestyna", continent: "Asia", tier: 4, colors: ['#000000', '#FFFFFF', '#007A3D'], stadium: "Faisal Al-Husseini Stadium", capacity: 12000, reputation: 7, region: types_1.Region.ARABIA },
+    { name: "Syria", continent: "Asia", tier: 4, colors: ['#CE1126', '#FFFFFF', '#000000'], stadium: "Abbasiyyin Stadium", capacity: 30000, reputation: 8, region: types_1.Region.ARABIA },
+    { name: "ZEA", continent: "Asia", tier: 3, colors: ['#00732F', '#FFFFFF', '#000000'], stadium: "Zayed Sports City Stadium", capacity: 43000, reputation: 10, region: types_1.Region.ARABIA },
+    { name: "Australia", continent: "Asia", tier: 2, colors: ['#1F8A43', '#FFD100', '#1F8A43'], stadium: "Stadium Australia", capacity: 83500, reputation: 13, region: types_1.Region.ENGLAND },
+    { name: "Chiny", continent: "Asia", tier: 4, colors: ['#DE2910', '#FFDE00', '#DE2910'], stadium: "Workers' Stadium", capacity: 68000, reputation: 10, region: types_1.Region.JAPAN },
+    { name: "Filipiny", continent: "Asia", tier: 4, colors: ['#0038A8', '#FFFFFF', '#CE1126'], stadium: "Rizal Memorial Stadium", capacity: 12000, reputation: 7, region: types_1.Region.JAPAN },
+    { name: "Indonezja", continent: "Asia", tier: 4, colors: ['#CE1126', '#FFFFFF', '#CE1126'], stadium: "Gelora Bung Karno", capacity: 77000, reputation: 9, region: types_1.Region.JAPAN },
+    { name: "Japonia", continent: "Asia", tier: 2, colors: ['#BC002D', '#FFFFFF', '#BC002D'], stadium: "Saitama Stadium", capacity: 63700, reputation: 14, region: types_1.Region.JAPAN },
+    { name: "Kambodża", continent: "Asia", tier: 5, colors: ['#032EA1', '#E00025', '#032EA1'], stadium: "Morodok Techo National Stadium", capacity: 60000, reputation: 5, region: types_1.Region.JAPAN },
+    { name: "Korea PŁD", continent: "Asia", tier: 2, colors: ['#FFFFFF', '#C60C30', '#FFFFFF'], stadium: "Seoul World Cup Stadium", capacity: 66806, reputation: 14, region: types_1.Region.KOREA },
+    { name: "Korea PŁN", continent: "Asia", tier: 5, colors: ['#024FA2', '#ED1C27', '#024FA2'], stadium: "Kim Il-sung Stadium", capacity: 50000, reputation: 9, region: types_1.Region.KOREA },
+    { name: "Laos", continent: "Asia", tier: 5, colors: ['#CE1126', '#002868', '#CE1126'], stadium: "New Laos National Stadium", capacity: 25000, reputation: 4, region: types_1.Region.JAPAN },
+    { name: "Malezja", continent: "Asia", tier: 5, colors: ['#010066', '#FFCC00', '#CE1126'], stadium: "Bukit Jalil National Stadium", capacity: 87411, reputation: 8, region: types_1.Region.JAPAN },
+    {
+        name: "Macau",
+        continent: "Asia",
+        tier: 4,
+        colors: ['#006600', '#FFD700', '#FFFFFF'],
+        stadium: "Centro Desportivo Olímpico - Estádio",
+        capacity: 16272,
+        reputation: 8,
+        region: types_1.Region.JAPAN
+    },
+    { name: "Mjanma", continent: "Asia", tier: 5, colors: ['#FECB00', '#34B233', '#EA2839'], stadium: "Thuwunna Stadium", capacity: 32000, reputation: 6, region: types_1.Region.JAPAN },
+    { name: "Singapur", continent: "Asia", tier: 5, colors: ['#EF3340', '#FFFFFF', '#EF3340'], stadium: "National Stadium", capacity: 55000, reputation: 8, region: types_1.Region.JAPAN },
+    { name: "Tajlandia", continent: "Asia", tier: 5, colors: ['#CE1126', '#002868', '#CE1126'], stadium: "Rajamangala Stadium", capacity: 49000, reputation: 9, region: types_1.Region.JAPAN },
+    { name: "Timor Wschodni", continent: "Asia", tier: 5, colors: ['#DA121A', '#000000', '#FCD116'], stadium: "Estádio Nacional de Dili", capacity: 30000, reputation: 4, region: types_1.Region.JAPAN },
+    { name: "Wietnam", continent: "Asia", tier: 5, colors: ['#DA251D', '#FFDE00', '#DA251D'], stadium: "Mỹ Đình National Stadium", capacity: 40192, reputation: 9, region: types_1.Region.JAPAN },
+    { name: "Afganistan", continent: "Asia", tier: 5, colors: ['#000000', '#DA0000', '#007A36'], stadium: "Ghazi Stadium", capacity: 25000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Bangladesz", continent: "Asia", tier: 5, colors: ['#006A4E', '#F42A41', '#006A4E'], stadium: "Bangabandhu National Stadium", capacity: 36000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Bhutan", continent: "Asia", tier: 5, colors: ['#FFCC00', '#FFFFFF', '#FF6600'], stadium: "Changlimithang Stadium", capacity: 25000, reputation: 3, region: types_1.Region.JAPAN },
+    { name: "Hongkong", continent: "Asia", tier: 5, colors: ['#DE2910', '#FFFFFF', '#DE2910'], stadium: "Hong Kong Stadium", capacity: 40000, reputation: 7, region: types_1.Region.JAPAN },
+    { name: "Indie", continent: "Asia", tier: 5, colors: ['#FF9933', '#FFFFFF', '#138808'], stadium: "Salt Lake Stadium", capacity: 85000, reputation: 8, region: types_1.Region.ARABIA },
+    { name: "Kirgistan", continent: "Asia", tier: 5, colors: ['#E8112D', '#FFD100', '#E8112D'], stadium: "Dolen Omurzakov Stadium", capacity: 23000, reputation: 8, region: types_1.Region.KAZAKH },
+    { name: "Malediwy", continent: "Asia", tier: 5, colors: ['#D21034', '#007A3D', '#D21034'], stadium: "National Football Stadium", capacity: 7000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Mongolia", continent: "Asia", tier: 5, colors: ['#C4272F', '#0033A0', '#F9CF02'], stadium: "MFF Football Centre", capacity: 5000, reputation: 3, region: types_1.Region.JAPAN },
+    { name: "Nepal", continent: "Asia", tier: 5, colors: ['#DC143C', '#003893', '#DC143C'], stadium: "Dasarath Rangasala", capacity: 15000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Pakistan", continent: "Asia", tier: 5, colors: ['#01411C', '#FFFFFF', '#01411C'], stadium: "Jinnah Sports Stadium", capacity: 30000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Sri Lanka", continent: "Asia", tier: 5, colors: ['#8D153A', '#F9E547', '#1C4FA1'], stadium: "Racecourse Stadium", capacity: 35000, reputation: 5, region: types_1.Region.ARABIA },
+    { name: "Tadżykistan", continent: "Asia", tier: 5, colors: ['#CE1126', '#FFFFFF', '#007A3D'], stadium: "Central Republican Stadium", capacity: 23000, reputation: 9, region: types_1.Region.EX_USSR },
+    { name: "Turkmenistan", continent: "Asia", tier: 5, colors: ['#009E60', '#FFFFFF', '#CE1126'], stadium: "Ashgabat Stadium", capacity: 20000, reputation: 7, region: types_1.Region.KAZAKH },
+    { name: "Uzbekistan", continent: "Asia", tier: 4, colors: ['#0099B5', '#FFFFFF', '#1EB53A'], stadium: "Milliy Stadium", capacity: 34000, reputation: 12, region: types_1.Region.KAZAKH }
+];

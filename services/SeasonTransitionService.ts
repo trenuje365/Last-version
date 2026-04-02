@@ -152,6 +152,7 @@ const releasedPlayers: Player[] = [];  // ← NOWA LINIA
       isNegotiationPermanentBlocked: false,
       transferLockoutUntil: null,
       freeAgentLockoutUntil: null,
+      freeAgentClubLockouts: {},
       isOnTransferList: false
     };
 
@@ -198,6 +199,7 @@ const releasedPlayers: Player[] = [];  // ← NOWA LINIA
       isNegotiationPermanentBlocked: false,
       transferLockoutUntil: null,
       freeAgentLockoutUntil: null,
+      freeAgentClubLockouts: {},
       isOnTransferList: false
     };
   }

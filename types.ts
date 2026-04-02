@@ -88,6 +88,8 @@ export enum ViewState {
   PRE_MATCH_CONF_LIVE_STUDIO = 'PRE_MATCH_CONF_LIVE_STUDIO',
   MATCH_LIVE_CONF = 'MATCH_LIVE_CONF',
   POST_MATCH_CONF_STUDIO = 'POST_MATCH_CONF_STUDIO',
+  // Wyniki meczów reprezentacji (wszystkie mecze grupy danego dnia)
+  NATIONAL_TEAM_RESULTS = 'NATIONAL_TEAM_RESULTS',
 }
 
 export enum MailType {
@@ -155,6 +157,10 @@ export interface MailMessage {
   status: NegotiationStatus;
   isAiOffer: boolean;
     playerId: string;
+    demands?: {
+      salary: number;
+      bonus: number;
+    } | null;
   } | {
     type: 'INCOMING_TRANSFER_OFFER';
     offerId: string;
@@ -230,6 +236,8 @@ export enum EventKind {
   OFF_SEASON = 'OFF_SEASON',
   CL_DRAW = 'CL_DRAW',
   CUP_DRAW = 'CUP_DRAW',
+  // Dzień meczowy reprezentacji (symulacja w tle, gracz widzi wyniki)
+  NATIONAL_TEAM_MATCH = 'NATIONAL_TEAM_MATCH',
   NONE = 'NONE'
 }
 
@@ -525,6 +533,7 @@ export interface Player {
   transferLockoutUntil: string | null;
   transferOfferBanUntil?: string | null;
   freeAgentLockoutUntil: string | null;
+  freeAgentClubLockouts?: Record<string, string>;
   assignedNationalTeamId?: string | null;
   /** Lista ID klubów aktualnie zainteresowanych pozyskaniem tego zawodnika (aktualizowana ~1x/miesiąc przez AI) */
   interestedClubs?: string[];
@@ -734,22 +743,30 @@ export interface GoalTickerInfo {
 export type InstructionTempo = 'SLOW' | 'NORMAL' | 'FAST';
 export type InstructionMindset = 'DEFENSIVE' | 'NEUTRAL' | 'OFFENSIVE';
 export type InstructionIntensity = 'CAUTIOUS' | 'NORMAL' | 'AGGRESSIVE';
+export type InstructionPassing = 'SHORT' | 'MIXED' | 'LONG';
+export type InstructionPressing = 'NORMAL' | 'PRESSING';
 
 export interface TacticalInstructions {
   tempo: InstructionTempo;
   mindset: InstructionMindset;
   intensity: InstructionIntensity;
+  passing: InstructionPassing;
+  pressing: InstructionPressing;
   lastChangeMinute: number;
-  expiryMinute: number; 
+  expiryMinute: number;
   tempoExpiry: number;
   mindsetExpiry: number;
   intensityExpiry: number;
   tempoCooldown: number;
   mindsetCooldown: number;
   intensityCooldown: number;
+  passingCooldown: number;
+  pressingCooldown: number;
   tempoResponseFactor: number;
   mindsetResponseFactor: number;
   intensityResponseFactor: number;
+  passingResponseFactor: number;
+  pressingResponseFactor: number;
 }
 export interface SubstitutionRecord {
   playerOutId: string;
@@ -916,6 +933,43 @@ export interface MatchResult {
   awayPenaltyScore?: number;
   isExtraTime?: boolean;
 }
+export interface MatchGoalEntry {
+  playerId?: string;
+  playerName: string;
+  minute: number;
+  teamId: string;
+  isPenalty: boolean;
+  assistantId?: string;
+  assistantName?: string;
+}
+
+export interface MatchCardEntry {
+  playerId?: string;
+  playerName: string;
+  minute: number;
+  teamId: string;
+  type: 'YELLOW' | 'RED' | 'SECOND_YELLOW';
+}
+
+export interface MatchSubstitutionEntry {
+  playerOutId?: string;
+  playerOutName: string;
+  playerInId?: string;
+  playerInName: string;
+  minute: number;
+  teamId: string;
+}
+
+export interface MatchInjuryEntry {
+  playerId?: string;
+  playerName: string;
+  minute: number;
+  teamId: string;
+  severity: InjurySeverity;
+  days: number;
+  type: string;
+}
+
 export interface MatchHistoryEntry {
   matchId: string;
   date: string;
@@ -928,15 +982,53 @@ export interface MatchHistoryEntry {
   homePenaltyScore?: number;
   awayPenaltyScore?: number;
   attendance?: number;
-  goals: { playerName: string; minute: number; teamId: string; isPenalty: boolean }[];
-  cards: { playerName: string; minute: number; teamId: string; type: 'YELLOW' | 'RED' | 'SECOND_YELLOW' }[];
-  substitutions?: { playerOutName: string; playerInName: string; minute: number; teamId: string }[];
+  venue?: string;
+  weather?: WeatherSnapshot;
+  addedTime?: number;
+  goals: MatchGoalEntry[];
+  cards: MatchCardEntry[];
+  substitutions?: MatchSubstitutionEntry[];
+  injuries?: MatchInjuryEntry[];
+  timeline?: MatchEvent[];
 }
 export interface LeagueRoundResults {
   dateKey: string;
   league1Results: MatchResult[];
   league2Results: MatchResult[];
   league3Results: MatchResult[];
+}
+
+/**
+ * Wynik pojedynczego meczu reprezentacji po symulacji w tle.
+ * Przechowywany w GameContext.lastNTMatchResults i wyświetlany w NationalTeamResultsView.
+ */
+export interface NTMatchResult {
+  /** Nazwa drużyny gospodarza (zgodna z NationalTeamSchedule.ts). */
+  home: string;
+  /** Nazwa drużyny gościa (zgodna z NationalTeamSchedule.ts). */
+  away: string;
+  /** Gole strzelone przez gospodarza. */
+  homeGoals: number;
+  /** Gole strzelone przez gościa. */
+  awayGoals: number;
+  /** Etykieta rozgrywek wyświetlana graczowi, np. "Kwalifikacje MŚ 2026 – Gr. A". */
+  competitionLabel: string;
+  /** Trwale identyfikowalny identyfikator meczu. */
+  matchId?: string;
+  /** Id gospodarza i goscia w modelu NationalTeam. */
+  homeTeamId?: string;
+  awayTeamId?: string;
+  /** Stadion i warunki meczu. */
+  venue?: string;
+  attendance?: number;
+  weather?: WeatherSnapshot;
+  addedTime?: number;
+  /** Szczegolowa historia meczu. */
+  goals?: MatchGoalEntry[];
+  cards?: MatchCardEntry[];
+  substitutions?: MatchSubstitutionEntry[];
+  injuries?: MatchInjuryEntry[];
+  timeline?: MatchEvent[];
 }
 
 export interface CalendarSlot {

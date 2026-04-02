@@ -54,6 +54,24 @@ export const PolishCupDrawService = {
       return 4;
     };
 
+    const isEkstraklasa = (clubId: string) => getTierValue(clubId) === 1;
+
+    if (roundLabel.includes('1/64')) {
+      for (let i = 0; i < shuffled.length; i += 2) {
+        const teamA = shuffled[i];
+        const teamB = shuffled[i + 1];
+
+        if (!teamA || !teamB || !isEkstraklasa(teamA) || !isEkstraklasa(teamB)) continue;
+
+        for (let j = i + 2; j < shuffled.length; j++) {
+          if (!isEkstraklasa(shuffled[j])) {
+            [shuffled[i + 1], shuffled[j]] = [shuffled[j], shuffled[i + 1]];
+            break;
+          }
+        }
+      }
+    }
+
     const cleanRoundLabel = roundLabel.replace("LOSOWANIE ", "");
 
     for (let i = 0; i < shuffled.length; i += 2) {

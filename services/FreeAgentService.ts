@@ -81,7 +81,8 @@ export const FreeAgentService = {
         contractLockoutUntil: null,
         isNegotiationPermanentBlocked: false,
         transferLockoutUntil: null,
-        freeAgentLockoutUntil: null
+        freeAgentLockoutUntil: null,
+        freeAgentClubLockouts: {}
       });
     }
     return pool;

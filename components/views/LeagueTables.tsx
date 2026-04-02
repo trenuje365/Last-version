@@ -4,6 +4,7 @@ import ekstraklasaBgImg from '../../Graphic/themes/ekstraklasa.png';
 import { useGame } from '../../context/GameContext';
 import { ViewState, LeagueLevel, Club } from '../../types';
 import { Button } from '../ui/Button';
+import InternationalView from './InternationalView';
 
 export const LeagueTables: React.FC = () => {
   const { leagues, clubs, leagueSchedules, navigateTo, viewClubDetails, userTeamId, seasonTemplate } = useGame();
@@ -12,7 +13,7 @@ export const LeagueTables: React.FC = () => {
   const displayLeagues = leagues.filter(l => l.level !== LeagueLevel.TIER_4_HIDDEN && l.level !== LeagueLevel.EUROPEAN);
   
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>(displayLeagues[0]?.id || 'L_PL_1');
-  const [viewMode, setViewMode] = useState<'TABLE' | 'SCHEDULE'>('TABLE');
+  const [viewMode, setViewMode] = useState<'TABLE' | 'SCHEDULE' | 'INTERNATIONAL'>('TABLE');
   const [selectedRound, setSelectedRound] = useState<number>(1);
 
   const selectedLeague = displayLeagues.find(l => l.id === selectedLeagueId);
@@ -108,21 +109,28 @@ export const LeagueTables: React.FC = () => {
 </button>
 
 
-               <button 
+               <button
                   onClick={() => setViewMode('TABLE')}
                   className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
                     ${viewMode === 'TABLE' ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
                >
                  Tabela
                </button>
-               <button 
+               <button
                   onClick={() => setViewMode('SCHEDULE')}
                   className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
                     ${viewMode === 'SCHEDULE' ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
                >
                  Terminarz
                </button>
-               <button 
+               <button
+                  onClick={() => setViewMode('INTERNATIONAL')}
+                  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                    ${viewMode === 'INTERNATIONAL' ? 'bg-amber-400 text-slate-900 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
+               >
+                 Miedzynarodowe
+               </button>
+               <button
                   onClick={() => navigateTo(ViewState.REFEREE_LIST)}
                   className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
                >
@@ -142,27 +150,32 @@ export const LeagueTables: React.FC = () => {
       </div>
 
       {/* LEAGUE SELECTOR PILLS */}
-      <div className="flex gap-2 px-2 shrink-0">
-        {displayLeagues.map(l => (
-          <button
-            key={l.id}
-            onClick={() => { setSelectedLeagueId(l.id); setSelectedRound(1); }}
-            className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border
-              ${selectedLeagueId === l.id 
-                ? 'bg-slate-900 border-white/20 text-white shadow-2xl scale-[1.02]' 
-                : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-300 hover:bg-black/40'
-              }
-            `}
-          >
-            {l.name.replace('Polish League ', '')}
-          </button>
-        ))}
-      </div>
+      {viewMode !== 'INTERNATIONAL' && (
+        <div className="flex gap-2 px-2 shrink-0">
+          {displayLeagues.map(l => (
+            <button
+              key={l.id}
+              onClick={() => { setSelectedLeagueId(l.id); setSelectedRound(1); }}
+              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border
+                ${selectedLeagueId === l.id 
+                  ? 'bg-slate-900 border-white/20 text-white shadow-2xl scale-[1.02]' 
+                  : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-300 hover:bg-black/40'
+                }
+              `}
+            >
+              {l.name.replace('Polish League ', '')}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 overflow-hidden flex flex-col gap-4">
-        
-        {viewMode === 'TABLE' ? (
+
+        {/* Zakładka Miedzynarodowe */}
+        {viewMode === 'INTERNATIONAL' && <InternationalView />}
+
+        {viewMode !== 'INTERNATIONAL' && (viewMode === 'TABLE' ? (
           <div className="flex-1 bg-slate-900/30 rounded-[40px] border border-white/5 shadow-2xl flex flex-col overflow-hidden">
              <div className="overflow-y-auto custom-scrollbar flex-1 p-6 flex flex-col items-center">
                 <div className="w-full max-w-6xl">
@@ -374,7 +387,7 @@ export const LeagueTables: React.FC = () => {
                 </div>
              </div>
           </div>
-        )}
+        ))}
       </div>
 
       <style>{`

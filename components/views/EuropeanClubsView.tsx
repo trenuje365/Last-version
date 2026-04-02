@@ -258,7 +258,7 @@ const CONTINENTS = [
   { key: 'Europe',        label: 'Europa' },
   { key: 'Africa',        label: 'Afryka' },
   { key: 'South America', label: 'Ameryka Pd.' },
-  { key: 'North America', label: 'Ameryka Śr.' },
+  { key: 'North America', label: 'Ameryka Śr i Półn.' },
   { key: 'Asia',          label: 'Azja' },
   { key: 'Oceania',       label: 'Oceania' },
 ];

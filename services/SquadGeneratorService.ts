@@ -469,6 +469,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         isNegotiationPermanentBlocked: false,
         transferLockoutUntil: null,
         freeAgentLockoutUntil: null,
+        freeAgentClubLockouts: {},
         history: []
       } as Player;
     });
@@ -584,6 +585,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         isNegotiationPermanentBlocked: false,
         transferLockoutUntil: null,
         freeAgentLockoutUntil: null,
+        freeAgentClubLockouts: {},
         history: []
       } as Player;
     });
@@ -666,6 +668,7 @@ marketValue: FinanceService.calculateMarketValue(p, clubRep, leagueTier)
         isNegotiationPermanentBlocked: false,
         transferLockoutUntil: null,
         freeAgentLockoutUntil: null,
+        freeAgentClubLockouts: {},
         history: []
       } as Player;
     });

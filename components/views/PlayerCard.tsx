@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { ViewState, HealthStatus, PlayerAttributes, TransferOfferStatus } from '../../types';
 import { REGION_NATIONALITY_LABEL } from '../../constants';     
 import { PlayerPresentationService } from '../../services/PlayerPresentationService';
+import { FreeAgentNegotiationService } from '../../services/FreeAgentNegotiationService';
 
 export const PlayerCard: React.FC = () => {
  const { viewedPlayerId, players, clubs, navigateTo, navigateWithoutHistory, previousViewState, userTeamId, toggleTransferList, currentDate, transferOffers, isResigned } = useGame();
@@ -67,6 +68,9 @@ const [showHistory, setShowHistory] = React.useState(false);
 
   const healthInfo = PlayerPresentationService.getHealthDisplay(player);
   const condColor = PlayerPresentationService.getConditionColorClass(player.condition);
+  const activeFreeAgentLockoutUntil = useMemo(() => {
+    return FreeAgentNegotiationService.getClubLockoutUntil(player, userTeamId, currentDate);
+  }, [player, userTeamId, currentDate]);
 
   const AttrBar = ({ label, value, change }: { label: string, value: number, change?: number }) => {
     let colorClass = "bg-slate-700";
@@ -464,17 +468,17 @@ const [showHistory, setShowHistory] = React.useState(false);
               <div className="mt-1">
                 {player.clubId === 'FREE_AGENTS' ? (
                   <button
-                    disabled={!!(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))}
+                    disabled={!!activeFreeAgentLockoutUntil}
                     onClick={() => {
                       navigateWithoutHistory(ViewState.FREE_AGENT_NEGOTIATION);
                     }}
                     className={`w-full py-3 rounded-[20px] font-black italic uppercase tracking-widest text-xs transition-all shadow-2xl border-b-4
-                      ${(player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil))
+                      ${activeFreeAgentLockoutUntil
                         ? 'bg-slate-800 border-slate-900 text-slate-500 opacity-70 cursor-not-allowed'
                         : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-800 hover:scale-[1.02] active:scale-95'}`}
                   >
-                    {player.freeAgentLockoutUntil && new Date(currentDate) < new Date(player.freeAgentLockoutUntil)
-                      ? "Jestem zajęty. Proszę o kontakt w innym terminie."
+                    {activeFreeAgentLockoutUntil
+                      ? `Kontakt możliwy po ${new Date(activeFreeAgentLockoutUntil).toLocaleDateString('pl-PL')}`
                       : "OTWÓRZ BIURO NEGOCJACJI 🤝"}
                   </button>
                 ) : !isResigned ? (

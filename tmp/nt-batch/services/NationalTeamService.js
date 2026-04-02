@@ -1,0 +1,313 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NationalTeamService = void 0;
+const types_1 = require("../types");
+const NationalTeamsEurope_1 = require("../resources/static_db/NationalTeams/NationalTeamsEurope");
+const NationalTeamsAfrica_1 = require("../resources/static_db/NationalTeams/NationalTeamsAfrica");
+const NationalTeamsCONMEBOL_1 = require("../resources/static_db/NationalTeams/NationalTeamsCONMEBOL");
+const NationalTeamsCONCACAF_1 = require("../resources/static_db/NationalTeams/NationalTeamsCONCACAF");
+const NationalTeamsAFC_1 = require("../resources/static_db/NationalTeams/NationalTeamsAFC");
+const NationalTeamsOFC_1 = require("../resources/static_db/NationalTeams/NationalTeamsOFC");
+const tactics_db_1 = require("../resources/tactics_db");
+const constants_1 = require("../constants");
+const NameGeneratorService_1 = require("./NameGeneratorService");
+const PlayerAttributesGenerator_1 = require("./PlayerAttributesGenerator");
+// Skład kadry: 3 GK + 8 DEF + 8 MID + 6 FWD = 25 zawodników
+const NT_GK = 3;
+const NT_DEF = 8;
+const NT_MID = 8;
+const NT_FWD = 6;
+exports.NationalTeamService = {
+    // ─── 1. INICJALIZACJA ────────────────────────────────────────────────────────
+    initializeNationalTeams: () => {
+        const sources = [
+            { prefix: 'NT_EUR', data: NationalTeamsEurope_1.NATIONAL_TEAMS_EUROPE },
+            { prefix: 'NT_AFR', data: NationalTeamsAfrica_1.NATIONAL_TEAMS_AFRICA },
+            { prefix: 'NT_SAM', data: NationalTeamsCONMEBOL_1.NATIONAL_TEAMS_CONMEBOL },
+            { prefix: 'NT_NAM', data: NationalTeamsCONCACAF_1.NATIONAL_TEAMS_CONCACAF },
+            { prefix: 'NT_ASI', data: NationalTeamsAFC_1.NATIONAL_TEAMS_AFC },
+            { prefix: 'NT_OFC', data: NationalTeamsOFC_1.NATIONAL_TEAMS_OFC },
+        ];
+        const result = [];
+        sources.forEach(({ prefix, data }) => {
+            data.forEach((entry, index) => {
+                result.push({
+                    id: `${prefix}_${index}`,
+                    name: entry.name,
+                    continent: entry.continent,
+                    tier: entry.tier,
+                    colorsHex: entry.colors,
+                    stadiumName: entry.stadium,
+                    stadiumCapacity: entry.capacity,
+                    reputation: entry.reputation,
+                    region: entry.region,
+                    coachId: null,
+                    squadPlayerIds: [],
+                    tacticId: null,
+                });
+            });
+        });
+        return result;
+    },
+    // ─── 2. WYBÓR TAKTYKI ────────────────────────────────────────────────────────
+    selectTacticForCoach: (coach) => {
+        // Deterministyczny wybór na podstawie hash ID trenera
+        // Trener z wysokim decisionMaking preferuje wyspecjalizowane taktyki
+        const hash = coach.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const dm = coach.attributes.decisionMaking;
+        let pool = tactics_db_1.TACTICS_DB;
+        if (dm >= 70) {
+            const specialized = tactics_db_1.TACTICS_DB.filter(t => t.attackBias > 60 || t.defenseBias > 60);
+            if (specialized.length > 0)
+                pool = specialized;
+        }
+        else {
+            const neutral = tactics_db_1.TACTICS_DB.filter(t => t.attackBias >= 40 && t.attackBias <= 65);
+            if (neutral.length > 0)
+                pool = neutral;
+        }
+        return pool[hash % pool.length].id;
+    },
+    // ─── 3. PRZYPISANIE TRENERÓW ─────────────────────────────────────────────────
+    assignCoachesToNationalTeams: (nationalTeams, ntCoachList) => {
+        const coachesMap = {};
+        ntCoachList.forEach(c => { coachesMap[c.id] = { ...c }; });
+        const updatedTeams = nationalTeams.map(t => ({ ...t }));
+        // Progi doświadczenia trenera w zależności od reputacji reprezentacji
+        const getExpRange = (rep) => {
+            if (rep >= 18)
+                return [85, 99];
+            if (rep >= 14)
+                return [65, 84];
+            if (rep >= 10)
+                return [40, 64];
+            if (rep >= 6)
+                return [20, 39];
+            return [5, 19];
+        };
+        // Sortuj malejąco po reputacji – najlepsze drużyny dostają trenerów jako pierwsze
+        const sortedByRep = [...updatedTeams].sort((a, b) => b.reputation - a.reputation);
+        for (const team of sortedByRep) {
+            const [minExp, maxExp] = getExpRange(team.reputation);
+            const available = Object.values(coachesMap).filter(c => !c.currentNationalTeamId);
+            // Priorytet 1: ten sam region i właściwe doświadczenie
+            let coach = available.find(c => c.nationality === team.region &&
+                c.attributes.experience >= minExp &&
+                c.attributes.experience <= maxExp);
+            // Priorytet 2: właściwe doświadczenie (dowolny region)
+            if (!coach) {
+                coach = available.find(c => c.attributes.experience >= minExp &&
+                    c.attributes.experience <= maxExp);
+            }
+            // Priorytet 3: rozszerzone doświadczenie ±10
+            if (!coach) {
+                coach = available.find(c => c.attributes.experience >= Math.max(0, minExp - 10) &&
+                    c.attributes.experience <= Math.min(99, maxExp + 10));
+            }
+            // Priorytet 4: jakikolwiek wolny trener
+            if (!coach) {
+                coach = available[0];
+            }
+            if (coach) {
+                coachesMap[coach.id].currentNationalTeamId = team.id;
+                team.coachId = coach.id;
+                team.tacticId = exports.NationalTeamService.selectTacticForCoach(coach);
+            }
+        }
+        return { updatedTeams, updatedCoaches: coachesMap };
+    },
+    // ─── 4. GENEROWANIE ZAWODNIKA NT ─────────────────────────────────────────────
+    generatePlayerForNT: (teamId, region, position, teamReputation, index, usedNames) => {
+        // Mapowanie reputacji NT (1-20) na tier dla generatora atrybutów (1-4)
+        let tier;
+        if (teamReputation >= 16)
+            tier = 1;
+        else if (teamReputation >= 12)
+            tier = 2;
+        else if (teamReputation >= 7)
+            tier = 3;
+        else
+            tier = 4;
+        let namePair = NameGeneratorService_1.NameGeneratorService.getRandomName(region);
+        let fullName = `${namePair.firstName} ${namePair.lastName}`;
+        let attempts = 0;
+        while (usedNames.has(fullName) && attempts < 50) {
+            namePair = NameGeneratorService_1.NameGeneratorService.getRandomName(region);
+            fullName = `${namePair.firstName} ${namePair.lastName}`;
+            attempts++;
+        }
+        usedNames.add(fullName);
+        const age = 18 + Math.floor(Math.random() * 16); // 18-33 lat
+        const regionProfile = PlayerAttributesGenerator_1.REGION_PROFILE[region];
+        const genData = PlayerAttributesGenerator_1.PlayerAttributesGenerator.generateAttributes(position, tier, teamReputation, age, tier <= 2, undefined, regionProfile);
+        return {
+            id: `NT_${teamId}_${String(index).padStart(3, '0')}`,
+            firstName: namePair.firstName,
+            lastName: namePair.lastName,
+            clubId: 'FREE_AGENTS',
+            position,
+            nationality: region,
+            age,
+            fatigueDebt: 0,
+            overallRating: genData.overall,
+            attributes: genData.attributes,
+            stats: {
+                matchesPlayed: 0,
+                minutesPlayed: 0,
+                goals: 0,
+                assists: 0,
+                yellowCards: 0,
+                redCards: 0,
+                cleanSheets: 0,
+                seasonalChanges: {},
+                ratingHistory: []
+            },
+            health: { status: types_1.HealthStatus.HEALTHY },
+            condition: 100,
+            suspensionMatches: 0,
+            contractEndDate: new Date(2028, 5, 30).toISOString(),
+            annualSalary: 0,
+            history: [],
+            boardLockoutUntil: null,
+            isUntouchable: false,
+            negotiationStep: 0,
+            negotiationLockoutUntil: null,
+            contractLockoutUntil: null,
+            freeAgentLockoutUntil: null,
+            freeAgentClubLockouts: {},
+            isNegotiationPermanentBlocked: false,
+            transferLockoutUntil: null,
+        };
+    },
+    // ─── 5. GENEROWANIE SKŁADU DLA JEDNEJ DRUŻYNY ───────────────────────────────
+    generateSquadForTeam: (team, coachExp, allPlayers, assignedPlayerIds) => {
+        // Wyklucz wolnych agentów — trener szuka tylko wśród zawodników z klubów
+        const allPlayersList = Object.entries(allPlayers)
+            .filter(([key]) => key !== 'FREE_AGENTS')
+            .flatMap(([, arr]) => arr);
+        const TIER_OVR_CAP = {
+            1: 99, 2: 87, 3: 77, 4: 67, 5: 57,
+        };
+        const ovrCap = TIER_OVR_CAP[team.tier] ?? 62;
+        const isPolishTeam = team.region === types_1.Region.POLAND;
+        const byPos = (pos) => allPlayersList
+            .filter(p => {
+            if (p.nationality !== team.region)
+                return false;
+            if (p.position !== pos)
+                return false;
+            if (p.overallRating > ovrCap)
+                return false;
+            if (assignedPlayerIds.has(p.id))
+                return false;
+            if (p.assignedNationalTeamId && p.assignedNationalTeamId !== team.id)
+                return false;
+            if (isPolishTeam) {
+                const club = constants_1.STATIC_CLUBS.find(c => c.id === p.clubId);
+                if (club && club.leagueId !== 'L_PL_1')
+                    return false;
+            }
+            return true;
+        })
+            .sort((a, b) => b.overallRating - a.overallRating);
+        const poolGK = byPos(types_1.PlayerPosition.GK);
+        const poolDEF = byPos(types_1.PlayerPosition.DEF);
+        const poolMID = byPos(types_1.PlayerPosition.MID);
+        const poolFWD = byPos(types_1.PlayerPosition.FWD);
+        // Współczynnik okna selekcji: trener z exp=99 widzi top 100%, exp=0 widzi top 40%
+        const windowFactor = 0.4 + 0.6 * (coachExp / 99);
+        const selectFromPool = (pool, needed) => {
+            if (pool.length === 0)
+                return { selected: [], missing: needed };
+            const topWindow = Math.max(needed, Math.ceil(pool.length * windowFactor));
+            const selected = pool.slice(0, Math.min(needed, topWindow));
+            return { selected, missing: Math.max(0, needed - selected.length) };
+        };
+        const squadPlayerIds = [];
+        const newPlayers = [];
+        const selectedPlayerIds = [];
+        const usedNames = new Set();
+        let genIndex = 0;
+        const process = (pool, needed, pos) => {
+            const { selected, missing } = selectFromPool(pool, needed);
+            selected.forEach(p => {
+                squadPlayerIds.push(p.id);
+                selectedPlayerIds.push(p.id);
+                assignedPlayerIds.add(p.id);
+            });
+            for (let i = 0; i < missing; i++) {
+                const np = exports.NationalTeamService.generatePlayerForNT(team.id, team.region, pos, team.reputation, genIndex++, usedNames);
+                np.assignedNationalTeamId = team.id;
+                newPlayers.push(np);
+                squadPlayerIds.push(np.id);
+                assignedPlayerIds.add(np.id);
+            }
+        };
+        process(poolGK, NT_GK, types_1.PlayerPosition.GK);
+        process(poolDEF, NT_DEF, types_1.PlayerPosition.DEF);
+        process(poolMID, NT_MID, types_1.PlayerPosition.MID);
+        process(poolFWD, NT_FWD, types_1.PlayerPosition.FWD);
+        return { squadPlayerIds, newPlayers, selectedPlayerIds };
+    },
+    // ─── 6. GENEROWANIE SKŁADÓW DLA WSZYSTKICH DRUŻYN ───────────────────────────
+    generateAllSquads: (nationalTeams, ntCoaches, allPlayers) => {
+        const updatedTeams = [];
+        const allNewPlayers = [];
+        const allPlayerUpdates = [];
+        const assignedPlayerIds = new Set();
+        for (const team of nationalTeams) {
+            const coach = team.coachId ? ntCoaches[team.coachId] : null;
+            const coachExp = coach ? coach.attributes.experience : 50;
+            const { squadPlayerIds, newPlayers, selectedPlayerIds } = exports.NationalTeamService.generateSquadForTeam(team, coachExp, allPlayers, assignedPlayerIds);
+            selectedPlayerIds.forEach(id => allPlayerUpdates.push({ id, assignedNationalTeamId: team.id }));
+            updatedTeams.push({ ...team, squadPlayerIds });
+            allNewPlayers.push(...newPlayers);
+        }
+        return { updatedTeams, newPlayers: allNewPlayers, playerUpdates: allPlayerUpdates };
+    },
+    // ─── 7. DZIENNY PRZEGLĄD KONTUZJI ────────────────────────────────────────────
+    reviewDailyInjuries: (nationalTeams, allPlayers, _currentDate) => {
+        // Wyklucz wolnych agentów — zastępca musi być zawodnikiem klubowym
+        const allPlayersList = Object.entries(allPlayers)
+            .filter(([key]) => key !== 'FREE_AGENTS')
+            .flatMap(([, arr]) => arr);
+        const playerMap = {};
+        allPlayersList.forEach(p => { playerMap[p.id] = p; });
+        const updatedTeams = [];
+        const allNewPlayers = [];
+        const allPlayerUpdates = [];
+        for (const team of nationalTeams) {
+            const squadIds = [...team.squadPlayerIds];
+            let genIndex = team.squadPlayerIds.length;
+            const usedNames = new Set();
+            let changed = false;
+            for (let i = 0; i < squadIds.length; i++) {
+                const player = playerMap[squadIds[i]];
+                if (!player)
+                    continue;
+                if (player.health.status !== types_1.HealthStatus.INJURED)
+                    continue;
+                // Szukaj zdrowego zastępcy: ten sam region i pozycja, jeszcze nie w kadrze
+                const replacement = allPlayersList.find(p => p.nationality === team.region &&
+                    p.position === player.position &&
+                    p.health.status === types_1.HealthStatus.HEALTHY &&
+                    !squadIds.includes(p.id) &&
+                    (!p.assignedNationalTeamId || p.assignedNationalTeamId === team.id));
+                if (replacement) {
+                    squadIds[i] = replacement.id;
+                    allPlayerUpdates.push({ id: replacement.id, assignedNationalTeamId: team.id });
+                }
+                else {
+                    // Dogeneruj brakującego zawodnika
+                    const np = exports.NationalTeamService.generatePlayerForNT(team.id, team.region, player.position, team.reputation, genIndex++, usedNames);
+                    np.assignedNationalTeamId = team.id;
+                    allNewPlayers.push(np);
+                    squadIds[i] = np.id;
+                }
+                changed = true;
+            }
+            updatedTeams.push(changed ? { ...team, squadPlayerIds: squadIds } : team);
+        }
+        return { updatedTeams, newPlayers: allNewPlayers, playerUpdates: allPlayerUpdates };
+    },
+};

@@ -2,6 +2,7 @@ import { Club, Player, PendingNegotiation, PlayerPosition, TransferTiming, Trans
 import { FinanceService as FinanceLogic } from './FinanceService';
 import { TransferSellerLogicService } from './TransferSellerLogicService';
 import { TransferPlayerDecisionService } from './TransferPlayerDecisionService';
+import { FreeAgentNegotiationService } from './FreeAgentNegotiationService';
 
 /**
  * Sprawdza czy aktualnie trwa okno transferowe.
@@ -224,7 +225,7 @@ processAiRecruitment: (
         if (!positionsNeeded.includes(fa.position as PlayerPosition)) return false;
         if (fa.overallRating > idealOvr + 7 || fa.overallRating < idealOvr - 12) return false;
         if (fa.aiNegotiationClubId) return false;
-        if (fa.freeAgentLockoutUntil && new Date(fa.freeAgentLockoutUntil) >= currentDate) return false;
+        if (FreeAgentNegotiationService.isClubLockedOut(fa, club.id, currentDate)) return false;
 
         const posSquad = squad.filter(p => p.position === fa.position);
         const weakestExisting = [...posSquad].sort((a, b) => a.overallRating - b.overallRating)[0];
@@ -354,7 +355,17 @@ processAiRecruitment: (
         lockout.setDate(lockout.getDate() + 90);
         updatedPlayersMap['FREE_AGENTS'] = (updatedPlayersMap['FREE_AGENTS'] || []).map(p =>
           p.id === fa.id
-            ? { ...p, aiNegotiationClubId: undefined, aiNegotiationResponseDate: undefined, freeAgentLockoutUntil: lockout.toISOString() }
+            ? {
+                ...p,
+                aiNegotiationClubId: undefined,
+                aiNegotiationResponseDate: undefined,
+                freeAgentLockoutUntil: null,
+                freeAgentClubLockouts: FreeAgentNegotiationService.buildClubLockouts(
+                  p.freeAgentClubLockouts,
+                  aiClub.id,
+                  lockout.toISOString()
+                )
+              }
             : p
         );
       }

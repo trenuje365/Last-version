@@ -1,6 +1,31 @@
 import { Player, Club, PendingNegotiation, NegotiationStatus } from '../types';
 
 export const FreeAgentNegotiationService = {
+  getClubLockoutUntil: (player: Player, clubId: string | null | undefined, currentDate: Date): string | null => {
+    if (!clubId) return null;
+
+    const lockoutUntil = player.freeAgentClubLockouts?.[clubId];
+    if (!lockoutUntil) return null;
+
+    const today = new Date(currentDate).setHours(0, 0, 0, 0);
+    const lockoutDate = new Date(lockoutUntil).setHours(0, 0, 0, 0);
+    return today < lockoutDate ? lockoutUntil : null;
+  },
+
+  isClubLockedOut: (player: Player, clubId: string | null | undefined, currentDate: Date): boolean => {
+    return !!FreeAgentNegotiationService.getClubLockoutUntil(player, clubId, currentDate);
+  },
+
+  buildClubLockouts: (
+    currentLockouts: Record<string, string> | undefined,
+    clubId: string,
+    lockoutUntil: string
+  ): Record<string, string> => {
+    return {
+      ...(currentLockouts || {}),
+      [clubId]: lockoutUntil
+    };
+  },
   // Sprawdza czy zawodnik w ogóle chce rozmawiać (Gatekeeping)
   evaluateInitialInterest: (player: Player, club: Club): { interested: boolean, message: string } => {
     // Jeśli zawodnik ma OVR > 69 a klub ma reputację < 5 -> 1% szansy

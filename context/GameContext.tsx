@@ -6,7 +6,7 @@ import {
 Coach, TrainingIntensity,
 PendingNegotiation, NegotiationStatus,
 HealthStatus,
-PlayerPosition, EuropeanStatus, NationalTeam,
+PlayerPosition, EuropeanStatus, NationalTeam, NTMatchResult,
 TransferOffer, TransferClubBidInput, TransferContractInput, TransferOfferStatus, TransferOfferSubmissionResult, TransferTiming,
 IncomingTransferOffer, IncomingOfferStatus
 } from '../types';
@@ -52,6 +52,9 @@ import { TransferSellerLogicService } from '../services/TransferSellerLogicServi
 import { TransferPlayerDecisionService } from '../services/TransferPlayerDecisionService';
 import { TransferExecutionService } from '../services/TransferExecutionService';
 import { IncomingTransferService } from '../services/IncomingTransferService';
+import { FreeAgentNegotiationService } from '../services/FreeAgentNegotiationService';
+import { NationalTeamSimulator } from '../services/NationalTeamSimulator';
+import { getNTMatchDayForDate } from '../resources/NationalTeamSchedule';
 
 interface SimulationOutput {
   updatedFixtures: Fixture[];
@@ -64,6 +67,14 @@ interface SimulationOutput {
   // KONIEC KODU
   seasonNumber: number;
   roundResults: LeagueRoundResults | null;
+}
+
+type GameNotificationTone = 'success' | 'info' | 'warning';
+
+interface GameNotificationState {
+  title: string;
+  message: string;
+  tone: GameNotificationTone;
 }
 
 interface GameContextType {
@@ -185,6 +196,12 @@ finalizeFreeAgentContract: (mailId: string) => void;
   setSelectedNTId: React.Dispatch<React.SetStateAction<string | null>>;
   isResigned: boolean;
   resignFromClub: () => void;
+  gameNotification: GameNotificationState | null;
+  showGameNotification: (notification: { title: string; message: string; tone?: GameNotificationTone }) => void;
+  clearGameNotification: () => void;
+  // Ostatnie wyniki meczów reprezentacji (symulacja w tle) — wyświetlane w NationalTeamResultsView
+  lastNTMatchResults: NTMatchResult[] | null;
+  setLastNTMatchResults: React.Dispatch<React.SetStateAction<NTMatchResult[] | null>>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -225,8 +242,11 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
  const [transferNewsActiveTab, setTransferNewsActiveTab] = useState<'scouting' | 'released' | 'activity' | 'completed' | 'incoming'>('activity');
  const [europeanStatus, setEuropeanStatus] = useState<Record<string, EuropeanStatus>>({});
   const [nationalTeams, setNationalTeams] = useState<NationalTeam[]>([]);
+  // Przechowuje wyniki ostatniego dnia meczowego reprezentacji (wszystkie mecze grupy)
+  const [lastNTMatchResults, setLastNTMatchResults] = useState<NTMatchResult[] | null>(null);
   const [europeanViewTab, setEuropeanViewTab] = useState<'clubs' | 'nt'>('clubs');
   const [selectedNTId, setSelectedNTId] = useState<string | null>(null);
+  const [gameNotification, setGameNotification] = useState<GameNotificationState | null>(null);
   // Polish Cup & Persistent Events State
   const [cupParticipants, setCupParticipants] = useState<string[]>([]);
   const [activeCupDraw, setActiveCupDraw] = useState<{ id: string, label: string, date: Date, pairs: Fixture[] } | null>(null);
@@ -292,6 +312,28 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
         : c
     ));
   }, [currentDate, clubs]);
+
+  const showGameNotification = useCallback((notification: { title: string; message: string; tone?: GameNotificationTone }) => {
+    setGameNotification({
+      title: notification.title,
+      message: notification.message,
+      tone: notification.tone || 'info'
+    });
+  }, []);
+
+  const clearGameNotification = useCallback(() => {
+    setGameNotification(null);
+  }, []);
+
+  useEffect(() => {
+    if (!gameNotification) return;
+
+    const timer = window.setTimeout(() => {
+      setGameNotification(null);
+    }, 4200);
+
+    return () => window.clearTimeout(timer);
+  }, [gameNotification]);
 
   const addSupercupWinner = useCallback((season: string, winner: string, year: number) => {
     setSupercupWinners(prev => {
@@ -1037,7 +1079,7 @@ setMessages([welcomeMail, fanMail]);
         sender: `Agent gracza ${player.lastName}`,
         role: 'Agencja Menadżerska',
         subject: decision.accepted ? 'Decyzja w sprawie kontraktu: ZGODA' : 'Decyzja w sprawie kontraktu: ODMOWA',
-        body: decision.reason,
+        body: `${decision.reason}${decision.demands ? `\n\nOczekiwana pensja roczna: ${decision.demands.salary.toLocaleString('pl-PL')} PLN\nOczekiwany bonus za podpis: ${decision.demands.bonus.toLocaleString('pl-PL')} PLN` : ''}`,
         date: new Date(simDate),
         isRead: false,
         type: MailType.SYSTEM,
@@ -1052,7 +1094,8 @@ setMessages([welcomeMail, fanMail]);
            responseDate: neg.responseDate,
           status: decision.accepted ? NegotiationStatus.ACCEPTED : NegotiationStatus.REJECTED,
           isAiOffer: false,
-          playerId: player.id
+          playerId: player.id,
+          demands: decision.demands
         }
       };
 
@@ -1061,12 +1104,21 @@ setMessages([welcomeMail, fanMail]);
     // JEŚLI OFERTA ZOSTAŁA ODRZUCONA (metadata.accepted jest false) I JEST TO WOLNY AGENT
       if (!decision.accepted && player.clubId === 'FREE_AGENTS') {
         const lockoutDate = new Date(simDate);
-        lockoutDate.setFullYear(lockoutDate.getFullYear() + 1);
+        lockoutDate.setMonth(lockoutDate.getMonth() + 3);
         
         setPlayers(prevPlayers => {
           const updated = { ...prevPlayers };
           updated['FREE_AGENTS'] = (updated['FREE_AGENTS'] || []).map(p => 
-            p.id === player.id ? { ...p, freeAgentLockoutUntil: lockoutDate.toISOString(), isNegotiationPermanentBlocked: true } : p
+            p.id === player.id ? {
+              ...p,
+              freeAgentLockoutUntil: null,
+              isNegotiationPermanentBlocked: false,
+              freeAgentClubLockouts: FreeAgentNegotiationService.buildClubLockouts(
+                p.freeAgentClubLockouts,
+                neg.clubId,
+                lockoutDate.toISOString()
+              )
+            } : p
           );
           return updated;
         });
@@ -2038,6 +2090,39 @@ setMessages([welcomeMail, fanMail]);
     }
     DebugLoggerService.log('GUARD', `advanceDay PRZECHODZI dla: ${dateKey}`);
     lastProcessedLeagueDateRef.current = dateKey;
+
+    // ── Symulacja meczów reprezentacji ──────────────────────────────────────
+    // Gdy primaryEvent to NATIONAL_TEAM_MATCH: pobierz mecze z NT_SCHEDULE_BY_YEAR,
+    // zasymuluj wyniki w tle i wyświetl je graczowi w NationalTeamResultsView.
+    // Data zostanie przesunięta dopiero gdy gracz kliknie "Kontynuuj" w tym widoku.
+    // Używamy processedDrawIds żeby nie symulować ponownie przy tym samym slocie.
+    if (primaryEvent?.kind === EventKind.NATIONAL_TEAM_MATCH &&
+        !processedDrawIds.includes(primaryEvent.slot.id)) {
+      const matchDay = getNTMatchDayForDate(dateToProcess, dateToProcess.getFullYear());
+      if (matchDay) {
+        // Seed = timestamp daty gry — gwarantuje powtarzalność wyników przy tym samym dniu
+        const dateSeed = dateToProcess.getTime();
+        const ntSimulation = NationalTeamSimulator.simulateMatchDay(
+          matchDay,
+          dateSeed,
+          dateToProcess,
+          nationalTeams,
+          players,
+          coaches,
+          seasonNumber
+        );
+        setPlayers(ntSimulation.updatedPlayers);
+        ntSimulation.matchHistoryEntries.forEach(entry => MatchHistoryService.logMatch(entry));
+        setLastNTMatchResults(ntSimulation.results);
+        setProcessedDrawIds(prev => [...prev, primaryEvent.slot.id]);
+        setTargetJumpTime(null);
+        navigateTo(ViewState.NATIONAL_TEAM_RESULTS);
+        // Zresetuj GUARD — następne wywołanie advanceDay (po kliknięciu "Kontynuuj")
+        // musi przejść i przesunąć datę
+        lastProcessedLeagueDateRef.current = '';
+        return;
+      }
+    }
 
     const simulation = BackgroundMatchProcessor.processLeagueEvent(dateToProcess, userTeamId, allFixtures, clubs, players, lineups, seasonNumber, coaches, sessionSeed);
     
@@ -4549,9 +4634,14 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
 
     // 4. Usuń wiadomość e-mail
     setMessages(prev => prev.filter(m => m.id !== mailId));
+    return showGameNotification({
+      title: 'Transfer sfinalizowany',
+      message: `${playerToSign.firstName} ${playerToSign.lastName} dolaczyl do kadry ${userClub?.name || ''}.`,
+      tone: 'success'
+    });
 
     alert(`Transfer sfinalizowany! ${playerToSign.firstName} ${playerToSign.lastName} dołączył do kadry.`);
-  }, [messages, players, userTeamId, currentDate, clubs]);
+  }, [messages, players, userTeamId, currentDate, clubs, showGameNotification]);
 
   useEffect(() => {
     const duePreContracts = transferOffers.filter(offer =>
@@ -4846,7 +4936,9 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
     confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmCONFFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound,
     nationalTeams, setNationalTeams,
-    europeanViewTab, setEuropeanViewTab, selectedNTId, setSelectedNTId, isResigned, resignFromClub
+    lastNTMatchResults, setLastNTMatchResults,
+    europeanViewTab, setEuropeanViewTab, selectedNTId, setSelectedNTId, isResigned, resignFromClub,
+    gameNotification, showGameNotification, clearGameNotification
     }}>
       {children}
     </GameContext.Provider>

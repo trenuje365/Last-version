@@ -93,6 +93,15 @@ export const RecoveryService = {
           }
         }
 
+        if (updated.freeAgentClubLockouts) {
+          const currentSimDate = new Date(currentDate).setHours(0, 0, 0, 0);
+          updated.freeAgentClubLockouts = Object.fromEntries(
+            Object.entries(updated.freeAgentClubLockouts).filter(([, lockoutUntil]) =>
+              new Date(lockoutUntil).setHours(0, 0, 0, 0) > currentSimDate
+            )
+          );
+        }
+
         return updated;
       });
     }

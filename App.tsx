@@ -51,6 +51,7 @@ import { CLSFDrawView } from './components/views/CLSFDrawView';
 import { PreMatchCLFinalView } from './components/views/PreMatchCLFinalView';
 import { PostMatchCLFinalView } from './components/views/PostMatchCLFinalView';
 import { EuropeanClubsView } from './components/views/EuropeanClubsView';
+import NationalTeamResultsView from './components/views/NationalTeamResultsView';
 import { ELDrawView } from './LECupEngine/ELDrawView';
 import { ELR2QDrawView } from './LECupEngine/ELR2QDrawView';
 import { ELHistoryView } from './LECupEngine/ELHistoryView';
@@ -75,6 +76,7 @@ import { ELR16DrawView } from './components/views/ELR16DrawView';
 import { ELQFDrawView } from './components/views/ELQFDrawView';
 import { ELSFDrawView } from './components/views/ELSFDrawView';
 import { ELFinalDrawView } from './components/views/ELFinalDrawView';
+import { GameNotification } from './components/ui/GameNotification';
 
 // Internal component to handle view switching
 const AppContent: React.FC = () => {
@@ -152,6 +154,9 @@ case ViewState.MATCH_LIVE_CONF:
 
 case ViewState.POST_MATCH_CONF_STUDIO:
   return <PostMatchCONFStudioView />;
+
+case ViewState.NATIONAL_TEAM_RESULTS:
+  return <NationalTeamResultsView />;
 
   case ViewState.PRE_MATCH_CL_FINAL:
   return <PreMatchCLFinalView />;
@@ -312,7 +317,12 @@ case ViewState.CL_GROUP_DRAW:
     }
   };
 
-  return <main>{renderView()}</main>;
+  return (
+    <>
+      <main>{renderView()}</main>
+      <GameNotification />
+    </>
+  );
 };
 
 const App: React.FC = () => {

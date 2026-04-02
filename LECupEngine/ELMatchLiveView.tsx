@@ -7,7 +7,7 @@ import {
   Lineup,
   PlayerPerformance,
   MatchEvent,
-  InstructionTempo, InstructionMindset, InstructionIntensity
+  InstructionTempo, InstructionMindset, InstructionIntensity, InstructionPassing, InstructionPressing
 } from '../types';
 
 const calculateLiveRating = (player: Player, side: 'HOME' | 'AWAY', state: any) => {
@@ -300,6 +300,8 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
           tempo: 'NORMAL',
           mindset: 'NEUTRAL',
           intensity: 'NORMAL',
+          passing: 'MIXED',
+          pressing: 'NORMAL',
           expiryMinute: -1,
           tempoExpiry: -1,
           mindsetExpiry: -1,
@@ -307,9 +309,13 @@ events: [], homeGoals: [], awayGoals: [], flashMessage: null,
           tempoCooldown: -1,
           mindsetCooldown: -1,
           intensityCooldown: -1,
+          passingCooldown: -1,
+          pressingCooldown: -1,
           tempoResponseFactor: 1.0,
           mindsetResponseFactor: 1.0,
           intensityResponseFactor: 1.0,
+          passingResponseFactor: 1.0,
+          pressingResponseFactor: 1.0,
          lastChangeMinute: -5,},
           playedPlayerIds: [],
         aiActiveShout: null,
@@ -1029,6 +1035,64 @@ const applyHalftimeRegen = (fatigueMap: Record<string, number>, playersList: Pla
         const uFoulMod    = uInstr.intensity === 'AGGRESSIVE' ? 1.30 : uInstr.intensity === 'CAUTIOUS' ? 0.72 : 1.0;
         const uInjuryMod  = uInstr.intensity === 'AGGRESSIVE' ? 1.28 : uInstr.intensity === 'CAUTIOUS' ? 0.70 : 1.0;
         const uPenaltyMod = uInstr.intensity === 'AGGRESSIVE' ? 1.25 : uInstr.intensity === 'CAUTIOUS' ? 0.70 : 1.0;
+        // PODANIA
+        if (uInstr.passing === 'SHORT') {
+          const rf = uInstr.passingResponseFactor ?? 1.0;
+          const uMidFwdIds = uXIList.filter((id): id is string => id !== null);
+          const uMidFwd = uPlayersList.filter(p => uMidFwdIds.includes(p.id) && (p.position === 'MID' || p.position === 'FWD'));
+          const oMidFwdIds = oXIList.filter((id): id is string => id !== null);
+          const oMidFwd = oPlayersList.filter(p => oMidFwdIds.includes(p.id) && (p.position === 'MID' || p.position === 'FWD'));
+          const uShortSum = uMidFwd.reduce((acc, p) => acc + p.attributes.technique + p.attributes.passing, 0);
+          const oShortSum = oMidFwd.reduce((acc, p) => acc + p.attributes.technique + p.attributes.passing, 0);
+          const diff = uShortSum - oShortSum;
+          if (diff > 35) {
+            const bonus = Math.min(0.015, (diff - 35) * 0.0003) * rf;
+            if (isUserAttacking) shotThreshold += bonus;
+            else shotThreshold -= bonus;
+          } else {
+            const penalty = Math.min(0.012, (35 - diff) * 0.0002) * rf;
+            if (isUserAttacking) shotThreshold -= penalty;
+            else shotThreshold += penalty;
+          }
+        } else if (uInstr.passing === 'LONG') {
+          const rf = uInstr.passingResponseFactor ?? 1.0;
+          const uMidFwdIds = uXIList.filter((id): id is string => id !== null);
+          const uMidFwd = uPlayersList.filter(p => uMidFwdIds.includes(p.id) && (p.position === 'MID' || p.position === 'FWD'));
+          const oMidFwdIds = oXIList.filter((id): id is string => id !== null);
+          const oMidFwd = oPlayersList.filter(p => oMidFwdIds.includes(p.id) && (p.position === 'MID' || p.position === 'FWD'));
+          const uLongSum = uMidFwd.reduce((acc, p) => acc + p.attributes.technique + p.attributes.passing + p.attributes.crossing, 0);
+          const oLongSum = oMidFwd.reduce((acc, p) => acc + p.attributes.technique + p.attributes.passing + p.attributes.crossing, 0);
+          const diff = uLongSum - oLongSum;
+          if (diff > 45) {
+            const bonus = Math.min(0.015, (diff - 45) * 0.00025) * rf;
+            if (isUserAttacking) shotThreshold += bonus;
+            else shotThreshold -= bonus;
+          } else {
+            const penalty = Math.min(0.012, (45 - diff) * 0.00015) * rf;
+            if (isUserAttacking) shotThreshold -= penalty;
+            else shotThreshold += penalty;
+          }
+        }
+        // PRESSING
+        if (uInstr.pressing === 'PRESSING') {
+          const rf = uInstr.pressingResponseFactor ?? 1.0;
+          const uOutIds = uXIList.filter((id): id is string => id !== null);
+          const uOut = uPlayersList.filter(p => uOutIds.includes(p.id) && p.position !== 'GK');
+          const oOutIds = oXIList.filter((id): id is string => id !== null);
+          const oOut = oPlayersList.filter(p => oOutIds.includes(p.id) && p.position !== 'GK');
+          const uPressSum = uOut.reduce((acc, p) => acc + p.attributes.aggression + p.attributes.pace + p.attributes.strength + p.attributes.stamina, 0);
+          const oPressSum = oOut.reduce((acc, p) => acc + p.attributes.aggression + p.attributes.pace + p.attributes.strength + p.attributes.stamina, 0);
+          const diff = uPressSum - oPressSum;
+          if (diff > 110) {
+            const bonus = Math.min(0.015, (diff - 110) * 0.0001) * rf;
+            if (isUserAttacking) shotThreshold += bonus;
+            else shotThreshold -= bonus;
+          } else {
+            const penalty = Math.min(0.012, (110 - diff) * 0.00008) * rf;
+            if (isUserAttacking) shotThreshold -= penalty;
+            else shotThreshold += penalty;
+          }
+        }
         // ───────────────────────────────────────────────────────────────────────
 
         let pauseForEvent = false;
@@ -2553,7 +2617,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
   ) : (
     <>
       {/* ── GÓRNY BOX: Tempo / Postawa / Styl gry ── */}
-      <div className="flex gap-5 justify-center py-2.5 px-10 bg-black-400 border-5 border-white/50 rounded-[24px] shadow-4xl relative overflow-hidden">
+      <div className="flex gap-3 justify-center py-1.5 px-6 bg-black-400 border-5 border-white/50 rounded-[24px] shadow-4xl relative overflow-hidden">
         <div className="absolute inset-0 rounded-[7px] pointer-events-none" style={{boxShadow:'inset 0 2px 2px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 8px 0 rgba(255,255,255,0.10)'}} />
       {/* ── TEMPO ── */}
       {(() => {
@@ -2569,11 +2633,11 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
           return { ...s, userInstructions: { ...s.userInstructions, tempo: val, tempoExpiry: -1, tempoCooldown: s.minute + 5 } };
         });
         return (
-          <div className={`flex flex-col items-center gap-1 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
-            <span className="text-[9px] text-yellow-500 uppercase tracking-widest font-semibold">
+          <div className={`flex flex-col items-center gap-0.5 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+            <span className="text-[8px] text-yellow-500 uppercase tracking-widest font-semibold">
               {locked ? `Tempo – blokada ${remaining}'` : 'Tempo'}
             </span>
-            <div className="flex rounded-lg overflow-hidden border border-white/15 shadow-lg">
+            <div className="flex rounded-md overflow-hidden border border-white/15 shadow-lg">
               {([
                 { val: 'SLOW' as InstructionTempo,   label: 'Wolno',     activeClass: 'bg-blue-600/50 text-blue-200 border-blue-500/50' },
                 { val: 'NORMAL' as InstructionTempo, label: 'Normalnie', activeClass: 'bg-white/20 text-white border-white/20' },
@@ -2583,7 +2647,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
                   key={val}
                   onClick={() => pick(val)}
                   disabled={locked}
-                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
+                  className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
                     cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
                   }`}
                 >{label}</button>
@@ -2607,11 +2671,11 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
           return { ...s, userInstructions: { ...s.userInstructions, mindset: val, mindsetExpiry: -1, mindsetCooldown: s.minute + 5 } };
         });
         return (
-          <div className={`flex flex-col items-center gap-1 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
-            <span className="text-[9px] text-yellow-500 uppercase tracking-widest font-semibold">
+          <div className={`flex flex-col items-center gap-0.5 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+            <span className="text-[8px] text-yellow-500 uppercase tracking-widest font-semibold">
               {locked ? `Postawa – blokada ${remaining}'` : 'Postawa'}
             </span>
-            <div className="flex rounded-lg overflow-hidden border border-white/15 shadow-lg">
+            <div className="flex rounded-md overflow-hidden border border-white/15 shadow-lg">
               {([
                 { val: 'DEFENSIVE' as InstructionMindset, label: 'Defensywna', activeClass: 'bg-emerald-600/50 text-emerald-200 border-emerald-500/50' },
                 { val: 'NEUTRAL' as InstructionMindset,   label: 'Neutralna',  activeClass: 'bg-white/20 text-white border-white/20' },
@@ -2621,7 +2685,7 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
                   key={val}
                   onClick={() => pick(val)}
                   disabled={locked}
-                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
+                  className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
                     cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
                   }`}
                 >{label}</button>
@@ -2645,11 +2709,11 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
           return { ...s, userInstructions: { ...s.userInstructions, intensity: val, intensityExpiry: -1, intensityCooldown: s.minute + 5 } };
         });
         return (
-          <div className={`flex flex-col items-center gap-1 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
-            <span className="text-[9px] text-yellow-500 uppercase tracking-widest font-semibold">
+          <div className={`flex flex-col items-center gap-0.5 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+            <span className="text-[8px] text-yellow-500 uppercase tracking-widest font-semibold">
               {locked ? `Styl gry – blokada ${remaining}'` : 'Styl gry'}
             </span>
-            <div className="flex rounded-lg overflow-hidden border border-white/15 shadow-lg">
+            <div className="flex rounded-md overflow-hidden border border-white/15 shadow-lg">
               {([
                 { val: 'CAUTIOUS' as InstructionIntensity,   label: 'Ostrożnie',  activeClass: 'bg-teal-600/50 text-teal-200 border-teal-500/50' },
                 { val: 'NORMAL' as InstructionIntensity,     label: 'Normalnie',  activeClass: 'bg-white/20 text-white border-white/20' },
@@ -2659,7 +2723,86 @@ const hasScored = matchState.homeGoals.some(g => g.playerName === p.lastName && 
                   key={val}
                   onClick={() => pick(val)}
                   disabled={locked}
-                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
+                  className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
+                    cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
+                  }`}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── PODANIA ── */}
+      {(() => {
+        const cd = matchState.userInstructions.passingCooldown;
+        const locked = cd > 0 && matchState.minute < cd;
+        const remaining = locked ? cd - matchState.minute : 0;
+        const cur = matchState.userInstructions.passing ?? 'MIXED';
+        const pick = (val: InstructionPassing) => setMatchState(s => {
+          if (!s) return s;
+          const c = s.userInstructions.passingCooldown;
+          if (c > 0 && s.minute < c) return s;
+          if (s.userInstructions.passing === val) return s;
+          const rf = val === 'MIXED' ? 1.0 : parseFloat((0.6 + Math.random() * 0.8).toFixed(2));
+          const cooldown = s.minute + 5 + Math.floor(Math.random() * 6);
+          return { ...s, userInstructions: { ...s.userInstructions, passing: val, passingCooldown: cooldown, passingResponseFactor: rf } };
+        });
+        return (
+          <div className={`flex flex-col items-center gap-0.5 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+            <span className="text-[8px] text-yellow-500 uppercase tracking-widest font-semibold">
+              {locked ? `Podania – blokada ${remaining}'` : 'Podania'}
+            </span>
+            <div className="flex rounded-md overflow-hidden border border-white/15 shadow-lg">
+              {([
+                { val: 'SHORT' as InstructionPassing, label: 'Krótkie',  activeClass: 'bg-teal-600/50 text-teal-200 border-teal-500/50' },
+                { val: 'MIXED' as InstructionPassing, label: 'Mieszane', activeClass: 'bg-slate-500/60 text-white border-slate-400/50' },
+                { val: 'LONG'  as InstructionPassing, label: 'Długie',   activeClass: 'bg-orange-600/50 text-orange-200 border-orange-500/50' },
+              ] as { val: InstructionPassing; label: string; activeClass: string }[]).map(({ val, label, activeClass }) => (
+                <button
+                  key={val}
+                  onClick={() => pick(val)}
+                  disabled={locked}
+                  className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
+                    cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
+                  }`}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── PRESSING ── */}
+      {(() => {
+        const cd = matchState.userInstructions.pressingCooldown;
+        const locked = cd > 0 && matchState.minute < cd;
+        const remaining = locked ? cd - matchState.minute : 0;
+        const cur = matchState.userInstructions.pressing ?? 'NORMAL';
+        const pick = (val: InstructionPressing) => setMatchState(s => {
+          if (!s) return s;
+          const c = s.userInstructions.pressingCooldown;
+          if (c > 0 && s.minute < c) return s;
+          if (s.userInstructions.pressing === val) return s;
+          const rf = val === 'NORMAL' ? 1.0 : parseFloat((0.6 + Math.random() * 0.8).toFixed(2));
+          const cooldown = s.minute + 5 + Math.floor(Math.random() * 6);
+          return { ...s, userInstructions: { ...s.userInstructions, pressing: val, pressingCooldown: cooldown, pressingResponseFactor: rf } };
+        });
+        return (
+          <div className={`flex flex-col items-center gap-0.5 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+            <span className="text-[8px] text-yellow-500 uppercase tracking-widest font-semibold">
+              {locked ? `Pressing – blokada ${remaining}'` : 'Pressing'}
+            </span>
+            <div className="flex rounded-md overflow-hidden border border-white/15 shadow-lg">
+              {([
+                { val: 'NORMAL'   as InstructionPressing, label: 'Normalnie', activeClass: 'bg-slate-500/60 text-white border-slate-400/50' },
+                { val: 'PRESSING' as InstructionPressing, label: 'Pressing',  activeClass: 'bg-purple-600/50 text-purple-200 border-purple-500/50' },
+              ] as { val: InstructionPressing; label: string; activeClass: string }[]).map(({ val, label, activeClass }) => (
+                <button
+                  key={val}
+                  onClick={() => pick(val)}
+                  disabled={locked}
+                  className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide transition-colors border-r last:border-r-0 border-white/10 ${
                     cur === val ? activeClass : 'bg-white/5 text-amber-500 hover:text-slate-200 hover:bg-white/10'
                   }`}
                 >{label}</button>

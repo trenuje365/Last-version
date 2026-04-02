@@ -1,0 +1,143 @@
+import { PlayerPosition, HealthStatus, TrainingIntensity } from '../types';
+import { TRAINING_CYCLES } from '../data/training_definitions_pl';
+import { PlayerAttributesGenerator } from './PlayerAttributesGenerator';
+import { FinanceService } from './FinanceService';
+export const TrainingService = {
+    /**
+     * Główna logika przetwarzająca zmiany atrybutów po każdej kolejce.
+     */
+    processTrainingEffects: (playersMap, userTeamId, activeTrainingId, lastMatchSummary, clubReputation, // DODANO
+    leagueTier, // DODANO
+    intensity // Dodajemy nową informację o intensywności
+    ) => {
+        const updatedMap = { ...playersMap };
+        if (!updatedMap[userTeamId])
+            return updatedMap;
+        const cycle = TRAINING_CYCLES.find(c => c.id === activeTrainingId) || TRAINING_CYCLES[0];
+        updatedMap[userTeamId] = updatedMap[userTeamId].map(player => {
+            // FIX: Zawodnicy kontuzjowani nie trenują
+            const intensityMultiplier = intensity === TrainingIntensity.HEAVY ? 1.8 : (intensity === TrainingIntensity.LIGHT ? 0.5 : 1.0);
+            if (player.health.status === HealthStatus.INJURED) {
+                return player;
+            }
+            let updated = { ...player };
+            const stats = { ...updated.stats };
+            const seasonalChanges = { ...(stats.seasonalChanges || {}) };
+            const attributes = { ...updated.attributes };
+            const performance = lastMatchSummary?.homePlayers.find(p => p.name === player.lastName)
+                || lastMatchSummary?.awayPlayers.find(p => p.name === player.lastName);
+            const playedThisRound = !!performance;
+            const rating = performance?.rating || 0;
+            // 1. SZANSA NA WZROST (Trening + Gra)
+            const attrKeys = [
+                'strength', 'stamina', 'pace', 'defending', 'passing', 'attacking',
+                'finishing', 'technique', 'vision', 'dribbling', 'heading', 'positioning', 'goalkeeping',
+                'freeKicks', 'penalties', 'corners', 'aggression', 'crossing', 'leadership', 'mentality', 'workRate'
+            ];
+            attrKeys.forEach(key => {
+                let pGrowth = 0.02; // Bazowa szansa 2% tygodniowo
+                // Wpływ wybranego cyklu
+                pGrowth *= intensityMultiplier;
+                if (cycle.primaryAttributes.includes(key))
+                    pGrowth += 0.08;
+                if (cycle.secondaryAttributes.includes(key))
+                    pGrowth += 0.04;
+                if (player.trainingFocus === key)
+                    pGrowth += 0.06;
+                // Bonus za wiek (młodzi rosną szybciej)
+                if (player.age < 21)
+                    pGrowth *= 1.5;
+                else if (player.age > 32)
+                    pGrowth *= 0.3;
+                // Bonus za grę i formę
+                if (playedThisRound) {
+                    pGrowth += 0.02;
+                    if (rating >= 7.5)
+                        pGrowth += 0.05;
+                    if (rating >= 9.0)
+                        pGrowth += 0.10;
+                }
+                // Bonusy za osiągnięcia w meczu
+                if (key === 'finishing' && (performance?.goals || 0) > 0)
+                    pGrowth += 0.05;
+                if (key === 'goalkeeping' && player.position === PlayerPosition.GK && performance && performance.fatigue > 0 && lastMatchSummary) {
+                    const teamGoalsAgainst = (player.clubId === lastMatchSummary.homeClub.id) ? lastMatchSummary.awayScore : lastMatchSummary.homeScore;
+                    if (teamGoalsAgainst === 0)
+                        pGrowth += 0.05;
+                }
+                // Modyfikator talentu — wyższy talent przyspiesza rozwój
+                const _talentMod = 0.70 + (player.attributes.talent / 100) * 0.60;
+                pGrowth *= _talentMod;
+                // FINALNY ROLL NA WZROST
+                if (Math.random() < pGrowth) {
+                    const currentChange = seasonalChanges[key] || 0;
+                    if (currentChange < 3 && attributes[key] < 99) {
+                        attributes[key] += 1;
+                        seasonalChanges[key] = currentChange + 1;
+                    }
+                }
+                // 2. SZANSA NA REGRES (Wiek + Brak gry + Typ atrybutu)
+                let pRegress = 0.003; // Baza: minimalna dla każdego
+                // KRZYWA WIEKOWA — stopniowa, nie klif
+                const age = player.age;
+                if (age >= 36)
+                    pRegress += 0.100;
+                else if (age >= 35)
+                    pRegress += 0.075;
+                else if (age >= 34)
+                    pRegress += 0.055;
+                else if (age >= 33)
+                    pRegress += 0.035;
+                else if (age >= 32)
+                    pRegress += 0.022;
+                else if (age >= 31)
+                    pRegress += 0.012;
+                else if (age >= 30)
+                    pRegress += 0.006;
+                // REGRES ZA BRAK GRY — wiek decyduje o skali
+                if (!playedThisRound) {
+                    if (age >= 32)
+                        pRegress += 0.035;
+                    else if (age >= 28)
+                        pRegress += 0.020;
+                    else if (age >= 24)
+                        pRegress += 0.012;
+                    else
+                        pRegress += 0.006; // młodzi też tracą bez gry
+                }
+                // MODYFIKATOR TYPU ATRYBUTU
+                const physicalAttrs = ['pace', 'stamina', 'strength'];
+                const mentalAttrs = ['vision', 'leadership', 'mentality', 'workRate', 'positioning'];
+                if (physicalAttrs.includes(key))
+                    pRegress *= 1.5;
+                if (mentalAttrs.includes(key))
+                    pRegress *= 0.55;
+                if (Math.random() < pRegress) {
+                    const currentChange = seasonalChanges[key] || 0;
+                    if (currentChange > -3 && attributes[key] > 10) {
+                        attributes[key] -= 1;
+                        seasonalChanges[key] = currentChange - 1;
+                    }
+                }
+            });
+            // Aktualizacja OVR po zmianach atrybutów
+            const newOvr = PlayerAttributesGenerator.calculateOverall(attributes, player.position);
+            // Obliczamy nową wartość rynkową na podstawie nowego OVR
+            const updatedMarketValue = FinanceService.calculateMarketValue({ ...updated, overallRating: newOvr }, clubReputation, // Ten parametr musimy dodać do sygnatury metody
+            leagueTier // Ten parametr musimy dodać do sygnatury metody
+            );
+            return {
+                ...updated,
+                attributes,
+                overallRating: newOvr,
+                // TUTAJ WSTAW TEN KOD - Naprawa niszczenia statystyk i not przez trening
+                stats: {
+                    ...player.stats, ratingHistory: player.stats.ratingHistory || [],
+                    seasonalChanges
+                },
+                marketValue: updatedMarketValue
+            };
+        });
+        return updatedMap;
+    }
+};

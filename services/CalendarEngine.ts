@@ -27,6 +27,8 @@ import {
   LeagueSchedule,
   PlayerNextEvent,
 } from '../types';
+// Import potrzebny do detekcji dnia meczowego reprezentacji
+import { NT_SCHEDULE_BY_YEAR } from '../resources/NationalTeamSchedule';
 
 // ─── Typy publiczne ──────────────────────────────────────────────────────────
 
@@ -1057,7 +1059,31 @@ export const CalendarEngine = {
       }
 
       // ── PRZERWA / REPREZENTACJA ────────────────────────────────────────────
+      // Jeśli slot ma labelkę "REPREZENTACJA" i w NT_SCHEDULE_BY_YEAR istnieje
+      // wpis dla tej daty i roku, traktuj go jako dzień meczowy reprezentacji
+      // (symulacja w tle, gracz widzi wyniki). W przeciwnym razie to zwykły dzień przerwy.
       case CompetitionType.BREAK: {
+        if (slot.label === 'REPREZENTACJA') {
+          // Wyciągnij rok i miesiąc/dzień ze slotu (slot.start ma prawidłową datę po SeasonTemplateGenerator)
+          const slotYear  = slot.start.getFullYear();
+          const slotMonth = slot.start.getMonth(); // 0-11
+          const slotDay   = slot.start.getDate();
+          const yearSchedule = NT_SCHEDULE_BY_YEAR[slotYear];
+          const hasMatchDay = yearSchedule
+            ? yearSchedule.some(md => md.day === slotDay && md.month === slotMonth)
+            : false;
+
+          if (hasMatchDay) {
+            // Mecze reprezentacji zaplanowane na ten dzień — symuluj w tle
+            return {
+              slot,
+              kind: EventKind.NATIONAL_TEAM_MATCH,
+              participation: 'background',
+              targetView: ViewState.NATIONAL_TEAM_RESULTS,
+            };
+          }
+        }
+        // Brak meczów (np. przerwa zimowa, wolny dzień) — zwykły dzień informacyjny
         return {
           slot,
           kind: EventKind.NONE,
