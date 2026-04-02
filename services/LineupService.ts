@@ -1,11 +1,63 @@
-import { Lineup, Player, PlayerPosition, Tactic, InjurySeverity, HealthStatus } from '../types';
+import { Lineup, Player, PlayerPosition, Tactic, InjurySeverity, HealthStatus, Coach } from '../types';
 import { TacticRepository } from '../resources/tactics_db';
+
+const FAVORITE_TACTIC_MAP: Record<string, string> = {
+  '4-3-3 Atak':         '4-3-3',
+  '3-4-3':              '3-4-3',
+  'Wysoki Pressing':    '4-3-3',
+  'Total Football':     '3-4-3',
+  '4-1-2-1-2':          '4-4-2-DIAMOND',
+  '4-4-2':              '4-4-2',
+  '4-3-3 Zrównoważona': '4-3-3',
+  '3-5-2':              '3-5-2',
+  '4-5-1':              '4-1-4-1',
+  '4-2-3-1':            '4-2-3-1',
+  '5-3-2':              '5-3-2',
+  '5-4-1':              '5-4-1',
+  '5-3-2 Blok':         '5-3-2',
+  '4-4-2 Kontratak':    '4-4-2-DEF',
+  'Niski Blok':         '6-3-1',
+  '4-5-1 Defensywna':   '4-5-1',
+  '3-6-1':              '6-3-1',
+};
+
+const checkTacticFeasibility = (players: Player[], tacticId: string): boolean => {
+  const tactic = TacticRepository.getById(tacticId);
+  const required: Record<string, number> = {};
+  // Zliczamy wymagane pozycje (pomijamy slot 0 = GK)
+  for (let i = 1; i < tactic.slots.length; i++) {
+    const role = tactic.slots[i].role;
+    required[role] = (required[role] || 0) + 1;
+  }
+  const available: Record<string, number> = {};
+  players.forEach(p => {
+    if (p.position !== PlayerPosition.GK) {
+      available[p.position] = (available[p.position] || 0) + 1;
+    }
+  });
+  return Object.entries(required).every(([pos, count]) => (available[pos] || 0) >= count);
+};
 
 export const LineupService = {
   /**
    * Deterministyczny wybór składu.
    */
-  autoPickLineup: (clubId: string, players: Player[], tacticId: string = '4-4-2'): Lineup => {
+  autoPickLineup: (clubId: string, players: Player[], tacticId: string = '4-4-2', coach: Coach | null = null): Lineup => {
+    // Trener próbuje dobrać skład pod swoje ulubione taktyki (neutral → offensive → defensive)
+    if (coach?.favoriteTactics) {
+      const preferred = [
+        coach.favoriteTactics.neutral,
+        coach.favoriteTactics.offensive,
+        coach.favoriteTactics.defensive,
+      ];
+      for (const favName of preferred) {
+        const mappedId = FAVORITE_TACTIC_MAP[favName];
+        if (mappedId && checkTacticFeasibility(players, mappedId)) {
+          tacticId = mappedId;
+          break;
+        }
+      }
+    }
     const tactic = TacticRepository.getById(tacticId);
     
     // Na start wybieramy tylko tych, którzy są w stanie grać (nie SEVERE, nie zawieszeni, daysRemaining <= 2, kondycja >= 60)
@@ -40,13 +92,13 @@ export const LineupService = {
        for (let i = 1; i < 11; i++) {
       const requiredRole = tactic.slots[i].role;
 
-      // Priorytety: świeży na pozycji → świeży ogólnie → ławkowy na pozycji → ławkowy ogólnie → odpoczywający (awaryjnie)
+      // Priorytety: pozycja ważniejsza niż świeżość — najpierw właściwa pozycja we wszystkich pulach, potem awaryjnie ktokolwiek
       const candidate =
         poolXI.find(p => !usedPlayerIds.has(p.id) && p.position === requiredRole) ??
-        poolXI.find(p => !usedPlayerIds.has(p.id)) ??
         poolBench.find(p => !usedPlayerIds.has(p.id) && p.position === requiredRole) ??
-        poolBench.find(p => !usedPlayerIds.has(p.id)) ??
         poolRest.find(p => !usedPlayerIds.has(p.id) && p.position === requiredRole) ??
+        poolXI.find(p => !usedPlayerIds.has(p.id)) ??
+        poolBench.find(p => !usedPlayerIds.has(p.id)) ??
         poolRest.find(p => !usedPlayerIds.has(p.id));
 
       if (candidate) {

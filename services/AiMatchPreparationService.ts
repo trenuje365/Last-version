@@ -1,14 +1,15 @@
 
-import { Club, Player, PlayerPosition, Lineup, HealthStatus } from '../types';
+import { Club, Player, PlayerPosition, Lineup, HealthStatus, Coach } from '../types';
 import { LineupService } from './LineupService';
 
 export const AiMatchPreparationService = {
 
   prepareAllTeams: (
-    clubs: Club[], 
-    playersMap: Record<string, Player[]>, 
+    clubs: Club[],
+    playersMap: Record<string, Player[]>,
     currentLineups: Record<string, Lineup>,
-    userTeamId: string | null
+    userTeamId: string | null,
+    coaches: Record<string, Coach> = {}
   ): Record<string, Lineup> => {
     
     const updatedLineups: Record<string, Lineup> = { ...currentLineups };
@@ -28,12 +29,11 @@ export const AiMatchPreparationService = {
      const bestTacticId = AiMatchPreparationService.determineBestStartingTactic(club, analysisSquad);
 
       // 2. Pobierz aktualny skład lub stwórz nowy z inteligentnie dobraną taktyką
+      const clubCoach = club.coachId ? (coaches[club.coachId] ?? null) : null;
       let lineup = updatedLineups[club.id];
-      if (!lineup) {
-        lineup = LineupService.autoPickLineup(club.id, squad, bestTacticId);
-      } else if (lineup.tacticId === '4-4-2') { 
-        // Jeśli AI utknęło w defaultowym 4-4-2, pozwól mu na re-ewaluację przed meczem
-        lineup.tacticId = bestTacticId;
+      if (!lineup || lineup.tacticId === '4-4-2') {
+        // Brak składu lub utknięcie w domyślnym 4-4-2 — trener dobiera skład pod swoje taktyki
+        lineup = LineupService.autoPickLineup(club.id, squad, bestTacticId, clubCoach);
       }
 
       // 3. Napraw skład (wywal zawieszonych/rannych i wypełnij luki inteligentnie)

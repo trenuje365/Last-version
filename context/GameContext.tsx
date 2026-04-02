@@ -869,7 +869,8 @@ const selectUserTeam = (clubId: string) => {
     const otherLineups: Record<string, Lineup> = {};
     STATIC_CLUBS.filter(c => c.isDefaultActive && c.id !== clubId).forEach(c => {
       const s = getOrGenerateSquad(c.id);
-      otherLineups[c.id] = LineupService.autoPickLineup(c.id, s);
+      const clubCoach = c.coachId ? (coaches[c.coachId] ?? null) : null;
+      otherLineups[c.id] = LineupService.autoPickLineup(c.id, s, '4-4-2', clubCoach);
     });
     setLineups(prev => ({ ...prev, ...otherLineups }));
 

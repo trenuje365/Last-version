@@ -72,7 +72,7 @@ export const BackgroundMatchProcessor = {
     
     // DEBUG
     DebugLoggerService.log('BMP', `processLeagueEvent: ${dateStr} | SCHEDULED: ${todayFixtures.length} | TOTAL fixtures: ${fixtures.length}`, true);
-    const newLineups = AiMatchPreparationService.prepareAllTeams(clubs, playersMap, lineups, userTeamId);
+    const newLineups = AiMatchPreparationService.prepareAllTeams(clubs, playersMap, lineups, userTeamId, coaches);
 if (todayFixtures.length === 0) {
       const contractUpdate = AiContractService.processClubsContracts(clubs, playersMap, currentDate, userTeamId);
       const recruitmentUpdate = AiContractService.processAiRecruitment(contractUpdate.updatedClubs, contractUpdate.updatedPlayers, currentDate, userTeamId);

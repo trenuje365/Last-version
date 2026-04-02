@@ -1,6 +1,12 @@
 import { Coach, Region, Club, MatchHistoryEntry, CoachHistoryEntry } from '../types';
 import { NameGeneratorService } from './NameGeneratorService';
 
+const TACTICS_OFFENSIVE = ['4-3-3 Atak', '3-4-3', 'Wysoki Pressing', 'Total Football', '4-1-2-1-2'];
+const TACTICS_NEUTRAL   = ['4-4-2', '4-3-3 Zrównoważona', '3-5-2', '4-5-1', '4-2-3-1', '5-3-2'];
+const TACTICS_DEFENSIVE = ['5-4-1', '5-3-2 Blok', '4-4-2 Kontratak', 'Niski Blok', '4-5-1 Defensywna', '3-6-1'];
+
+const randomTactic = (list: string[]) => list[Math.floor(Math.random() * list.length)];
+
 export const CoachService = {
   generateInitialCoaches: (clubs: Club[]): { coaches: Record<string, Coach>, updatedClubs: Club[] } => {
     const coaches: Record<string, Coach> = {};
@@ -35,12 +41,21 @@ const updatedClubs = [...clubs];
     // Dla europejskich Tier 1 i 2 (reputacja >= 12) — trener nie może być Polakiem
       const excludePolish = (club.leagueId === 'L_CL' || club.leagueId === 'L_EL' || club.leagueId === 'L_CONF') && club.reputation >= 12;
 
-      const candidates = coachList.filter(c => 
+      const isPolishClub = club.leagueId !== 'L_CL' && club.leagueId !== 'L_EL' && club.leagueId !== 'L_CONF';
+      const polishCandidates = isPolishClub ? coachList.filter(c =>
         c.attributes.experience >= minExp &&
-        c.attributes.experience <= maxExp && 
+        c.attributes.experience <= maxExp &&
         c.currentClubId === null &&
-        (!excludePolish || c.nationality !== Region.POLAND)
-      );
+        c.nationality === Region.POLAND
+      ) : [];
+      const candidates = polishCandidates.length > 0
+        ? polishCandidates
+        : coachList.filter(c =>
+            c.attributes.experience >= minExp &&
+            c.attributes.experience <= maxExp &&
+            c.currentClubId === null &&
+            (!excludePolish || c.nationality !== Region.POLAND)
+          );
 
            // Jeśli nie znaleziono trenera — stopniowo obniżaj minExp o 5 aż do znalezienia
       let finalCandidates = candidates;
@@ -102,6 +117,11 @@ createRandomCoach: (isPolish: boolean): Coach => {
         motivation: 40 + Math.floor(Math.random() * 55),
         training: 35 + Math.floor(Math.random() * 60)
       },
+      favoriteTactics: {
+        offensive: randomTactic(TACTICS_OFFENSIVE),
+        neutral: randomTactic(TACTICS_NEUTRAL),
+        defensive: randomTactic(TACTICS_DEFENSIVE)
+      },
       history: []
     };
   },
@@ -139,6 +159,11 @@ createRandomCoach: (isPolish: boolean): Coach => {
             decisionMaking: 20 + Math.floor(Math.random() * 79),
             motivation: 20 + Math.floor(Math.random() * 79),
             training: 20 + Math.floor(Math.random() * 79)
+          },
+          favoriteTactics: {
+            offensive: randomTactic(TACTICS_OFFENSIVE),
+            neutral: randomTactic(TACTICS_NEUTRAL),
+            defensive: randomTactic(TACTICS_DEFENSIVE)
           },
           history: []
         });

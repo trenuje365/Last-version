@@ -127,6 +127,11 @@ export interface Coach {
   isNationalTeamCoach?: boolean;
   hiredDate: string; // ISO Date String
    blacklist: Record<string, number>;
+  favoriteTactics: {
+    offensive: string;
+    neutral: string;
+    defensive: string;
+  };
 }
 
 export interface MailMessage {
