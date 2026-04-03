@@ -838,6 +838,7 @@ export type InstructionMindset = 'DEFENSIVE' | 'NEUTRAL' | 'OFFENSIVE';
 export type InstructionIntensity = 'CAUTIOUS' | 'NORMAL' | 'AGGRESSIVE';
 export type InstructionPassing = 'SHORT' | 'MIXED' | 'LONG';
 export type InstructionPressing = 'NORMAL' | 'PRESSING';
+export type InstructionCounterAttack = 'NORMAL' | 'COUNTER';
 
 export interface TacticalInstructions {
   tempo: InstructionTempo;
@@ -845,6 +846,7 @@ export interface TacticalInstructions {
   intensity: InstructionIntensity;
   passing: InstructionPassing;
   pressing: InstructionPressing;
+  counterAttack?: InstructionCounterAttack;
   lastChangeMinute: number;
   expiryMinute: number;
   tempoExpiry: number;
@@ -855,11 +857,13 @@ export interface TacticalInstructions {
   intensityCooldown: number;
   passingCooldown: number;
   pressingCooldown: number;
+  counterAttackCooldown?: number;
   tempoResponseFactor: number;
   mindsetResponseFactor: number;
   intensityResponseFactor: number;
   passingResponseFactor: number;
   pressingResponseFactor: number;
+  counterAttackResponseFactor?: number;
 }
 export interface SubstitutionRecord {
   playerOutId: string;

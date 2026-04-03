@@ -466,7 +466,8 @@ export const NationalTeamSimulator = {
     nationalTeams: NationalTeam[],
     players: Record<string, Player[]>,
     coaches: Record<string, Coach>,
-    seasonNumber: number
+    seasonNumber: number,
+    sessionSeed: number = 0
   ): NationalTeamMatchDaySimulation => {
     const updatedPlayers = cloneMap(players);
     const locs = locMap(updatedPlayers);
@@ -474,7 +475,8 @@ export const NationalTeamSimulator = {
     const results: NTMatchResult[] = [];
     const matchHistoryEntries: MatchHistoryEntry[] = [];
     matchDay.matches.forEach((match, idx) => {
-      const { result, history } = singleMatch(match, matchDay, currentDate, hash(`${dateSeed}|${idx}|${match.home}|${match.away}`), seasonNumber, updatedPlayers, locs, byName, coaches);
+      const matchSeed = hash(`${sessionSeed}|${dateSeed}|${idx}|${match.home}|${match.away}`);
+      const { result, history } = singleMatch(match, matchDay, currentDate, matchSeed, seasonNumber, updatedPlayers, locs, byName, coaches);
       results.push(result);
       if (history) matchHistoryEntries.push(history);
     });

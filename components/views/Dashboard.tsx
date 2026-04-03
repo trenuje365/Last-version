@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, EventKind, CompetitionType, Club, MailMessage, MailType, IncomingOfferStatus } from '../../types';
+import { ViewState, EventKind, CompetitionType, Club, MailMessage, MailType } from '../../types';
 import { CalendarEngine } from '../../services/CalendarEngine';
 import stadionBg from '../../Graphic/themes/stadion.png';
 import { Card } from '../ui/Card';
@@ -9,6 +9,16 @@ import { MailDetailsModal } from '../modals/MailDetailsModal';
 import { FinanceHistoryModal } from '../modals/FinanceHistoryModal';
 import { FinanceService } from '../../services/FinanceService';
 import { getClubLogo } from '../../resources/ClubLogoAssets';
+import treningButton from '../../Graphic/buttons/trening.png';
+import plannerButton from '../../Graphic/buttons/planner.png';
+import kadraButton from '../../Graphic/buttons/kadra.png';
+import europaSwiatButton from '../../Graphic/buttons/europa_swiat.png';
+import rozgrywkiButton from '../../Graphic/buttons/rozgrywki.png';
+import statsButton from '../../Graphic/buttons/stats.png';
+import historiaButton from '../../Graphic/buttons/historia.png';
+import rynekPracyButton from '../../Graphic/buttons/rynek_pracy.png';
+import finanseButton from '../../Graphic/buttons/finanse.png';
+import trustButton from '../../Graphic/buttons/trust.png';
 
 export const Dashboard: React.FC = () => {
   const { 
@@ -37,6 +47,7 @@ export const Dashboard: React.FC = () => {
     fixtures,
     confirmSeasonEnd,
     setElHistoryInitialRound,
+    setConfHistoryInitialRound,
     incomingOffers,
     isResigned,
     resignFromClub,
@@ -89,15 +100,6 @@ const boardConfidence = useMemo(() => {
      const netFunds = FinanceService.calculateAvailableFunds(myClub.budget, squad);
      return netFunds.toLocaleString('pl-PL');
   }, [myClub, players, userTeamId]);
-
-  const pendingIncomingOffersCount = useMemo(() =>
-    incomingOffers.filter(o =>
-      o.status === IncomingOfferStatus.EMAIL_SENT ||
-      o.status === IncomingOfferStatus.REMINDER_SENT ||
-      o.status === IncomingOfferStatus.AI_COUNTERED ||
-      o.status === IncomingOfferStatus.AWAITING_CONFIRMATION
-    ).length
-  , [incomingOffers]);
 
   const isTransferWindowOpen = useMemo(() => {
     if (!myClub) return false;
@@ -384,6 +386,14 @@ const boardConfidence = useMemo(() => {
           todayEvent.slot.competition === CompetitionType.CONF_SF ||
           todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN ||
           todayEvent.slot.competition === CompetitionType.CONF_FINAL) {
+        const confRoundKey =
+          todayEvent.slot.competition === CompetitionType.CONF_R1Q || todayEvent.slot.competition === CompetitionType.CONF_R1Q_RETURN ? 'R1Q' :
+          todayEvent.slot.competition === CompetitionType.CONF_R2Q || todayEvent.slot.competition === CompetitionType.CONF_R2Q_RETURN ? 'R2Q' :
+          todayEvent.slot.competition === CompetitionType.CONF_GROUP_STAGE ? 'GS' :
+          todayEvent.slot.competition === CompetitionType.CONF_R16 || todayEvent.slot.competition === CompetitionType.CONF_R16_RETURN ? 'R16' :
+          todayEvent.slot.competition === CompetitionType.CONF_QF || todayEvent.slot.competition === CompetitionType.CONF_QF_RETURN ? 'QF' :
+          todayEvent.slot.competition === CompetitionType.CONF_SF || todayEvent.slot.competition === CompetitionType.CONF_SF_RETURN ? 'SF' :
+          todayEvent.slot.competition === CompetitionType.CONF_FINAL ? 'FINAL' : 'R1Q';
         const confRoundLabel =
           todayEvent.slot.competition === CompetitionType.CONF_R16 || todayEvent.slot.competition === CompetitionType.CONF_R16_RETURN ? '1/8 FINAŁU' :
           todayEvent.slot.competition === CompetitionType.CONF_QF || todayEvent.slot.competition === CompetitionType.CONF_QF_RETURN ? '1/4 FINAŁU' :
@@ -391,7 +401,9 @@ const boardConfidence = useMemo(() => {
           todayEvent.slot.competition === CompetitionType.CONF_FINAL ? 'FINAŁ' : '';
         return {
           text: confRoundLabel ? `🟢 LK ${confRoundLabel} – WYNIKI` : '🟢 LIGA KONFERENCJI – WYNIKI',
-          action: () => { processCLMatchDay(); navigateTo(ViewState.CONF_HISTORY); },
+          action: confRoundKey === 'FINAL'
+            ? () => { processCLMatchDay(); navigateTo(ViewState.POST_MATCH_CONF_STUDIO); }
+            : () => { processCLMatchDay(); setConfHistoryInitialRound(confRoundKey); navigateTo(ViewState.CONF_HISTORY); },
           isMatch: false,
           disabled: isJumping,
           info: 'Wyniki meczów Ligi Konferencji',
@@ -402,7 +414,7 @@ const boardConfidence = useMemo(() => {
     // ── Domyślnie: przesuń dzień ───────────────────────────────────────────
     return { text: isJumping ? 'PRZETWARZANIE...' : 'NASTĘPNY DZIEŃ', action: advanceDay, isMatch: false, disabled: isJumping };
   }, [currentDate, advanceDay, navigateTo, lineupValidation, isJumping,
-      processBackgroundCupMatches, processCLMatchDay, fixtures, userTeamId, confirmSeasonEnd, seasonTemplate, clubs]);
+      processBackgroundCupMatches, processCLMatchDay, fixtures, userTeamId, confirmSeasonEnd, seasonTemplate, clubs, setElHistoryInitialRound, setConfHistoryInitialRound]);
 
   const searchResults = useMemo(() => {
     if (!searchTerm || searchTerm.length < 2) return [];
@@ -444,15 +456,28 @@ const boardConfidence = useMemo(() => {
     }
   };
 
-  const TileButton = ({ label, icon, onClick, primary = false, disabled = false, badge = null }: any) => (
+  type TileButtonProps = {
+    label: string;
+    icon?: React.ReactNode;
+    graphicSrc?: string;
+    onClick: () => void;
+    primary?: boolean;
+    disabled?: boolean;
+    badge?: React.ReactNode;
+  };
+
+  const TileButton = ({ label, icon, graphicSrc, onClick, primary = false, disabled = false, badge = null }: TileButtonProps) => (
     <button 
       onClick={onClick}
       disabled={disabled}
+      aria-label={label}
       className={`
-        relative group flex flex-col items-center justify-center p-1.5 rounded-2xl border transition-all duration-300 overflow-hidden
-        ${primary 
-          ? 'bg-white/5 border-white/10 hover:border-white/20' 
-          : 'bg-black/20 border-white/5 hover:border-white/10'}
+        relative group flex flex-col items-center justify-center rounded-2xl transition-all duration-300 overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.28)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]
+        ${graphicSrc
+          ? 'bg-transparent border-transparent'
+          : primary
+            ? 'bg-white/5 border border-white/10 hover:border-white/20'
+            : 'bg-black/20 border border-white/5 hover:border-white/10'}
         hover:-translate-y-1 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed
       `}
     >
@@ -460,8 +485,23 @@ const boardConfidence = useMemo(() => {
         className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity"
         style={{ background: `radial-gradient(circle at center, ${myClub?.colorsHex[0]}, transparent 70%)` }}
       />
-      <span className="text-[26px] mb-1.5 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">{icon}</span>
-      <span className="font-black text-[9px] uppercase tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors text-center">{label}</span>
+      {graphicSrc ? (
+        <>
+          <div className="relative z-10 flex w-full h-full items-center justify-center p-0">
+            <img
+              src={graphicSrc}
+              alt={label}
+              className="w-full h-full object-contain transform group-hover:scale-[1.03] transition-transform pointer-events-none drop-shadow-[0_10px_22px_rgba(0,0,0,0.45)]"
+            />
+          </div>
+          <span className="sr-only">{label}</span>
+        </>
+      ) : (
+        <>
+          <span className="text-[26px] mb-1.5 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">{icon}</span>
+          <span className="font-black text-[9px] uppercase tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors text-center">{label}</span>
+        </>
+      )}
       {badge && <div className="absolute top-2 right-2">{badge}</div>}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-t-full opacity-0 group-hover:opacity-100 transition-all" style={{ backgroundColor: myClub?.colorsHex[0] }} />
     </button>
@@ -747,18 +787,18 @@ const boardConfidence = useMemo(() => {
       </div>
 
       <div className="flex-1 flex gap-6 min-h-0 z-0">
-        <div className="w-80 flex flex-col gap-5 shrink-0">
+        <div className="w-80 flex flex-col gap-5 shrink-0 rounded-[12px] bg-slate-950/55 border border-white/5 backdrop-blur-md p-4 shadow-[0_22px_60px_rgba(0,0,0,0.4)]">
            <Card className="rounded-[35px] border-none bg-slate-900/40 backdrop-blur-2xl relative group shrink-0 overflow-hidden shadow-2xl">
               <div className="absolute top-0 left-0 w-full h-2" style={{ backgroundColor: myClub?.colorsHex[0] }} />
-              <div className="absolute left-[-10px] top-10 text-9xl font-black italic text-white/[0.02] select-none pointer-events-none">
+              <div className="absolute left-[-10px] top-4 text-8xl font-black italic text-white/[0.02] select-none pointer-events-none">
                  {myClub?.shortName}
               </div>
-              <div className="py-[20.5px] px-7 relative z-10">
-                 <div className="flex items-center gap-5 mb-8">
+              <div className="py-3 px-6 relative z-10">
+                 <div className="flex items-center gap-3 mb-1">
                     {isResigned ? (
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-slate-800 border border-white/10 shadow-2xl text-3xl shrink-0">👨‍💼</div>
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-slate-800 border border-white/10 shadow-2xl text-2xl shrink-0">👨‍💼</div>
                     ) : getClubLogo(myClub?.id || '') ? (
-                      <div className="relative z-50 w-[74px] h-[74px] shrink-0 transform -rotate-3 group-hover:rotate-0 transition-transform">
+                      <div className="relative z-50 w-14 h-14 shrink-0 transform -rotate-3 group-hover:rotate-0 transition-transform">
                         <img
                           src={getClubLogo(myClub?.id || '')}
                           alt={myClub?.name}
@@ -766,37 +806,57 @@ const boardConfidence = useMemo(() => {
                         />
                       </div>
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl transform -rotate-3 group-hover:rotate-0 transition-transform">
+                      <div className="w-14 h-14 rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl transform -rotate-3 group-hover:rotate-0 transition-transform">
                         <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[0] }} />
                         <div className="flex-1" style={{ backgroundColor: myClub?.colorsHex[1] }} />
                       </div>
                     )}
-                    <div>
-                       <h3 className="text-xl font-black italic uppercase tracking-tighter text-white leading-tight">{isResigned ? 'BEZ KLUBU' : myClub?.name}</h3>
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">{isResigned ? 'Obserwator' : 'Status: Aktywny'}</p>
+                    <div className="flex-1 min-w-0">
+                       <h3 className="text-lg font-black italic uppercase tracking-tighter text-white leading-tight">{isResigned ? 'BEZ KLUBU' : myClub?.name}</h3>
+                       {isResigned && (
+                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Obserwator</p>
+                       )}
                     </div>
                  </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5 text-center hover:bg-white/10 transition-colors">
-                       <span className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Punkty</span>
-                       <span className="text-2xl font-black font-mono text-emerald-400 tabular-nums">{myClub?.stats.points}</span>
+                 {!isResigned && (
+                    <div
+                      onClick={() => setIsFinanceModalOpen(true)}
+                      className="hidden w-full bg-white/5 p-5 rounded-[28px] border border-white/5 flex flex-col gap-3 backdrop-blur-md hover:border-white/10 hover:bg-white/5 transition-all group shadow-xl cursor-pointer"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="text-xl group-hover:scale-110 transition-transform">💰</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.1em]">Finanse</span>
+                        </div>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5 text-center hover:bg-white/10 transition-colors">
-                       <span className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Miejsce</span>
-                       <span className="text-2xl font-black font-mono text-white tabular-nums">{userRank}</span>
-                    </div>
-                 </div>
+                 )}
               </div>
            </Card>
 
            {!isResigned && (
-           <div className="space-y-4 shrink-0">
+            <div className="relative overflow-hidden p-3.5 rounded-[24px] border border-white/5 flex flex-col gap-2 justify-end min-h-[80px] backdrop-blur-md hover:border-white/10 transition-all group shadow-xl shrink-0 bg-slate-950/40">
+              <img
+                src={trustButton}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              />
+              <div className="relative z-10 flex items-center gap-2 justify-end">
+                <div className="h-[3px] w-3/4 bg-black/40 rounded-full overflow-hidden">
+                  <div className="h-full transition-all duration-1000" style={{ width: `${boardConfidence}%`, backgroundColor: boardConfidence > 70 ? '#34d399' : (boardConfidence > 40 ? '#fbbf24' : '#ef4444') }} />
+                </div>
+                <span className={`text-xs font-black italic ${boardConfidence > 70 ? 'text-emerald-400' : (boardConfidence > 40 ? 'text-amber-400' : 'text-red-500')}`}>{boardConfidence}%</span>
+              </div>
+            </div>
+           )}
+
+           {!isResigned && (
+           <div className="hidden space-y-4 shrink-0">
               {[
                 { label: 'Budżet Transferowy', value: `${currentBudget} PLN`, color: 'text-blue-400', icon: '💰', p: 80, onClick: () => setIsFinanceModalOpen(true) },
                 { label: 'Zaufanie Zarządu', value: `${boardConfidence}%`, color: boardConfidence > 70 ? 'text-emerald-400' : (boardConfidence > 40 ? 'text-amber-400' : 'text-red-500'), icon: '📈', p: boardConfidence },
-              ].map((stat, i) => (
+              ].filter(stat => !stat.onClick).map((stat) => (
                 <div
-                  key={i}
+                  key={stat.label}
                   onClick={stat.onClick}
                   className={`bg-slate-900/40 p-5 rounded-[28px] border border-white/5 flex flex-col gap-3 backdrop-blur-md hover:border-white/10 transition-all group shadow-xl ${stat.onClick ? 'cursor-pointer hover:bg-white/5' : ''}`}
                 >
@@ -808,42 +868,39 @@ const boardConfidence = useMemo(() => {
                       <span className={`text-sm font-black italic ${stat.color}`}>{stat.value}</span>
                    </div>
                    <div className="h-1 w-full bg-black/40 rounded-full overflow-hidden">
-                      <div className="h-full transition-all duration-1000" style={{ width: `${stat.p}%`, backgroundColor: i === 0 ? '#60a5fa' : (boardConfidence > 70 ? '#34d399' : (boardConfidence > 40 ? '#fbbf24' : '#ef4444')) }} />
+                      <div className="h-full transition-all duration-1000" style={{ width: `${stat.p}%`, backgroundColor: boardConfidence > 70 ? '#34d399' : (boardConfidence > 40 ? '#fbbf24' : '#ef4444') }} />
                    </div>
                 </div>
               ))}
            </div>
            )}
 
-       <div className="flex-1 grid grid-cols-2 gap-0.5">
-              <TileButton label="TRENING" icon="🏋️‍♂️" onClick={() => navigateTo(ViewState.TRAINING_VIEW)} primary disabled={isJumping || isResigned} />
-              <TileButton label="PLANER" icon="📅" onClick={() => navigateTo(ViewState.CALENDAR_DEBUG)} disabled={isJumping || isResigned} />
-              <TileButton label="KADRA" icon="👕" onClick={() => navigateTo(ViewState.SQUAD_VIEW)} disabled={isJumping || isResigned} />
+       <div className="w-full grid grid-cols-3 gap-0.5">
+              <TileButton label="TRENING" graphicSrc={treningButton} onClick={() => navigateTo(ViewState.TRAINING_VIEW)} primary disabled={isJumping || isResigned} />
+              <TileButton label="PLANER" graphicSrc={plannerButton} onClick={() => navigateTo(ViewState.CALENDAR_DEBUG)} disabled={isJumping || isResigned} />
+              <TileButton label="KADRA" graphicSrc={kadraButton} onClick={() => navigateTo(ViewState.SQUAD_VIEW)} disabled={isJumping || isResigned} />
               <TileButton 
                  label="EUROPA I ŚWIAT" 
-                 icon="🌍" 
+                 graphicSrc={europaSwiatButton}
                  onClick={() => navigateTo(ViewState.EUROPEAN_CLUBS)} 
                  disabled={isJumping}
               />
-              <TileButton label="ROZGRYWKI" icon="⚽" onClick={() => navigateTo(ViewState.LEAGUE_TABLES)} disabled={isJumping} />
-              <TileButton label="STATYSTYKI" icon="🏆" onClick={() => navigateTo(ViewState.LEAGUE_STATS)} disabled={isJumping} />
-              <TileButton label="HISTORIA" icon="📜" onClick={() => navigateTo(ViewState.MATCH_HISTORY_BROWSER)} disabled={isJumping} />             
-              <TileButton label="RYNEK PRACY" icon="💼" onClick={() => navigateTo(ViewState.JOB_MARKET)} disabled={isJumping} />
+              <TileButton label="ROZGRYWKI" graphicSrc={rozgrywkiButton} onClick={() => navigateTo(ViewState.LEAGUE_TABLES)} disabled={isJumping} />
+              <TileButton label="STATYSTYKI" graphicSrc={statsButton} onClick={() => navigateTo(ViewState.LEAGUE_STATS)} disabled={isJumping} />
+              <TileButton label="HISTORIA" graphicSrc={historiaButton} onClick={() => navigateTo(ViewState.MATCH_HISTORY_BROWSER)} disabled={isJumping} />             
+              <TileButton label="RYNEK PRACY" graphicSrc={rynekPracyButton} onClick={() => navigateTo(ViewState.JOB_MARKET)} disabled={isJumping} />
               <TileButton
-                label="AKTYWNOŚĆ RYNKOWA"
-                icon="🔄"
-                onClick={() => navigateTo(ViewState.TRANSFER_NEWS)}
-                disabled={isJumping}
-                badge={pendingIncomingOffersCount > 0
-                  ? <span className="w-2.5 h-2.5 rounded-full bg-red-500 block" />
-                  : null}
+                label="FINANSE"
+                graphicSrc={finanseButton}
+                onClick={() => setIsFinanceModalOpen(true)}
+                disabled={isJumping || isResigned}
               />
            </div>
         </div>
 
 <div className="flex-1 flex flex-col min-w-0 min-h-0 h-[800px]">
 
-           <Card className="flex-1 rounded-[40px] border-white/10 bg-white/[0.01] flex flex-col overflow-hidden backdrop-blur-md shadow-2xl relative h-full">
+           <Card className="flex-1 rounded-[40px] border-white/10 bg-slate-950/30 flex flex-col overflow-hidden backdrop-blur-md shadow-2xl relative h-full">
             {/* Internal Glass Gloss Background for Mailbox */}
               <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1551290464-67296061329c?auto=format&fit=crop&q=80&w=1000')] bg-cover bg-center opacity-[0.02] mix-blend-overlay grayscale" />

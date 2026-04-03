@@ -43,6 +43,8 @@ const OutcomeCard: React.FC<OutcomeCardProps> = ({ outcome, pairIndex, userTeamI
   const loserClub  = clubs.find(c => c.id === outcome.loserId);
 
   const isUserMatch = outcome.leg1.homeId === userTeamId || outcome.leg1.awayId === userTeamId;
+  const leg2LeftGoals = outcome.leg2.awayGoals;
+  const leg2RightGoals = outcome.leg2.homeGoals;
 
   // Agregat: 2.Liga = gole gosp w leg1 + gole gościa w leg2
   const l3Agg = outcome.leg1.homeGoals + outcome.leg2.awayGoals;
@@ -50,6 +52,9 @@ const OutcomeCard: React.FC<OutcomeCardProps> = ({ outcome, pairIndex, userTeamI
 
   // Wygrała 2.Liga czy 3.Liga?
   const l3Won = outcome.winnerId === leg1HomeClub.id;
+  const aggregateDecisionLabel = outcome.decidedBy === 'PENALTIES' && outcome.penalties
+    ? `dwumecz ${l3Agg}:${l4Agg} (${outcome.penalties.homeShots}:${outcome.penalties.awayShots} k.)`
+    : `dwumecz ${l3Agg}:${l4Agg}`;
 
   const bg = `linear-gradient(135deg,
     ${withAlpha(leg1HomeClub.colorsHex?.[0], 0.2)} 0%,
@@ -104,11 +109,14 @@ const OutcomeCard: React.FC<OutcomeCardProps> = ({ outcome, pairIndex, userTeamI
         {/* Agregat */}
         <div className="flex flex-col items-center px-4 shrink-0">
           <div className="flex items-center gap-2">
-            <span className={`text-3xl font-black tabular-nums ${l3Won ? 'text-white' : 'text-slate-500'}`}>{l3Agg}</span>
+            <span className={`text-3xl font-black tabular-nums ${leg2LeftGoals > leg2RightGoals ? 'text-white' : 'text-slate-500'}`}>{leg2LeftGoals}</span>
             <span className="text-[11px] font-black text-slate-600 italic">:</span>
-            <span className={`text-3xl font-black tabular-nums ${!l3Won ? 'text-white' : 'text-slate-500'}`}>{l4Agg}</span>
+            <span className={`text-3xl font-black tabular-nums ${leg2RightGoals > leg2LeftGoals ? 'text-white' : 'text-slate-500'}`}>{leg2RightGoals}</span>
           </div>
-          <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-600 mt-0.5">agregat</span>
+          <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-600 mt-0.5">rewanÅ¼</span>
+          <span className={`text-[10px] font-black uppercase tracking-[0.28em] mt-2 ${l3Won ? 'text-white/80' : 'text-slate-300'}`}>
+            {aggregateDecisionLabel}
+          </span>
         </div>
 
         {/* 3.Liga (gość leg1) */}

@@ -64,6 +64,16 @@ import { FreeAgentNegotiationService } from '../services/FreeAgentNegotiationSer
 import { NationalTeamSimulator } from '../services/NationalTeamSimulator';
 import { getNTMatchDayForDate } from '../resources/NationalTeamSchedule';
 
+const generateRuntimeSeed = (): number => {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
+    const seedBuffer = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(seedBuffer);
+    return seedBuffer[0] >>> 0;
+  }
+
+  return Math.floor(Math.random() * 0x100000000) >>> 0;
+};
+
 interface SimulationOutput {
   updatedFixtures: Fixture[];
   updatedClubs: Club[];
@@ -185,6 +195,8 @@ interface GameContextType {
   confirmSeasonEnd: () => void;
   elHistoryInitialRound: string | null;
   setElHistoryInitialRound: (round: string | null) => void;
+  confHistoryInitialRound: string | null;
+  setConfHistoryInitialRound: (round: string | null) => void;
 
   processBackgroundCupMatches: () => void;
     processCLMatchDay: () => void;
@@ -229,7 +241,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentDate, setCurrentDate] = useState<Date>(START_DATE);
-  const [sessionSeed, setSessionSeed] = useState<number>(0);
+  const [sessionSeed, setSessionSeed] = useState<number>(() => generateRuntimeSeed());
   const [viewState, setViewState] = useState<ViewState>(ViewState.START_MENU);
   const [previousViewState, setPreviousViewState] = useState<ViewState | null>(null);
   const [clubs, setClubs] = useState<Club[]>([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS, ...STATIC_SA_CLUBS, ...STATIC_ASIAN_CLUBS, ...STATIC_AFRICAN_CLUBS, ...STATIC_NA_CLUBS, UNEMPLOYED_MANAGER_CLUB]);
@@ -287,6 +299,7 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
   const [processedDrawIds, setProcessedDrawIds] = useState<string[]>([]);
   const [globalFixtures, setGlobalFixtures] = useState<Fixture[]>([]);
   const [elHistoryInitialRound, setElHistoryInitialRound] = useState<string | null>(null);
+  const [confHistoryInitialRound, setConfHistoryInitialRound] = useState<string | null>(null);
   const [isResigned, setIsResigned] = useState(false);
  const [currentPolishChampionId, setCurrentPolishChampionId] = useState<string>('PL_LECH_POZNAN');
  const [currentPolishCupWinnerId, setCurrentPolishCupWinnerId] = useState<string>('PL_LEGIA_WARSZAWA');
@@ -464,7 +477,7 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
   const startNewGame = () => {
     const startYear = 2025;
     setIsResigned(false);
-    setSessionSeed(Math.floor(Math.random() * 1000000));
+    setSessionSeed(generateRuntimeSeed());
     const template = SeasonTemplateGenerator.generate(startYear);
     // -> tutaj wstaw kod
     const coachData = CoachService.generateInitialCoaches([...STATIC_CLUBS, ...STATIC_CL_CLUBS, ...STATIC_EL_CLUBS, ...STATIC_CONF_CLUBS, ...STATIC_SA_CLUBS, ...STATIC_ASIAN_CLUBS, ...STATIC_AFRICAN_CLUBS, ...STATIC_NA_CLUBS]);
@@ -955,8 +968,16 @@ if (userTeamId) {
     setRoundResults({});
     sentMailIdsRef.current = new Set();
     lastProcessedLeagueDateRef.current = null;
+
+    // Czyścimy fazy grupowe europejskich pucharów, aby nowy sezon startował od pustego widoku.
+    setClGroups(null);
+    setActiveGroupDraw(null);
+    setElGroups(null);
+    setActiveELGroupDraw(null);
     setConfGroups(null);
     setActiveConfGroupDraw(null);
+    setElHistoryInitialRound(null);
+    setConfHistoryInitialRound(null);
   }, [clubs, players, userTeamId, allFixtures, coaches, relegationPlayoffFinalResult, promotionPlayoffFinalResults]);
 
   const saveManagerProfile = (profile: ManagerProfile) => {
@@ -2373,7 +2394,8 @@ setMessages([welcomeMail, fanMail]);
           nationalTeams,
           players,
           coaches,
-          seasonNumber
+          seasonNumber,
+          sessionSeed
         );
         setPlayers(ntSimulation.updatedPlayers);
         ntSimulation.matchHistoryEntries.forEach(entry => MatchHistoryService.logMatch(entry));
@@ -2998,7 +3020,7 @@ const finalResult: SimulationOutput = {
 
     setCurrentDate(nextDay);
     setLastRecoveryDate(new Date(dateToProcess));
-  }, [currentDate, userTeamId, allFixtures, applySimulationResult, startNextSeason, viewState, seasonTemplate, cupParticipants, clubs, processedDrawIds, navigateTo, globalFixtures, targetJumpTime, leagues, incomingOffers, messages, activePlayoffDraw, relegationPlayoffFirstLegResults, relegationPlayoffFinalResult, promotionPlayoffSemiResults, promotionPlayoffFinalResults]);
+  }, [currentDate, userTeamId, allFixtures, applySimulationResult, startNextSeason, viewState, seasonTemplate, cupParticipants, clubs, processedDrawIds, navigateTo, globalFixtures, targetJumpTime, leagues, incomingOffers, messages, activePlayoffDraw, relegationPlayoffFirstLegResults, relegationPlayoffFinalResult, promotionPlayoffSemiResults, promotionPlayoffFinalResults, sessionSeed]);
 
 
    const confirmCLGroupDraw = () => {
@@ -5240,7 +5262,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
       setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, transferOffers, submitTransferOffer, finalizeTransferNegotiation, incomingOffers, viewedIncomingOfferId, respondToIncomingOffer, confirmIncomingTransfer, navigateToIncomingOffer, transferNewsActiveTab, setTransferNewsActiveTab, contractManagementInitialMode, setContractManagementInitialMode, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
-    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmCONFFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound,
+    confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmCONFFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound, confHistoryInitialRound, setConfHistoryInitialRound,
     nationalTeams, setNationalTeams,
     lastNTMatchResults, setLastNTMatchResults,
     europeanViewTab, setEuropeanViewTab, selectedNTId, setSelectedNTId, isResigned, resignFromClub,

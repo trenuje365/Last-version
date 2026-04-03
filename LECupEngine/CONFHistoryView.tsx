@@ -79,10 +79,17 @@ const R16_PAIR_LABELS = ['1A–2C','1B–2D','1C–2A','1D–2B','1E–2G','1F�
 type CONFRoundKey = typeof CONF_ROUNDS[number]['key'];
 
 export const CONFHistoryView: React.FC = () => {
-  const { fixtures, clubs, userTeamId, navigateTo, confGroups } = useGame();
-  const [activeRound, setActiveRound] = useState<CONFRoundKey>('R1Q');
+  const { fixtures, clubs, userTeamId, navigateTo, confGroups, confHistoryInitialRound, setConfHistoryInitialRound } = useGame();
+  const [activeRound, setActiveRound] = useState<CONFRoundKey>((confHistoryInitialRound as CONFRoundKey) ?? 'R1Q');
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
   const [gsMatchdayTab, setGsMatchdayTab] = useState<number>(1);
+
+  React.useEffect(() => {
+    if (confHistoryInitialRound) {
+      setActiveRound(confHistoryInitialRound as CONFRoundKey);
+      setConfHistoryInitialRound(null);
+    }
+  }, [confHistoryInitialRound, setConfHistoryInitialRound]);
 
   const computeGroupTable = (groupTeams: string[]) => {
     const stats: Record<string, { played: number; w: number; d: number; l: number; gf: number; ga: number; pts: number }> = {};
