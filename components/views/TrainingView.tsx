@@ -1,16 +1,36 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ViewState } from '../../types';
 import { TRAINING_CYCLES } from '../../data/training_definitions_pl';
+import { TrainingAssistantService } from '../../services/TrainingAssistantService';
 
 export const TrainingView: React.FC = () => {
-  const { navigateTo, activeTrainingId, setActiveTrainingId, clubs, userTeamId, activeIntensity, setTrainingIntensity, players, updatePlayer, viewPlayerDetails } = useGame();
+  const {
+    navigateTo,
+    activeTrainingId,
+    setActiveTrainingId,
+    clubs,
+    userTeamId,
+    activeIntensity,
+    setTrainingIntensity,
+    players,
+    updatePlayer,
+    viewPlayerDetails,
+    setPlayers,
+    showGameNotification
+  } = useGame();
   const [selectedId, setSelectedId] = useState<string | null>(activeTrainingId);
   const [hoveredAttribute, setHoveredAttribute] = useState<{ label: string; x: number; y: number } | null>(null);
   const teamPlayers = (userTeamId ? players[userTeamId] : []) || [];
 
   const myClub = clubs.find(c => c.id === userTeamId);
   const currentCycle = TRAINING_CYCLES.find(c => c.id === selectedId) || null;
+  const sortedPlayers = useMemo(() => (
+    [...teamPlayers].sort((a, b) => {
+      const ord: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+      return (ord[a.position] ?? 4) - (ord[b.position] ?? 4);
+    })
+  ), [teamPlayers]);
 
   const ATTR_LABELS: Record<string, string> = {
     strength: 'Siła', stamina: 'Kondycja', pace: 'Szybkość', defending: 'Obrona',
@@ -36,6 +56,29 @@ export const TrainingView: React.FC = () => {
       setActiveTrainingId(selectedId);
       navigateTo(ViewState.DASHBOARD);
     }
+  };
+
+  const handleAskAssistant = () => {
+    if (!userTeamId || teamPlayers.length === 0) return;
+
+    const plan = TrainingAssistantService.buildPlan(teamPlayers);
+    const selectedCycle = TRAINING_CYCLES.find(cycle => cycle.id === plan.cycleId);
+
+    setSelectedId(plan.cycleId);
+    setActiveTrainingId(plan.cycleId);
+    setPlayers(prev => ({
+      ...prev,
+      [userTeamId]: (prev[userTeamId] || []).map(player => ({
+        ...player,
+        trainingFocus: plan.playerFocuses[player.id] ?? player.trainingFocus ?? null
+      }))
+    }));
+
+    showGameNotification({
+      title: 'Asystent ustawil trening',
+      message: `Wybral program ${selectedCycle?.name || 'treningowy'} i przydzielil indywidualny fokus dla ${teamPlayers.length} zawodnikow.`,
+      tone: 'info'
+    });
   };
 
   const tooltipStyle = hoveredAttribute
@@ -88,12 +131,19 @@ export const TrainingView: React.FC = () => {
             </div>
          </div>
 
-         <div className="flex items-center gap-6">
+         <div className="flex items-center gap-4">
             <button 
               onClick={() => navigateTo(ViewState.DASHBOARD)}
               className="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             >
               &larr; Anuluj zmiany
+            </button>
+            <button
+              onClick={handleAskAssistant}
+              disabled={teamPlayers.length === 0}
+              className="px-8 py-4 rounded-2xl bg-blue-600/85 hover:bg-blue-500 disabled:opacity-20 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-[0_18px_40px_rgba(37,99,235,0.35)] border border-blue-300/20"
+            >
+              POPROS ASYSTENTA
             </button>
             <button 
               onClick={handleSave}
@@ -126,10 +176,7 @@ export const TrainingView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {[...teamPlayers].sort((a, b) => {
-                        const ord: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
-                        return (ord[a.position] ?? 4) - (ord[b.position] ?? 4);
-                      }).map((player, idx) => {
+                      {sortedPlayers.map((player, idx) => {
                         const posColor = player.position === 'GK' ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                           : player.position === 'DEF' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
                           : player.position === 'MID' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
