@@ -1102,6 +1102,16 @@ export const CalendarEngine = {
         };
       }
 
+      // ── OGŁOSZENIE PAR BARAŻOWYCH (24 maja) ──────────────────────────────
+      case CompetitionType.PLAYOFF_DRAW_CEREMONY: {
+        return {
+          slot,
+          kind: EventKind.PLAYOFF_DRAW,
+          participation: 'player',
+          targetView: ViewState.PLAYOFF_DRAW,
+        };
+      }
+
       // ── Nieznany typ (przyszłe rozszerzenia) ──────────────────────────────
       default:
         return null;

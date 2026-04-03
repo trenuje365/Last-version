@@ -90,6 +90,19 @@ export enum ViewState {
   POST_MATCH_CONF_STUDIO = 'POST_MATCH_CONF_STUDIO',
   // Wyniki meczów reprezentacji (wszystkie mecze grupy danego dnia)
   NATIONAL_TEAM_RESULTS = 'NATIONAL_TEAM_RESULTS',
+  PLAYOFF_DRAW = 'PLAYOFF_DRAW',
+}
+
+export interface PlayoffPair {
+  homeId: string;
+  awayId: string;
+  homePos: number;
+  awayPos: number;
+}
+export interface ActivePlayoffDraw {
+  ekstraklasaPlayoffs: PlayoffPair[];
+  ligaOnePlayoffs: PlayoffPair[];
+  relegationPlayoffs: PlayoffPair[];
 }
 
 export enum MailType {
@@ -238,6 +251,7 @@ export enum EventKind {
   CUP_DRAW = 'CUP_DRAW',
   // Dzień meczowy reprezentacji (symulacja w tle, gracz widzi wyniki)
   NATIONAL_TEAM_MATCH = 'NATIONAL_TEAM_MATCH',
+  PLAYOFF_DRAW = 'PLAYOFF_DRAW',
   NONE = 'NONE'
 }
 
@@ -312,6 +326,7 @@ export enum CompetitionType {
   CONF_SF_RETURN = 'CONF_SF_RETURN',
   CONF_FINAL_DRAW = 'CONF_FINAL_DRAW',
   CONF_FINAL = 'CONF_FINAL',
+  PLAYOFF_DRAW_CEREMONY = 'PLAYOFF_DRAW_CEREMONY',
 }
 
 export enum SlotType {

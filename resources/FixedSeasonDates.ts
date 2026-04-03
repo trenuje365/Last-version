@@ -532,16 +532,18 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
   { day: 23, month: 4, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 34", priority: 90 },
+  { day: 24, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.PLAYOFF_DRAW_CEREMONY, label: "Ogłoszenie par barażowych", priority: 95 },
 
-
-
+//26 MAJ - PIERWSZE MECZE BARAZOWE MIEDZY 13 zespolem II LIGA a zespolem losowym zespolem 3 ligi oraz 14 zespolem II LIGA a zespolem losowym zespolem 3 ligi
   { day: 27, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_FINAL, label: "LK: Finał", priority: 100 },
   
+
+// 29 MAJ - REWNZE MECZE BARAZOWE MIEDZY 13 zespolem II LIGA a zespolem losowym zespolem 3 ligi oraz 14 zespolem II LIGA a zespolem losowym zespolem 3 ligi
    // --- FINAL PUCHARY EUROPEJSKIE --- 30 Maj LIGA MISTRZÓW----
   { day: 30, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CL_FINAL, label: "LM: Finał", priority: 100 },
   
   
-
+//31 MAJ - PIERWSZE MECZE PLAY OFF AWANSOW DO EKSTRAKLASY I I LIGI 
 
 
 

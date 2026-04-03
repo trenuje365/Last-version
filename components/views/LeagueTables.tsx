@@ -197,19 +197,37 @@ export const LeagueTables: React.FC = () => {
                        <tbody>
                           {sortedClubs.map((club, index) => {
                             const isUserTeam = club.id === userTeamId;
+                            const isLeagueTwo = selectedLeagueId === 'L_PL_3';
+                            const isLeagueTwoPlayoffPlace = isLeagueTwo && index >= 12 && index <= 13;
+                            const isLeagueTwoRelegationPlace = isLeagueTwo && index >= 14;
+                            const rowClassName = isUserTeam
+                              ? 'bg-teal-500/20 border-l-4 border-teal-400 shadow-[0_0_30px_rgba(20,184,166,0.1)] z-30'
+                              : (selectedLeagueId === 'L_PL_1' && index === 0)
+                                ? 'bg-amber-400/20 border-l-4 border-amber-400 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]'
+                                : ((selectedLeagueId === 'L_PL_2' || isLeagueTwo) && index < 2)
+                                  ? 'bg-yellow-600/30 border-l-4 border-yellow-500'
+                                  : ((selectedLeagueId === 'L_PL_2' || isLeagueTwo) && index >= 2 && index < 6)
+                                    ? 'bg-blue-900/40 border-l-4 border-blue-600'
+                                    : isLeagueTwoPlayoffPlace
+                                      ? 'bg-orange-500/20 border-l-4 border-orange-400'
+                                      : ((isLeagueTwoRelegationPlace || (selectedLeagueId !== 'L_PL_3' && index >= 15))
+                                        ? 'bg-red-900/40 border-l-4 border-red-600'
+                                        : 'hover:bg-white/[0.03]');
+                            const positionClassName = index < 3
+                              ? 'text-emerald-400'
+                              : (isLeagueTwoPlayoffPlace
+                                ? 'text-orange-400'
+                                : ((isLeagueTwoRelegationPlace || (!isLeagueTwo && index > 14))
+                                  ? 'text-red-500'
+                                  : 'text-slate-500'));
                             return (
                               <tr 
                                 key={club.id}
                          onClick={() => viewClubDetails(club.id)}
-                                className={`group relative h-16 transition-all duration-300 cursor-pointer
-                                  ${isUserTeam ? 'bg-teal-500/20 border-l-4 border-teal-400 shadow-[0_0_30px_rgba(20,184,166,0.1)] z-30' : 
-                                    (selectedLeagueId === 'L_PL_1' && index === 0) ? 'bg-amber-400/20 border-l-4 border-amber-400 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : 
-                                    ((selectedLeagueId === 'L_PL_2' || selectedLeagueId === 'L_PL_3') && index < 2) ? 'bg-yellow-600/30 border-l-4 border-yellow-500' : 
-                                    ((selectedLeagueId === 'L_PL_2' || selectedLeagueId === 'L_PL_3') && index >= 2 && index < 6) ? 'bg-blue-900/40 border-l-4 border-blue-600' :
-                                    (selectedLeagueId === 'L_PL_3' ? index >= 14 : index >= 15) ? 'bg-red-900/40 border-l-4 border-red-600' : 'hover:bg-white/[0.03]'}`}
+                                className={`group relative h-16 transition-all duration-300 cursor-pointer ${rowClassName}`}
                               >
                                  <td className="pl-6 relative z-10">
-                                    <span className={`font-black font-mono text-sm ${index < 3 ? 'text-emerald-400' : (index > 14 ? 'text-red-500' : 'text-slate-500')}`}>
+                                    <span className={`font-black font-mono text-sm ${positionClassName}`}>
                                       {String(index + 1).padStart(2, '0')}
                                     </span>
                                  </td>
@@ -299,6 +317,18 @@ export const LeagueTables: React.FC = () => {
                           })}
                        </tbody>
                     </table>
+                    {selectedLeagueId === 'L_PL_3' && (
+                      <div className="mt-5 flex items-center gap-6 px-4 text-[10px] font-black uppercase tracking-[0.22em] text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-sm bg-orange-400/90 shadow-[0_0_12px_rgba(251,146,60,0.35)]" />
+                          <span>13-14 Baraze o utrzymanie</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-sm bg-red-500/90 shadow-[0_0_12px_rgba(239,68,68,0.35)]" />
+                          <span>15-18 Spadek bezposredni</span>
+                        </div>
+                      </div>
+                    )}
                 </div>
              </div>
           </div>

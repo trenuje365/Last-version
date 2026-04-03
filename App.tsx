@@ -77,6 +77,7 @@ import { ELQFDrawView } from './components/views/ELQFDrawView';
 import { ELSFDrawView } from './components/views/ELSFDrawView';
 import { ELFinalDrawView } from './components/views/ELFinalDrawView';
 import { GameNotification } from './components/ui/GameNotification';
+import { PlayoffDrawView } from './components/views/PlayoffDrawView';
 
 // Internal component to handle view switching
 const AppContent: React.FC = () => {
@@ -157,6 +158,8 @@ case ViewState.POST_MATCH_CONF_STUDIO:
 
 case ViewState.NATIONAL_TEAM_RESULTS:
   return <NationalTeamResultsView />;
+case ViewState.PLAYOFF_DRAW:
+  return <PlayoffDrawView />;
 
   case ViewState.PRE_MATCH_CL_FINAL:
   return <PreMatchCLFinalView />;
