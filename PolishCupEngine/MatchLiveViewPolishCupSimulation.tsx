@@ -4,7 +4,7 @@ import {
   ViewState, MatchLiveState, MatchContext, MatchEventType, 
   Player, HealthStatus, MatchSummary, MatchSummaryEvent, MatchResult,
   Lineup, PlayerPerformance, InjurySeverity, PlayerPosition,
-  MatchStatus, SubstitutionRecord, MatchLogEntry,
+  MatchStatus, SubstitutionRecord, MatchLogEntry, PlayerAttributes,
 TacticalInstructions
 } from '../types';
 import { MatchEngineService } from '../services/MatchEngineService';
@@ -25,7 +25,6 @@ import { MatchCupTacticsModal } from '../components/modals/MatchCupTacticsModal'
 import { AiMatchDecisionCupService } from '../services/AiMatchDecisionCupService';
 import { AiMatchPreparationService } from '@/services/AiMatchPreparationService';
 import { AiScoutingService } from '../services/AiScoutingService';
-import { PlayerAttributes } from '@/types-reference';
 import { TacticalBrainService } from '@/services/TacticalBrainService';
 import { MatchHistoryService } from '@/services/MatchHistoryService';
 
@@ -108,6 +107,8 @@ const startersCount = lineup.filter(id => id !== null).length;
     // Szerszy zakres 0.12–0.55 sprawia, że kontuzje i zmęczenie mają realne znaczenie
 const fatigueMult = 0.12 + (pFatigue / 100) * 0.43; // Zakres: 0.12 (cond=0) → 0.55 (cond=100)
     const avgAttr = attrKeys.reduce((s, attr) => s + (p.attributes[attr] || 50), 0) / attrKeys.length;
+    const mentalityWorkRateBase = ((p.attributes.mentality || 50) * 0.55) + ((p.attributes.workRate || 50) * 0.45);
+    const mentalityWorkRateMult = 0.92 + (mentalityWorkRateBase / 100) * 0.16;
     
     // ZMIANA PRO: Potencjał nieliniowy. Każdy punkt atrybutu powyżej 50 ma coraz większą wagę.
     // 1.15 zamiast 1.35 — łagodniejsza krzywa, niższe Tiery mają realne szanse na akcje
@@ -115,7 +116,7 @@ const fatigueMult = 0.12 + (pFatigue / 100) * 0.43; // Zakres: 0.12 (cond=0) →
     // Lekka kontuzja: gracz gra przez ból — bezpośrednia kara -6% wkładu w moc drużyny
     const lightInjMult = injuriesMap[p.id] === InjurySeverity.LIGHT ? 0.94 : 1.0;
     
-    return sum + (powerBase * fatigueMult * weatherMod * integrityMult * numericalPenalty * generalDisorderMult * lightInjMult);
+    return sum + (powerBase * fatigueMult * weatherMod * integrityMult * numericalPenalty * generalDisorderMult * lightInjMult * tacticalMult * mentalityWorkRateMult);
   }, 0);
 };
 
@@ -413,7 +414,12 @@ useEffect(() => {
     const { side, scorer, minute } = penaltyPendingRef.current;
     const timer = setTimeout(() => {
       penaltyPendingRef.current = null;
-      const isScored = Math.random() < 0.80;
+      const penaltySkill =
+        ((scorer.attributes.penalties || 50) * 0.58) +
+        ((scorer.attributes.finishing || 50) * 0.22) +
+        ((scorer.attributes.technique || 50) * 0.12) +
+        ((scorer.attributes.mentality || 50) * 0.08);
+      const isScored = Math.random() < Math.max(0.68, Math.min(0.94, 0.79 + ((penaltySkill - 50) / 420)));
       if (!isScored) {
         setShowMissedPenalty(true);
         setTimeout(() => setShowMissedPenalty(false), 2000);
@@ -648,8 +654,12 @@ useEffect(() => {
         const kicker = teamPlayers.find(p => p.id === kickerId) || teamPlayers[0];
         
         // Urealistycznienie szansy (82% to średnia światowa) + wpływ atrybutu wykończenia
-        const kickerFinishing = kicker.attributes.finishing || 50;
-        const baseProb = 0.82 + (kickerFinishing - 50) / 500;
+        const kickerPenaltySkill =
+          (kicker.attributes.penalties || 50) * 0.58 +
+          (kicker.attributes.finishing || 50) * 0.22 +
+          (kicker.attributes.technique || 50) * 0.12 +
+          (kicker.attributes.mentality || 50) * 0.08;
+        const baseProb = 0.80 + (kickerPenaltySkill - 50) / 430;
         const isScored = Math.random() < Math.max(0.65, Math.min(0.95, baseProb));
         
        const newSequence = [...(prev.penaltySequence || []), { side, result: isScored ? 'SCORED' as const : 'MISSED' as const }];
@@ -770,12 +780,43 @@ useEffect(() => {
         const canShoutNow = nextMinute >= prev.lastAiActionMinute + randomShoutCD;
 
         // -> tutaj wstaw kod (STAGE 1 PRO: Suma Mocy Jedenastki dla logiki Nastawienia)
-        const getTeamTotalPower = (ids: (string | null)[], pool: Player[]) => {
+        const getTeamTotalPower = (ids: (string | null)[], pool: Player[], fatigueMap: Record<string, number>) => {
            const act = pool.filter(p => ids.includes(p.id));
-           return act.reduce((s, p) => s + (p.attributes.attacking + p.attributes.passing + p.attributes.defending), 0);
+           return act.reduce((sum, p) => {
+             const liveCondition = fatigueMap[p.id] ?? p.condition ?? 100;
+             const fatigueMult = 0.72 + (Math.max(0, liveCondition) / 100) * 0.28;
+             const corePower =
+               (p.attributes.attacking * 1.15) +
+               (p.attributes.finishing * 0.95) +
+               (p.attributes.passing * 1.0) +
+               (p.attributes.defending * 1.1) +
+               (p.attributes.technique * 0.75) +
+               (p.attributes.vision * 0.55) +
+               (p.attributes.positioning * 0.65) +
+               (p.attributes.pace * 0.45) +
+               (p.attributes.stamina * 0.42) +
+               (p.attributes.strength * 0.38) +
+               (p.attributes.heading * 0.32) +
+               (p.attributes.crossing * 0.30) +
+               (p.attributes.mentality * 0.60) +
+               (p.attributes.workRate * 0.58) +
+               (p.attributes.leadership * 0.20);
+             const gkBonus = p.position === PlayerPosition.GK
+               ? (p.attributes.goalkeeping * 1.9) + (p.attributes.positioning * 0.45) + (p.attributes.mentality * 0.20)
+               : 0;
+             return sum + ((corePower + gkBonus) * fatigueMult);
+           }, 0);
         };
-        const pPower = getTeamTotalPower(userSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI, userSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers);
-        const aPower = getTeamTotalPower(userSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI, userSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers);
+        const pPower = getTeamTotalPower(
+          userSide === 'HOME' ? nextHomeLineup.startingXI : nextAwayLineup.startingXI,
+          userSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers,
+          userSide === 'HOME' ? prev.homeFatigue : prev.awayFatigue
+        );
+        const aPower = getTeamTotalPower(
+          userSide === 'HOME' ? nextAwayLineup.startingXI : nextHomeLineup.startingXI,
+          userSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers,
+          userSide === 'HOME' ? prev.awayFatigue : prev.homeFatigue
+        );
 
         // KOORDYNACJA BRAIN↔SERVICE: obliczamy sensory tutaj, przed Brain, by wykryć konflikty.
         // Sensory z AiMatchDecisionCupService mają pierwszeństwo nad generycznymi regułami Brain.
@@ -1243,8 +1284,6 @@ const aiGoalThresholdBoost = pRiskMod * (aiClubRep >= playerClubRep ? 0.06 : 0.0
         const incidentSide: 'HOME' | 'AWAY' = seededRng(currentSeed, nextMinute, 8888) < 0.5 ? 'HOME' : 'AWAY';
         const otherSide = incidentSide === 'HOME' ? 'AWAY' : 'HOME';
 
-        let finalIncidentModifier = 0;
-
         // Funkcja pomocnicza do pobierania agresji danej strony (Gracz lub AI)
         const getIntensityAtSide = (side: 'HOME' | 'AWAY') => {
           if (side === userSide) return prev.userInstructions.intensity;
@@ -1280,6 +1319,10 @@ const aiGoalThresholdBoost = pRiskMod * (aiClubRep >= playerClubRep ? 0.06 : 0.0
             effectiveRedChance    *= 0.5;
             effectiveYellowChance *= 0.5;
         }
+        if (incidentSide === userSide && pIncidentMod !== 1.0) {
+            effectiveRedChance *= pIncidentMod;
+            effectiveYellowChance *= pIncidentMod;
+        }
         // Modyfikator kontuzji zależny od intensywności gry
         // BUGFIX: mnożnik aktywuje się TYLKO gdy strona popełniająca faul (incidentSide) jest agresywna.
         // Poprzedni warunek || otherIntensity powodował że mnożnik 1.2-1.7 był aktywny niemal zawsze.
@@ -1293,6 +1336,9 @@ const aiGoalThresholdBoost = pRiskMod * (aiClubRep >= playerClubRep ? 0.06 : 0.0
         else if (sideIntensity === 'CAUTIOUS' || otherIntensity === 'CAUTIOUS')
             injuryIntensityMult = 0.7; // jedna ostrożna → −30% kontuzji
         // effectiveSevereBonus dodawany do progu kontuzji (por. formuła poniżej)
+        if (incidentSide === userSide && pIncidentMod !== 1.0) {
+            injuryIntensityMult *= Math.max(0.85, Math.min(1.15, pIncidentMod));
+        }
         const effectiveSevereBonus = SEVERE_INJURY_CHANCE * Math.max(0, injuryIntensityMult - 1.0);
 
         // ===== DEBUG =====
@@ -1617,16 +1663,18 @@ if (targetPlayer && !prev.isPausedForEvent) {
         let _humanFactorCallCount = 0;
         const humanFactor = () => {
             _humanFactorCallCount++;
-            return 0.70 + (seededRng(currentSeed, nextMinute, _humanFactorCallCount * 137) * 0.60);
+            return 0.82 + (seededRng(currentSeed, nextMinute, _humanFactorCallCount * 137) * 0.36);
         };
 
         const battleCategories: { attrs: (keyof PlayerAttributes)[]; positions: PlayerPosition[] }[] = [
-            { attrs: ['stamina'],   positions: [PlayerPosition.MID, PlayerPosition.DEF, PlayerPosition.FWD] },
-            { attrs: ['strength'],  positions: [PlayerPosition.DEF, PlayerPosition.MID] },
-            { attrs: ['technique'], positions: [PlayerPosition.MID, PlayerPosition.FWD] },
-            { attrs: ['pace'],      positions: [PlayerPosition.FWD, PlayerPosition.MID] },
-            { attrs: ['passing'],   positions: [PlayerPosition.MID, PlayerPosition.DEF] },
-            { attrs: ['vision'],    positions: [PlayerPosition.MID, PlayerPosition.FWD] }
+            { attrs: ['stamina', 'workRate'],   positions: [PlayerPosition.MID, PlayerPosition.DEF, PlayerPosition.FWD] },
+            { attrs: ['strength', 'defending'], positions: [PlayerPosition.DEF, PlayerPosition.MID] },
+            { attrs: ['technique', 'vision'],   positions: [PlayerPosition.MID, PlayerPosition.FWD] },
+            { attrs: ['pace', 'dribbling'],     positions: [PlayerPosition.FWD, PlayerPosition.MID] },
+            { attrs: ['passing', 'vision'],     positions: [PlayerPosition.MID, PlayerPosition.DEF] },
+            { attrs: ['crossing', 'heading'],   positions: [PlayerPosition.MID, PlayerPosition.FWD, PlayerPosition.DEF] },
+            { attrs: ['positioning', 'mentality'], positions: [PlayerPosition.DEF, PlayerPosition.MID, PlayerPosition.FWD] },
+            { attrs: ['finishing', 'attacking'], positions: [PlayerPosition.FWD, PlayerPosition.MID] }
         ];
 
         let homeWins = 0;
@@ -1639,7 +1687,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
            // ZMIANA PRO: Rachunek prawdopodobieństwa. Moc to nie gwarancja, to szansa.
             const totalPower = hPwr + aPwr;
             const homeWinProb = hPwr / totalPower;
-            const matchChaos = 0.80 + (seededRng(currentSeed, nextMinute, i) * 0.40); // chaos: 0.80–1.20 (mniejsza deklasacja silniejszego)
+            const matchChaos = 0.88 + (seededRng(currentSeed, nextMinute, i) * 0.24); // chaos: 0.88–1.12
 
             if (seededRng(currentSeed, nextMinute, i + 100) * matchChaos < homeWinProb) {
                 homeWins++;
@@ -1691,7 +1739,12 @@ if (targetPlayer && !prev.isPausedForEvent) {
             // Remis w bitwach — losujemy stronę aby zachować symetrię (50/50)
             eventSide = seededRng(currentSeed, nextMinute, 201) < 0.5 ? 'HOME' : 'AWAY';
         } else {
-            eventSide = homeWins > awayWins ? 'HOME' : 'AWAY';
+            const totalWins = Math.max(1, homeWins + awayWins);
+            const rawHomeInitiative = homeWins / totalWins;
+            const compressedHomeInitiative = 0.22 + (rawHomeInitiative * 0.56);
+            const momentumShift = Math.max(-0.06, Math.min(0.06, nextMomentum / 500));
+            const homeInitiativeProb = Math.max(0.22, Math.min(0.78, compressedHomeInitiative + momentumShift));
+            eventSide = seededRng(currentSeed, nextMinute, 201) < homeInitiativeProb ? 'HOME' : 'AWAY';
         }
         // --- FAZA 2: PROGRESJA ATAKU (5-12 RZUTÓW) ---
         ///const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 444) * 1.2);
@@ -1769,10 +1822,14 @@ const diceRolls = 5 + Math.floor(seededRng(currentSeed, nextMinute, 445) * 2.0 *
  // REKALIBRACJA PRO: Obniżamy bazowy próg z 0.55 na 0.42. 
         // Przy równych siłach szansa na wejście w pole karne rośnie z ~37% do ~65%.
         const activeBaseThreshold = eventSide === 'HOME' ? homeProgressionThreshold : awayProgressionThreshold;
-       let dynamicThreshold = Math.max(0.25, (activeBaseThreshold - momentumBonus) * 1.05);
-// Podnosimy szanse słabszej drużyny (underdog) o ~15% poprzez obniżenie progu
+       let dynamicThreshold = Math.max(0.25, (activeBaseThreshold - momentumBonus) * 1.03);
+// Podnosimy szanse słabszej drużyny w sposób stopniowany — im większa dysproporcja, tym większa ulga
 const isUnderdog = eventSide === 'HOME' ? powerDiff < 0 : powerDiff > 0;
-const undedogThresholdMultiplier = isUnderdog ? 0.85 : 1.0;
+const attackingClubRep = eventSide === 'HOME' ? ctx.homeClub.reputation : ctx.awayClub.reputation;
+const defendingClubRep = eventSide === 'HOME' ? ctx.awayClub.reputation : ctx.homeClub.reputation;
+const repGap = Math.max(0, defendingClubRep - attackingClubRep);
+const powerGapRatio = Math.min(0.18, Math.abs(powerDiff) / Math.max(1, Math.max(pPower, aPower)) * 0.35);
+const undedogThresholdMultiplier = isUnderdog ? Math.max(0.74, 0.86 - (repGap * 0.015) - powerGapRatio) : 1.0;
 dynamicThreshold *= undedogThresholdMultiplier;
 
         // Kontra słabszej drużyny vs ofensywna taktyka rywala:
@@ -1786,10 +1843,8 @@ dynamicThreshold *= undedogThresholdMultiplier;
             if (defTempo === 'FAST') counterBonus += 0.03;
             if (counterBonus > 0) dynamicThreshold = Math.max(0.20, dynamicThreshold - counterBonus);
             // Ekstra bonus kontry dla Tier3/4 atakującego Tier1 — walka o każdy centymetr boiska
-            const attackingClubRep = eventSide === 'HOME' ? ctx.homeClub.reputation : ctx.awayClub.reputation;
-            const defendingClubRep = eventSide === 'HOME' ? ctx.awayClub.reputation : ctx.homeClub.reputation;
             if (attackingClubRep <= 5 && defendingClubRep >= 8) {
-                const extraCounterBonus = 0.05 + seededRng(currentSeed, nextMinute, 4242) * 0.05; // 5–10%
+                const extraCounterBonus = 0.06 + seededRng(currentSeed, nextMinute, 4242) * 0.06; // 6–12%
                 dynamicThreshold = Math.max(0.20, dynamicThreshold - extraCounterBonus);
             }
         }
@@ -1814,7 +1869,7 @@ dynamicThreshold *= undedogThresholdMultiplier;
            // 1. Logika Nasycenia (PRO): zaczyna od 2:0, łagodna krzywa bez twardego blokowania.
         // goalDiff=2 → ×1.17 | diff=3 → ×1.34 | diff=4 → ×1.51 | diff=5+ → cap 0.95
         if (leads && goalDiff >= 2) {
-            const satietyFactor = 1 + (goalDiff - 1) * 0.17;
+            const satietyFactor = 1 + (goalDiff - 1) * 0.22;
             dynamicThreshold = Math.min(0.95, dynamicThreshold * satietyFactor);
             // --- BOOST: bezpośredni losowy wzrost momentum rywala po 5. bramce ---
             if (goalDiff >= 5) {
@@ -1828,9 +1883,11 @@ dynamicThreshold *= undedogThresholdMultiplier;
         }
 
         // 2. Underdog Desperation (PRO): Silne pchnięcie dla przegrywającego, by wymuszać bramki.
-        if (!leads && goalDiff >= 2) {
-         const desperationBoost = Math.max(0.65, 1 - (goalDiff * 0.18));
-            dynamicThreshold *= desperationBoost;
+        if (!leads && goalDiff >= 1) {
+         const desperationBoost = goalDiff === 1
+            ? 0.92
+            : Math.max(0.62, 1 - (goalDiff * 0.20));
+             dynamicThreshold *= desperationBoost;
         }
 
         // Post-Goal Suppression: jeden spójny system (4-8 minut, 2-20%), zamiast dwóch nakładających się
@@ -1856,7 +1913,14 @@ dynamicThreshold *= undedogThresholdMultiplier;
             const scorerFatigue = (eventSide === 'HOME' ? localHomeFatigue : localAwayFatigue)[scorer.id] ?? scorer.condition;
             // Floor 0.38 zamiast 0.50: kontuzjowany strzelec nie strzela pełną siłą
             const scorerFatigueMod = Math.max(0.38, scorerFatigue / 100);
-            const shotPower = (scorer.attributes.finishing * 0.8 + scorer.attributes.dribbling * 0.2) * humanFactor() * 0.88 * randomShot * scorerFatigueMod;
+            const shotPowerCore =
+              (scorer.attributes.finishing * 0.52) +
+              (scorer.attributes.attacking * 0.16) +
+              (scorer.attributes.technique * 0.10) +
+              (scorer.attributes.positioning * 0.10) +
+              (scorer.attributes.dribbling * 0.07) +
+              (scorer.attributes.mentality * 0.05);
+            const shotPower = shotPowerCore * humanFactor() * 0.92 * randomShot * scorerFatigueMod;
             
             // Zmęczenie bramkarza obniża reflexy i decyzyjność przy wyjściu:
             // cond=100→1.00, cond=80→0.88, cond=60→0.76, cond=40→0.64 (nie spada poniżej 0.55)
@@ -1864,7 +1928,12 @@ dynamicThreshold *= undedogThresholdMultiplier;
             const keeperFatigue = defFatigueMap[keeper.id] ?? keeper.condition;
             const keeperFatigueMod = isRealKeeper ? Math.max(0.55, 0.40 + (keeperFatigue / 100) * 0.60) : 1.0;
             // Jeśli w bramce stoi gracz z pola, jego savePower jest niemal zerowy
-            let savePower = (keeper.attributes.goalkeeping * 0.8 + keeper.attributes.positioning * 0.2) * (0.85 + (seededRng(currentSeed, nextMinute, 999) * 0.25)) * keeperFatigueMod;
+            let savePower = (
+              keeper.attributes.goalkeeping * 0.72 +
+              keeper.attributes.positioning * 0.16 +
+              (keeper.attributes.mentality || 50) * 0.07 +
+              (keeper.attributes.leadership || 50) * 0.05
+            ) * (0.88 + (seededRng(currentSeed, nextMinute, 999) * 0.20)) * keeperFatigueMod;
             if (!isRealKeeper) savePower *= 0.18;
 
  if (env.weather.description.toLowerCase().includes('deszcz') && scorer.attributes.technique < 50) {
@@ -1918,7 +1987,10 @@ dynamicThreshold *= undedogThresholdMultiplier;
         } else if (leadDiff >= 2) {
             satietyMult = Math.pow(0.815, leadDiff - 1); // diff=2→0.81, 3→0.67, 4→0.54, 5→0.44, 6→0.36
         }
-        const rawGoalProbability = (shotPower / (shotPower + savePower)) * baseConversionMult * satietyMult + luckyBonus;
+        let rawGoalProbability = (shotPower / (shotPower + savePower)) * baseConversionMult * satietyMult + luckyBonus;
+        if (eventSide === userSide && pGoalMod !== 1.0) {
+            rawGoalProbability *= pGoalMod;
+        }
         const goalProbability = leadDiff >= 7
             ? Math.min(0.01, rawGoalProbability)
             : Math.min(0.90, rawGoalProbability);
@@ -2054,14 +2126,14 @@ if (keeper.tier === 4 && seededRng(currentSeed, nextMinute, 8802) < 0.13) { // 1
             const upsetPowerGap = upsetDefPwr / Math.max(1, upsetAttPwr);
 
             if (upsetPowerGap > 1.4) {
-                const upsetActionChance = Math.min(0.08, 0.011 / upsetPowerGap);
+                const upsetActionChance = Math.min(0.10, 0.016 / upsetPowerGap);
                 if (seededRng(currentSeed, nextMinute, 9991) < upsetActionChance) {
                     const upsetAttTeam = eventSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
                     const upsetAttLineup = (eventSide === 'HOME' ? nextHomeLineup : nextAwayLineup).startingXI;
                     const upsetScorer = GoalAttributionService.pickScorer(upsetAttTeam, upsetAttLineup as string[], false, () => seededRng(currentSeed, nextMinute, 9992));
                     if (upsetScorer) {
                         // Konwersja na gola spada wraz z rosnącą przewagą obrony
-                        const goalConvRate = Math.max(0.08, 0.23 / upsetPowerGap);
+                        const goalConvRate = Math.max(0.11, 0.28 / upsetPowerGap);
                         if (seededRng(currentSeed, nextMinute, 9993) < goalConvRate) {
                             eventType = MatchEventType.GOAL;
                             const formattedName = `${upsetScorer.firstName.charAt(0)}. ${upsetScorer.lastName}`;
@@ -2249,7 +2321,7 @@ if (activePlayerTempo === 'SLOW') {
         }
 
        // --- STAGE 1 PRO: DRENAŻ KONDYCJI (FIXED) ---
-              const updateFatigue = (lineup: (string | null)[], fatigueMap: Record<string, number>, teamPlayers: Player[], currentTempo: string, currentIntensity: string) => {
+              const updateFatigue = (lineup: (string | null)[], fatigueMap: Record<string, number>, teamPlayers: Player[], currentTempo: string, currentIntensity: string, fatigueMod: number = 1.0) => {
             lineup.forEach(id => {
                 if (!id) return;
                 const p = teamPlayers.find(x => x.id === id);
@@ -2265,6 +2337,7 @@ if (activePlayerTempo === 'SLOW') {
                 if (currentIntensity === 'AGGRESSIVE') drain *= 1.35;
                 if (currentIntensity === 'CAUTIOUS') drain *= 0.75; // ostrożna gra → mniej biegu → wolniejsze zmęczenie
 
+                drain *= fatigueMod;
                 fatigueMap[id] = Math.max(0, current - drain);
             });
         };
@@ -2272,10 +2345,12 @@ if (activePlayerTempo === 'SLOW') {
         // -> tutaj wstaw kod (LOGIKA DOPASOWANA: Zmienne localHome/AwayFatigue są już zainicjowane na początku bloku)
         updateFatigue(nextHomeLineup.startingXI, localHomeFatigue, ctx.homePlayers, 
                       userSide === 'HOME' ? activePlayerTempo : (currentAiShout?.tempo || 'NORMAL'),
-                      userSide === 'HOME' ? (isPlayerEffectActive ? prev.userInstructions.intensity : 'NORMAL') : (currentAiShout?.intensity || 'NORMAL'));
+                      userSide === 'HOME' ? (isPlayerEffectActive ? prev.userInstructions.intensity : 'NORMAL') : (currentAiShout?.intensity || 'NORMAL'),
+                      userSide === 'HOME' ? pFatigueMod : 1.0);
         updateFatigue(nextAwayLineup.startingXI, localAwayFatigue, ctx.awayPlayers,
                       userSide === 'AWAY' ? activePlayerTempo : (currentAiShout?.tempo || 'NORMAL'),
-                      userSide === 'AWAY' ? (isPlayerEffectActive ? prev.userInstructions.intensity : 'NORMAL') : (currentAiShout?.intensity || 'NORMAL'));
+                      userSide === 'AWAY' ? (isPlayerEffectActive ? prev.userInstructions.intensity : 'NORMAL') : (currentAiShout?.intensity || 'NORMAL'),
+                      userSide === 'AWAY' ? pFatigueMod : 1.0);
 
         // --- APLIKACJA WIATRU W ŻAGLE (COMEBACK BOOST) ---
         // Blok jest poza updateFatigue, by aplikował się RAZ na minutę (nie dwa razy)

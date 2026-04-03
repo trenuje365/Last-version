@@ -246,6 +246,25 @@ const boardConfidence = useMemo(() => {
           };
 
         // ── Liga Mistrzów / Ligi Europy — losowanie ──────────────────────────
+        case EventKind.PLAYOFF_DRAW:
+          return {
+            text:
+              todayEvent.slot.competition === CompetitionType.PLAYOFF_DRAW_CEREMONY
+                ? 'BARAŻE • OGŁOSZENIE PAR'
+                : todayEvent.slot.competition === CompetitionType.RELEGATION_PLAYOFF_1
+                  ? 'BARAŻE O UTRZYMANIE • 1. MECZE'
+                  : todayEvent.slot.competition === CompetitionType.RELEGATION_PLAYOFF_2
+                    ? 'BARAŻE O UTRZYMANIE • REWANŻE'
+                    : todayEvent.slot.competition === CompetitionType.PROMOTION_PLAYOFF_31_MAY
+                      ? 'BARAŻE AWANSOWE • PÓŁFINAŁY'
+                      : todayEvent.slot.competition === CompetitionType.PROMOTION_PLAYOFF_4_JUNE
+                        ? 'BARAŻE AWANSOWE • FINAŁY'
+                        : 'BARAŻE',
+            action: advanceDay,
+            isMatch: false,
+            disabled: isJumping,
+          };
+
         case EventKind.CL_DRAW:
           return {
             text: todayEvent.slot.competition === CompetitionType.EL_R1Q_DRAW

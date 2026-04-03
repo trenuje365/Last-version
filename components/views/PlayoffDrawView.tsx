@@ -222,7 +222,7 @@ export const PlayoffDrawView: React.FC = () => {
             subtitle="1. Liga — awans do Ekstraklasy"
             accentClass="bg-amber-400/10 border-amber-400/30 text-amber-300"
             icon="⬆️"
-            matchDate="31 maja"
+            matchDate="31 maja (półfinały) · 4 czerwca (finał)"
             pairs={activePlayoffDraw.ekstraklasaPlayoffs}
             userTeamId={userTeamId}
             clubs={clubs}
@@ -234,7 +234,7 @@ export const PlayoffDrawView: React.FC = () => {
             subtitle="2. Liga — awans do 1. Ligi"
             accentClass="bg-sky-400/10 border-sky-400/30 text-sky-300"
             icon="⬆️"
-            matchDate="31 maja"
+            matchDate="31 maja (półfinały) · 4 czerwca (finał)"
             pairs={activePlayoffDraw.ligaOnePlayoffs}
             userTeamId={userTeamId}
             clubs={clubs}
@@ -246,7 +246,7 @@ export const PlayoffDrawView: React.FC = () => {
             subtitle="2. Liga vs 3. Liga — utrzymanie"
             accentClass="bg-rose-500/10 border-rose-500/30 text-rose-300"
             icon="⚠️"
-            matchDate="29 maja (1. mecz) · 31 maja (rewanż)"
+            matchDate="26 maja (1. mecz) · 29 maja (rewanż)"
             pairs={activePlayoffDraw.relegationPlayoffs}
             userTeamId={userTeamId}
             clubs={clubs}

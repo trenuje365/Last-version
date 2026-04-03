@@ -1113,6 +1113,42 @@ export const CalendarEngine = {
       }
 
       // ── Nieznany typ (przyszłe rozszerzenia) ──────────────────────────────
+      case CompetitionType.RELEGATION_PLAYOFF_1: {
+        return {
+          slot,
+          kind: EventKind.PLAYOFF_DRAW,
+          participation: 'player',
+          targetView: ViewState.RELEGATION_PLAYOFF_MATCH_1,
+        };
+      }
+
+      case CompetitionType.RELEGATION_PLAYOFF_2: {
+        return {
+          slot,
+          kind: EventKind.PLAYOFF_DRAW,
+          participation: 'player',
+          targetView: ViewState.RELEGATION_PLAYOFF_MATCH_2,
+        };
+      }
+
+      case CompetitionType.PROMOTION_PLAYOFF_31_MAY: {
+        return {
+          slot,
+          kind: EventKind.PLAYOFF_DRAW,
+          participation: 'player',
+          targetView: ViewState.PROMOTION_PLAYOFF_SEMI_VIEW,
+        };
+      }
+
+      case CompetitionType.PROMOTION_PLAYOFF_4_JUNE: {
+        return {
+          slot,
+          kind: EventKind.PLAYOFF_DRAW,
+          participation: 'player',
+          targetView: ViewState.PROMOTION_PLAYOFF_FINAL_VIEW,
+        };
+      }
+
       default:
         return null;
     }

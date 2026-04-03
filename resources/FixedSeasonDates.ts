@@ -534,16 +534,24 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
   { day: 23, month: 4, type: SlotType.WEEKEND, comp: CompetitionType.LEAGUE, label: "Liga: Kolejka 34", priority: 90 },
   { day: 24, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.PLAYOFF_DRAW_CEREMONY, label: "Ogłoszenie par barażowych", priority: 95 },
 
-//26 MAJ - PIERWSZE MECZE BARAZOWE MIEDZY 13 zespolem II LIGA a zespolem losowym zespolem 3 ligi oraz 14 zespolem II LIGA a zespolem losowym zespolem 3 ligi
-  { day: 27, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_FINAL, label: "LK: Finał", priority: 100 },
-  
+// 26 MAJ - 1. mecze barażowe o utrzymanie w 2.Lidze
+// Para A: 13. miejsce 2.Ligi (L_PL_3) vs losowy klub 3.Ligi (L_PL_4) — gospodarz: 2.Liga
+// Para B: 14. miejsce 2.Ligi (L_PL_3) vs losowy klub 3.Ligi (L_PL_4) — gospodarz: 2.Liga
+  { day: 26, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.RELEGATION_PLAYOFF_1, label: "Baraże o utrzymanie: 1. mecze", priority: 92 },
 
-// 29 MAJ - REWNZE MECZE BARAZOWE MIEDZY 13 zespolem II LIGA a zespolem losowym zespolem 3 ligi oraz 14 zespolem II LIGA a zespolem losowym zespolem 3 ligi
+  { day: 27, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CONF_FINAL, label: "LK: Finał", priority: 100 },
+
+// 29 MAJ - Rewanże barażowe o utrzymanie w 2.Lidze
+// Strony zamienione — gospodarz: 3.Liga. Remis w agregacie → dogrywka i rzuty karne.
+// Zwycięzca dwumeczu gra w 2.Lidze w kolejnym sezonie.
+  { day: 29, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.RELEGATION_PLAYOFF_2, label: "Baraże o utrzymanie: Rewanże", priority: 92 },
+
    // --- FINAL PUCHARY EUROPEJSKIE --- 30 Maj LIGA MISTRZÓW----
   { day: 30, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.CL_FINAL, label: "LM: Finał", priority: 100 },
   
   
 //31 MAJ - PIERWSZE MECZE PLAY OFF AWANSOW DO EKSTRAKLASY I I LIGI 
+  { day: 31, month: 4, type: SlotType.MIDWEEK, comp: CompetitionType.PROMOTION_PLAYOFF_31_MAY, label: "Baraże awansowe: 1. mecze", priority: 93 },
 
 
 
@@ -558,6 +566,8 @@ export const FIXED_SEASON_EVENTS: FixedSeasonEvent[] = [
 
 
   // --- REPREZENTAcjA ---
+// 4 CZERWCA - FINAŁY PLAY OFF AWANSOW DO EKSTRAKLASY I I LIGI
+  { day: 4, month: 5, type: SlotType.MIDWEEK, comp: CompetitionType.PROMOTION_PLAYOFF_4_JUNE, label: "Baraże awansowe: Finały", priority: 93 },
   { day: 7,  month: 5, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "REPREZENTACJA", priority: 30 },
   { day: 11, month: 5, type: SlotType.MIDWEEK, comp: CompetitionType.BREAK, label: "REPREZENTACJA", priority: 30 },
 
