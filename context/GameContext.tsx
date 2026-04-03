@@ -184,6 +184,8 @@ finalizeFreeAgentContract: (mailId: string) => void;
   navigateToIncomingOffer: (offerId: string) => void;
   transferNewsActiveTab: 'scouting' | 'released' | 'activity' | 'completed' | 'incoming';
   setTransferNewsActiveTab: React.Dispatch<React.SetStateAction<'scouting' | 'released' | 'activity' | 'completed' | 'incoming'>>;
+  contractManagementInitialMode: 'RELEASE' | 'NEGOTIATE';
+  setContractManagementInitialMode: React.Dispatch<React.SetStateAction<'RELEASE' | 'NEGOTIATE'>>;
 
  europeanStatus: Record<string, EuropeanStatus>;
   setEuropeanStatus: React.Dispatch<React.SetStateAction<Record<string, EuropeanStatus>>>;
@@ -240,6 +242,7 @@ const [activeIntensity, setActiveIntensity] = useState<TrainingIntensity>(Traini
  const [incomingOffers, setIncomingOffers] = useState<IncomingTransferOffer[]>([]);
  const [viewedIncomingOfferId, setViewedIncomingOfferId] = useState<string | null>(null);
  const [transferNewsActiveTab, setTransferNewsActiveTab] = useState<'scouting' | 'released' | 'activity' | 'completed' | 'incoming'>('activity');
+ const [contractManagementInitialMode, setContractManagementInitialMode] = useState<'RELEASE' | 'NEGOTIATE'>('NEGOTIATE');
  const [europeanStatus, setEuropeanStatus] = useState<Record<string, EuropeanStatus>>({});
   const [nationalTeams, setNationalTeams] = useState<NationalTeam[]>([]);
   // Przechowuje wyniki ostatniego dnia meczowego reprezentacji (wszystkie mecze grupy)
@@ -4932,7 +4935,7 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
       activeIntensity, setTrainingIntensity: setActiveIntensity,
       startNewGame, saveManagerProfile, selectUserTeam, advanceDay, jumpToDate, jumpToNextEvent, navigateTo, navigateWithoutHistory, updateLineup, viewClubDetails, viewPlayerDetails, viewRefereeDetails, getOrGenerateSquad,
       setPlayers, setClubs, setLastMatchSummary, addRoundResults, applySimulationResult, setActiveMatchState, 
-      setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, transferOffers, submitTransferOffer, finalizeTransferNegotiation, incomingOffers, viewedIncomingOfferId, respondToIncomingOffer, confirmIncomingTransfer, navigateToIncomingOffer, transferNewsActiveTab, setTransferNewsActiveTab, europeanStatus, setEuropeanStatus,
+      setMessages, pendingNegotiations, setPendingNegotiations, finalizeFreeAgentContract, transferOffers, submitTransferOffer, finalizeTransferNegotiation, incomingOffers, viewedIncomingOfferId, respondToIncomingOffer, confirmIncomingTransfer, navigateToIncomingOffer, transferNewsActiveTab, setTransferNewsActiveTab, contractManagementInitialMode, setContractManagementInitialMode, europeanStatus, setEuropeanStatus,
             markMessageRead, deleteMessage, setActiveTrainingId, confirmCupDraw, confirmCLDraw, confirmELDraw, confirmELR2QDraw, confirmCONFDraw, confirmCONFR2QDraw, activeGroupDraw,
     confirmCLGroupDraw, confirmELGroupDraw, confirmELR16Draw, confirmCLQFDraw, confirmCLSFDraw, confirmCLR16Draw, confirmELQFDraw, confirmELSFDraw, confirmELFinalDraw, confirmCONFGroupDraw, confirmCONFR16Draw, confirmCONFQFDraw, confirmCONFSFDraw, confirmCONFFinalDraw, confirmSeasonEnd, clGroups, activeELGroupDraw, elGroups, activeConfGroupDraw, confGroups, processBackgroundCupMatches, processCLMatchDay, sessionSeed, updatePlayer, toggleTransferList, addFinanceLog, supercupWinners, addSupercupWinner, elHistoryInitialRound, setElHistoryInitialRound,
     nationalTeams, setNationalTeams,

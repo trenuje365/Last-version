@@ -8,13 +8,13 @@ import { MailService } from '../../services/MailService';
 export const ContractManagementView: React.FC = () => {
   const { 
     viewedPlayerId, players, clubs, navigateTo, 
-    currentDate, setPlayers, setClubs, lineups, updateLineup, setMessages, addFinanceLog 
+    currentDate, setPlayers, setClubs, lineups, updateLineup, setMessages, addFinanceLog, contractManagementInitialMode
   } = useGame();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [boardDecision, setBoardDecision] = useState<{status: string, reason: string, woz: number} | null>(null);
 
-  const [managementMode, setManagementMode] = useState<'RELEASE' | 'NEGOTIATE'>('NEGOTIATE');
+  const [managementMode, setManagementMode] = useState<'RELEASE' | 'NEGOTIATE'>(contractManagementInitialMode);
   const [offerSalary, setOfferSalary] = useState(0);
   const [offerBonus, setOfferBonus] = useState(0);
   const [offerYears, setOfferYears] = useState(1);
@@ -36,6 +36,7 @@ export const ContractManagementView: React.FC = () => {
   // FIX: Dependency changed to viewedPlayerId to prevent reset on state update
   React.useEffect(() => {
     if (data?.player) {
+      setManagementMode(contractManagementInitialMode);
       setOfferSalary(data.player.annualSalary);
       setOfferBonus(0);
       setOfferYears(1);
@@ -45,7 +46,7 @@ export const ContractManagementView: React.FC = () => {
       setShowSuccessModal(false);
       setRenewalVeto(null);
     }
-  }, [viewedPlayerId]);
+  }, [viewedPlayerId, contractManagementInitialMode]);
 
   if (!data) return null;
   const { player, club } = data;
@@ -268,16 +269,16 @@ export const ContractManagementView: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-950 flex items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+    <div className="h-screen w-full bg-slate-950/35 flex items-center justify-center p-6 animate-fade-in relative overflow-hidden">
       
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-10 bg-blue-600" />
-        <div className="absolute inset-0 bg-[url('https://i.ibb.co/JwgrBtvC/biuro2-1.png')] bg-cover bg-center opacity-20" />
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[110px] opacity-[0.07] bg-blue-600" />
+        <div className="absolute inset-0 bg-[url('https://i.ibb.co/JwgrBtvC/biuro2-1.png')] bg-cover bg-center opacity-42 brightness-110" />
       </div>
 
-      <div className="max-w-5xl w-full bg-slate-900/90 border border-white/10 rounded-[50px] backdrop-blur-3xl shadow-2xl relative z-10 overflow-hidden flex flex-col h-[850px]">
+      <div className="max-w-5xl w-full bg-slate-900/72 border border-white/8 rounded-[50px] backdrop-blur-xl shadow-2xl relative z-10 overflow-hidden flex flex-col h-[850px]">
         
-        <div className="p-10 border-b border-white/5 bg-white/5 flex justify-between items-center shrink-0">
+        <div className="p-10 border-b border-white/5 bg-white/[0.035] flex justify-between items-center shrink-0">
            <div className="flex items-center gap-6">
               <div className="w-16 h-16 rounded-3xl bg-black/40 flex items-center justify-center text-3xl shadow-inner">🏛️</div>
               <div>

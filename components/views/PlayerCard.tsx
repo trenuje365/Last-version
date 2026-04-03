@@ -6,7 +6,7 @@ import { PlayerPresentationService } from '../../services/PlayerPresentationServ
 import { FreeAgentNegotiationService } from '../../services/FreeAgentNegotiationService';
 
 export const PlayerCard: React.FC = () => {
- const { viewedPlayerId, players, clubs, navigateTo, navigateWithoutHistory, previousViewState, userTeamId, toggleTransferList, currentDate, transferOffers, isResigned } = useGame();
+ const { viewedPlayerId, players, clubs, navigateTo, navigateWithoutHistory, previousViewState, userTeamId, toggleTransferList, currentDate, transferOffers, isResigned, setContractManagementInitialMode } = useGame();
 
   const data = useMemo(() => {
     if (!viewedPlayerId) return null;
@@ -416,7 +416,10 @@ const [showHistory, setShowHistory] = React.useState(false);
             {player.clubId === userTeamId && !isMatchContext && (
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <button
-                  onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
+                  onClick={() => {
+                    setContractManagementInitialMode('RELEASE');
+                    navigateTo(ViewState.CONTRACT_MANAGEMENT);
+                  }}
                   className="group relative h-12 bg-red-600/10 border border-red-500/20 rounded-[18px] flex items-center justify-center gap-3 transition-all hover:bg-red-600/20 hover:border-red-500/40 active:scale-95 shadow-xl"
                 >
                   <span className="text-xl group-hover:rotate-12 transition-transform">📄</span>
@@ -427,7 +430,10 @@ const [showHistory, setShowHistory] = React.useState(false);
                 </button>
                 <button
                   disabled={isContractLocked || hasPendingTransfer}
-                  onClick={() => navigateTo(ViewState.CONTRACT_MANAGEMENT)}
+                  onClick={() => {
+                    setContractManagementInitialMode('NEGOTIATE');
+                    navigateTo(ViewState.CONTRACT_MANAGEMENT);
+                  }}
                   className={`group relative h-12 rounded-[18px] flex items-center justify-center gap-3 transition-all
                     ${isContractLocked || hasPendingTransfer
                       ? 'bg-slate-800 border-slate-700 opacity-50 cursor-not-allowed'

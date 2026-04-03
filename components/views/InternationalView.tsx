@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { NT_SCHEDULE_BY_YEAR } from '../../resources/NationalTeamSchedule';
 import { MatchHistoryService } from '../../services/MatchHistoryService';
+import polskaBgImg from '../../Graphic/themes/polska.png';
 
 const SUBHEADING = 'text-[10px] font-black uppercase tracking-[0.25em] text-slate-500';
 const POLAND_GROUP_LABEL = 'Grupa G';
@@ -284,8 +285,14 @@ const InternationalView: React.FC = () => {
   }, [nationalTeams, currentDate, lastNTMatchResults, upcomingSchedule]);
 
   return (
-    <div className="flex-1 bg-slate-900/30 rounded-[40px] border border-white/5 shadow-2xl flex flex-col overflow-hidden">
-      <div className="flex gap-2 px-6 pt-5 pb-0 shrink-0 border-b border-white/5">
+    <div className="relative flex-1 bg-slate-900/30 rounded-[40px] border border-white/5 shadow-2xl flex flex-col overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-[0.22] pointer-events-none"
+        style={{ backgroundImage: `url(${polskaBgImg})` }}
+      />
+      <div className="absolute inset-0 bg-slate-950/35 pointer-events-none" />
+
+      <div className="relative z-10 flex gap-2 px-6 pt-5 pb-0 shrink-0 border-b border-white/5">
         {TOURNAMENTS.map(tournament => (
           <button
             key={tournament.id}
@@ -302,7 +309,7 @@ const InternationalView: React.FC = () => {
       </div>
 
       {activeTournament === 'wcq2026' && (
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-6">
           <div className="max-w-5xl mx-auto flex flex-col gap-8">
             <section>
               <div className="flex items-center gap-3 mb-4">
