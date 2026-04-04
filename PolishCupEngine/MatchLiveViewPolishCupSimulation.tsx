@@ -1237,6 +1237,11 @@ useEffect(() => {
         // Drużyna w 9 grająca ofensywnie = odkryta obrona = premia dla rywala
         const homeTacticObj = TacticRepository.getById(nextHomeLineup.tacticId);
         const awayTacticObj = TacticRepository.getById(nextAwayLineup.tacticId);
+        // Redukcja kary dla drużyny w 10 grającej defensywnie (defenseBias > 65): 0.20 → 0.13
+        const defensiveReduction = (tacticObj: any, missing: number) =>
+            missing === 1 && tacticObj.defenseBias > 65 ? 0.07 : 0;
+        homeProgressionThreshold = Math.max(0.24, homeProgressionThreshold - defensiveReduction(homeTacticObj, homeMissing));
+        awayProgressionThreshold = Math.max(0.24, awayProgressionThreshold - defensiveReduction(awayTacticObj, awayMissing));
         if (homeMissing >= 2 && homeTacticObj.attackBias > 55) {
             // Im bardziej ofensywna taktyka przy niedoborze, tym większa premia dla rywala
             const recklessFactor = ((homeTacticObj.attackBias - 55) / 45) * homeMissing * 0.06;
@@ -1294,6 +1299,12 @@ useEffect(() => {
             } else {
                 awayProgressionThreshold = Math.min(0.95, awayProgressionThreshold + fightBonus);
             }
+        }
+
+        // === BONUS GOSPODARZA Z NIŻSZEJ LIGI ===
+        // Drużyna grająca u siebie z niższej ligi (niższa reputacja) dostaje +7% szans na akcję bramkową.
+        if (ctx.homeClub.reputation < ctx.awayClub.reputation) {
+            homeProgressionThreshold = Math.max(0.24, homeProgressionThreshold - 0.07);
         }
 
         let coachEfficiency = 1.0; 
@@ -2228,6 +2239,18 @@ dynamicThreshold *= undedogThresholdMultiplier;
         }
        
        const currentThreshold = dynamicThreshold;
+
+        // === GIANT KILLER: minimalna szansa przebicia dla drużyny z niższego Tier ===
+        // Formuła: (10 - repGap) * 0.5% → repGap=4 → 3.0%/min | repGap=7 → 1.5%/min | repGap=9 → 0.5%/min
+        // Działa tylko gdy normalna progresja dała 0 podań (successfulPasses = 0)
+        const giantKillerRepGap = Math.max(0, defendingClubRep - attackingClubRep);
+        if (giantKillerRepGap >= 4 && successfulPasses === 0) {
+            const giantKillerChance = Math.max(0.005, Math.min(0.035, (10 - giantKillerRepGap) * 0.005));
+            if (seededRng(currentSeed, nextMinute, 9988) < giantKillerChance) {
+                successfulPasses = Math.ceil(diceRolls * (currentThreshold + 0.05));
+            }
+        }
+
         if (!isCoolingDown && successfulPasses / diceRolls > currentThreshold) {
             const attTeam = eventSide === 'HOME' ? ctx.homePlayers : ctx.awayPlayers;
             const defTeam = eventSide === 'HOME' ? ctx.awayPlayers : ctx.homePlayers;
