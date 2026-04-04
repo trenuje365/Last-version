@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { 
-  ViewState, MatchLiveState, MatchContext, MatchEventType, 
+import {
+  ViewState, MatchLiveState, MatchContext, MatchEventType,
   Player, HealthStatus, MatchSummary, MatchSummaryEvent, MatchResult,
   Lineup, PlayerPerformance, InjurySeverity, PlayerPosition,
   MatchStatus, SubstitutionRecord, MatchLogEntry, PlayerAttributes,
-TacticalInstructions
+TacticalInstructions,
+PromotionPlayoffSingleMatchResult,
+PromotionPlayoffSemiResults
 } from '../types';
+import { RelegationPlayoffSimulator } from '../services/RelegationPlayoffSimulator';
 import { MatchEngineService } from '../services/MatchEngineService';
 import { MomentumService as MomentumServiceCup } from '../services/MomentumSeriveCup';
 import { TacticRepository } from '../resources/tactics_db';
@@ -387,11 +390,17 @@ const getPositionalDisorder = (
 
 
 export const MatchLiveViewPolishCupSimulation: React.FC = () => {
-  const { 
-    navigateTo, userTeamId, clubs, fixtures, players, 
+  const {
+    navigateTo, userTeamId, clubs, fixtures, players,
     lineups, currentDate, setLastMatchSummary, applySimulationResult, viewPlayerDetails, setMessages,
-    activeMatchState: matchState, setActiveMatchState: setMatchState,coaches, seasonNumber 
+    activeMatchState: matchState, setActiveMatchState: setMatchState, coaches, seasonNumber,
+    activePlayoffMatch, setActivePlayoffMatch,
+    setRelegationPlayoffFirstLegResults, setRelegationPlayoffFinalResult,
+    setPromotionPlayoffSemiResults, setPromotionPlayoffFinalResults,
   } = useGame();
+
+  // ── TRYB BARAŻOWY — buduje ctx z activePlayoffMatch zamiast fixtures ──────
+  const isPlayoffMode = !!activePlayoffMatch;
   
   const [isFinishing, setIsFinishing] = useState(false);
   const [isCelebratingGoal, setIsCelebratingGoal] = useState(false);
@@ -449,7 +458,24 @@ export const MatchLiveViewPolishCupSimulation: React.FC = () => {
 const penaltyPendingRef = useRef<null | { side: 'HOME' | 'AWAY', scorer: any, minute: number }>(null);
 
   const ctx = useMemo(() => {
-    const fixture = fixtures.find(f => 
+    if (isPlayoffMode && activePlayoffMatch) {
+      const home = activePlayoffMatch.homeClub;
+      const away = activePlayoffMatch.awayClub;
+      const syntheticFixture = {
+        id: `PLAYOFF_${activePlayoffMatch.matchType}_${home.id}_${away.id}`,
+        homeTeamId: home.id,
+        awayTeamId: away.id,
+        date: currentDate,
+        leagueId: 'PLAYOFF',
+        status: 'SCHEDULED',
+      };
+      return {
+        fixture: syntheticFixture, homeClub: home, awayClub: away,
+        homePlayers: players[home.id] || [], awayPlayers: players[away.id] || [],
+        homeAdvantage: 0.0015, competition: 'PLAYOFF'
+      } as any;
+    }
+    const fixture = fixtures.find(f =>
         (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId) &&
         f.date.toDateString() === currentDate.toDateString()
     );
@@ -459,7 +485,7 @@ const penaltyPendingRef = useRef<null | { side: 'HOME' | 'AWAY', scorer: any, mi
     return {
       fixture, homeClub: home, awayClub: away, homePlayers: players[home.id] || [], awayPlayers: players[away.id] || [], homeAdvantage: 0.0015, competition: 'CUP'
     } as any;
-  }, [userTeamId, clubs, fixtures, players, currentDate]);
+  }, [isPlayoffMode, activePlayoffMatch, userTeamId, clubs, fixtures, players, currentDate]);
 
   const userSide = useMemo(() => {
     if (!ctx || !userTeamId) return 'HOME';
@@ -2830,11 +2856,13 @@ if (activePlayerTempo === 'SLOW') {
       ? (matchState.homePenaltyScore || 0) > (matchState.awayPenaltyScore || 0)
       : matchState.homeScore > matchState.awayScore;
 
-    const updatedClubs = clubs.map(c => {
-       if (c.id === ctx.homeClub.id) return { ...c, isInPolishCup: isHomeWinner };
-       if (c.id === ctx.awayClub.id) return { ...c, isInPolishCup: !isHomeWinner };
-       return c;
-    });
+    const updatedClubs = isPlayoffMode
+      ? clubs  // w trybie barażowym nie zmieniamy flagi isInPolishCup
+      : clubs.map(c => {
+          if (c.id === ctx.homeClub.id) return { ...c, isInPolishCup: isHomeWinner };
+          if (c.id === ctx.awayClub.id) return { ...c, isInPolishCup: !isHomeWinner };
+          return c;
+        });
 
     const generatePerformance = (playersList: Player[], scoreAgainst: number) => {
       return playersList.slice(0, 11).map(p => {
@@ -2953,14 +2981,16 @@ if (activePlayerTempo === 'SLOW') {
     });
 
    applySimulationResult({
-      updatedFixtures: fixtures.map(f => f.id === ctx.fixture.id ? { 
-        ...f, 
-        status: MatchStatus.FINISHED, 
-        homeScore: matchState.homeScore, 
-        awayScore: matchState.awayScore, 
-        homePenaltyScore: matchState.homePenaltyScore, 
-        awayPenaltyScore: matchState.awayPenaltyScore 
-      } : f),
+      updatedFixtures: isPlayoffMode
+        ? fixtures  // w trybie barażowym fixtures nie są modyfikowane
+        : fixtures.map(f => f.id === ctx.fixture.id ? {
+            ...f,
+            status: MatchStatus.FINISHED,
+            homeScore: matchState.homeScore,
+            awayScore: matchState.awayScore,
+            homePenaltyScore: matchState.homePenaltyScore,
+            awayPenaltyScore: matchState.awayPenaltyScore
+          } : f),
       updatedClubs,
       updatedPlayers: finalPlayers,
       updatedLineups: {},
@@ -2968,6 +2998,64 @@ if (activePlayerTempo === 'SLOW') {
       roundResults: null,
       seasonNumber: seasonNumber
     });
+
+    // ── ZAPIS WYNIKU BARAŻOWEGO ──────────────────────────────────────────
+    if (isPlayoffMode && activePlayoffMatch) {
+      const legResult = { homeId: ctx.homeClub.id, awayId: ctx.awayClub.id, homeGoals: matchState.homeScore, awayGoals: matchState.awayScore };
+      const decidedBy: PromotionPlayoffSingleMatchResult['decidedBy'] = matchState.isPenalties ? 'PENALTIES' : (matchState.isExtraTime ? 'EXTRA_TIME' : 'REGULAR');
+      const winnerId = isHomeWinner ? ctx.homeClub.id : ctx.awayClub.id;
+
+      if (activePlayoffMatch.matchType === 'RELEGATION_LEG1') {
+        setRelegationPlayoffFirstLegResults(prev => {
+          if (!prev) return prev;
+          return activePlayoffMatch.pairIndex === 0
+            ? { ...prev, pair0: legResult }
+            : { ...prev, pair1: legResult };
+        });
+
+      } else if (activePlayoffMatch.matchType === 'RELEGATION_LEG2') {
+        const firstLeg = activePlayoffMatch.firstLegResult!;
+        // firstLeg.homeId = klub L3 (gospodarze w 1. meczu), firstLeg.awayId = klub L4
+        const clubL3 = clubs.find(c => c.id === firstLeg.homeId)!;
+        const clubL4 = clubs.find(c => c.id === firstLeg.awayId)!;
+        const seed = currentDate.getTime() + activePlayoffMatch.pairIndex * 10;
+        const outcome = RelegationPlayoffSimulator.resolveAggregate(firstLeg, legResult, clubL3, clubL4, seed);
+        const otherOutcome = activePlayoffMatch.otherRelegationPairOutcome!;
+        setRelegationPlayoffFinalResult(activePlayoffMatch.pairIndex === 0
+          ? { pair0: outcome, pair1: otherOutcome }
+          : { pair0: otherOutcome, pair1: outcome }
+        );
+
+      } else if (activePlayoffMatch.matchType === 'PROMOTION_SEMI') {
+        const semiResult: PromotionPlayoffSingleMatchResult = {
+          homeId: ctx.homeClub.id, awayId: ctx.awayClub.id,
+          homeGoals: matchState.homeScore, awayGoals: matchState.awayScore,
+          decidedBy, winnerId,
+          penalties: matchState.isPenalties ? { winnerId, homeShots: matchState.homePenaltyScore || 0, awayShots: matchState.awayPenaltyScore || 0 } : undefined,
+        };
+        const others = activePlayoffMatch.otherPromotionSemiResults || {};
+        const semiKey = activePlayoffMatch.leagueContext === 'EKSTRAKLASA'
+          ? (activePlayoffMatch.pairIndex === 0 ? 'ekstraklasaSemi0' : 'ekstraklasaSemi1')
+          : (activePlayoffMatch.pairIndex === 0 ? 'ligaOneSemi0' : 'ligaOneSemi1');
+        setPromotionPlayoffSemiResults({ ...others, [semiKey]: semiResult } as PromotionPlayoffSemiResults);
+
+      } else if (activePlayoffMatch.matchType === 'PROMOTION_FINAL') {
+        const finalResult: PromotionPlayoffSingleMatchResult = {
+          homeId: ctx.homeClub.id, awayId: ctx.awayClub.id,
+          homeGoals: matchState.homeScore, awayGoals: matchState.awayScore,
+          decidedBy, winnerId,
+          penalties: matchState.isPenalties ? { winnerId, homeShots: matchState.homePenaltyScore || 0, awayShots: matchState.awayPenaltyScore || 0 } : undefined,
+        };
+        const otherFinal = activePlayoffMatch.otherPromotionFinalResult!;
+        setPromotionPlayoffFinalResults(activePlayoffMatch.leagueContext === 'EKSTRAKLASA'
+          ? { ekstraklasaFinal: finalResult, ligaOneFinal: otherFinal }
+          : { ekstraklasaFinal: otherFinal, ligaOneFinal: finalResult }
+        );
+      }
+      // Nie czyścimy activePlayoffMatch tutaj — PostMatchPlayoffStudioView potrzebuje go do wyświetlenia agregatu
+      navigateTo(ViewState.POST_MATCH_PLAYOFF_STUDIO);
+      return;
+    }
 
     navigateTo(ViewState.POST_MATCH_CUP_STUDIO);
   };

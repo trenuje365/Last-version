@@ -82,6 +82,8 @@ import { RelegationPlayoffMatch1View } from './components/views/RelegationPlayof
 import { RelegationPlayoffMatch2View } from './components/views/RelegationPlayoffMatch2View';
 import { PromotionPlayoffSemiView } from './components/views/PromotionPlayoffSemiView';
 import { PromotionPlayoffFinalView } from './components/views/PromotionPlayoffFinalView';
+import { PreMatchPlayoffStudioView } from './PlayoffEngine/PreMatchPlayoffStudioView';
+import { PostMatchPlayoffStudioView } from './PlayoffEngine/PostMatchPlayoffStudioView';
 
 // Internal component to handle view switching
 const AppContent: React.FC = () => {
@@ -173,6 +175,13 @@ case ViewState.PROMOTION_PLAYOFF_SEMI_VIEW:
   return <PromotionPlayoffSemiView />;
 case ViewState.PROMOTION_PLAYOFF_FINAL_VIEW:
   return <PromotionPlayoffFinalView />;
+// ── BARAŻE — INTERAKTYWNY MECZ GRACZA ───────────────────────────────────
+case ViewState.PRE_MATCH_PLAYOFF_STUDIO:
+  return <PreMatchPlayoffStudioView />;
+case ViewState.MATCH_LIVE_PLAYOFF:
+  return <MatchLiveViewPolishCupSimulation />;
+case ViewState.POST_MATCH_PLAYOFF_STUDIO:
+  return <PostMatchPlayoffStudioView />;
 
   case ViewState.PRE_MATCH_CL_FINAL:
   return <PreMatchCLFinalView />;

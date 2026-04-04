@@ -96,6 +96,10 @@ export enum ViewState {
   // ── BARAŻE O UTRZYMANIE ─────────────────────────────────────────────────
   RELEGATION_PLAYOFF_MATCH_1 = 'RELEGATION_PLAYOFF_MATCH_1', // 26 maja — widok wyników 1. meczów
   RELEGATION_PLAYOFF_MATCH_2 = 'RELEGATION_PLAYOFF_MATCH_2', // 29 maja — widok wyników rewanży + rozstrzygnięcie
+  // ── BARAŻE — INTERAKTYWNY MECZ GRACZA ───────────────────────────────────
+  PRE_MATCH_PLAYOFF_STUDIO = 'PRE_MATCH_PLAYOFF_STUDIO',
+  MATCH_LIVE_PLAYOFF = 'MATCH_LIVE_PLAYOFF',
+  POST_MATCH_PLAYOFF_STUDIO = 'POST_MATCH_PLAYOFF_STUDIO',
 }
 
 export interface PlayoffPair {
@@ -176,6 +180,20 @@ export interface PromotionPlayoffSemiResults {
 export interface PromotionPlayoffFinalResults {
   ekstraklasaFinal: PromotionPlayoffSingleMatchResult;
   ligaOneFinal: PromotionPlayoffSingleMatchResult;
+}
+
+// Dane aktywnego meczu barażowego — przekazywane przez context do silnika meczu i studia
+export interface ActivePlayoffMatchData {
+  matchType: 'RELEGATION_LEG1' | 'RELEGATION_LEG2' | 'PROMOTION_SEMI' | 'PROMOTION_FINAL';
+  homeClub: Club;
+  awayClub: Club;
+  userSide: 'HOME' | 'AWAY';
+  pairIndex: number;                                   // indeks pary w tablicy par (0 lub 1)
+  leagueContext?: 'EKSTRAKLASA' | 'LIGA_ONE';          // tylko dla baraży o awans
+  firstLegResult?: RelegationPlayoffLegResult;                      // tylko dla RELEGATION_LEG2
+  otherRelegationPairOutcome?: RelegationPlayoffPairOutcome;         // tylko dla RELEGATION_LEG2
+  otherPromotionSemiResults?: Partial<PromotionPlayoffSemiResults>;  // tylko dla PROMOTION_SEMI
+  otherPromotionFinalResult?: PromotionPlayoffSingleMatchResult;     // tylko dla PROMOTION_FINAL
 }
 
 export enum MailType {

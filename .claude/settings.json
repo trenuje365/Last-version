@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'c:/Users/Jack Cave/Documents/FM google studio/Last version' -iname *MatchLiveView* -not -iname *.old -not -iname *copy* -not -iname *reference*)",
+      "Bash(find 'c:/Users/Jack Cave/Documents/FM google studio/Last version' -iname *PreMatch* -not -iname *.old -not -iname *copy* -not -iname *reference*)",
+      "Bash(find 'c:/Users/Jack Cave/Documents/FM google studio/Last version' -name types.ts -not -name *.old)"
+    ]
+  }
+}
