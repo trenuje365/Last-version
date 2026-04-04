@@ -1761,8 +1761,8 @@ if (targetPlayer && !prev.isPausedForEvent) {
     // Proporcjonalny podział na groźną i lekką (zachowuje stosunek 1:20)
     const sevRatio = SEVERE_INJURY_CHANCE / BASE_INJURY_TOTAL;
     const effectiveSevereChance = totalInjuryChance * sevRatio;
-    // Przy szybkim tempie po stronie incydentu: +0.04 do lekkiej kontuzji (ogólny bonus, niezależny od minuty)
-    const tempoLightBonus = (sideTempo === 'FAST' || otherTempo === 'FAST') ? 0.04 : 0;
+    // Przy szybkim tempie po stronie incydentu: mały losowy bonus do lekkiej kontuzji
+    const tempoLightBonus = (sideTempo === 'FAST' || otherTempo === 'FAST') ? 0.003 : 0;
     // Korekta balansu CUP: lekkie urazy występują o 20% rzadziej niż wcześniej.
     const effectiveLightChance  = Math.min(0.98, (totalInjuryChance * (1 - sevRatio) + tempoLightBonus) * 0.80);
 
@@ -2242,10 +2242,15 @@ dynamicThreshold *= undedogThresholdMultiplier;
 
         // === GIANT KILLER: minimalna szansa przebicia dla drużyny z niższego Tier ===
         // Formuła: (10 - repGap) * 0.5% → repGap=4 → 3.0%/min | repGap=7 → 1.5%/min | repGap=9 → 0.5%/min
+        // Taktyka atakującej drużyny: ofensywna ×1.40 | neutralna ×1.00 | defensywna ×0.60
         // Działa tylko gdy normalna progresja dała 0 podań (successfulPasses = 0)
         const giantKillerRepGap = Math.max(0, defendingClubRep - attackingClubRep);
         if (giantKillerRepGap >= 4 && successfulPasses === 0) {
-            const giantKillerChance = Math.max(0.005, Math.min(0.035, (10 - giantKillerRepGap) * 0.005));
+            const attackingTacticObj = eventSide === 'HOME' ? homeTacticObj : awayTacticObj;
+            const giantKillerTacticMod = attackingTacticObj.attackBias > 55 ? 1.40
+                : attackingTacticObj.defenseBias > 65 ? 0.60
+                : 1.00;
+            const giantKillerChance = Math.max(0.005, Math.min(0.035, (10 - giantKillerRepGap) * 0.005)) * giantKillerTacticMod;
             if (seededRng(currentSeed, nextMinute, 9988) < giantKillerChance) {
                 successfulPasses = Math.ceil(diceRolls * (currentThreshold + 0.05));
             }
