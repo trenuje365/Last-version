@@ -333,7 +333,7 @@ function generateWrittenReport(params: {
     const outro = [
       'Konfrontacja tych graczy wyznaczy indywidualne pojedynki decydujące o losach meczu.',
       'To właśnie te nazwiska będą pod największą lupą przez 90 minut.',
-      'Jakość tych zawodników w dużej mierze zdecyduje o przebiegu spotkania.',
+      'Dyspozycyjność tych zawodników w dużej mierze zdecyduje o przebiegu spotkania.',
       'Ich forma i dyspozycja dnia definiuje nasze priorytety taktyczne.',
     ];
     const text = `${intros[Math.floor(Math.random() * intros.length)]}<br><br>${oppHeader}<br>${oppLines}<br><br>${userHeader}<br>${userLines}<br><br><span style="opacity:0.75;font-style:italic;">${outro[Math.floor(Math.random() * outro.length)]}</span>`;

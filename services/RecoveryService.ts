@@ -1,4 +1,4 @@
-import { Player, HealthStatus, TrainingIntensity } from '../types';
+import { Player, HealthStatus, TrainingIntensity, InjurySeverity } from '../types';
 
 export const RecoveryService = {
   /**
@@ -80,6 +80,10 @@ export const RecoveryService = {
           } else {
             // Aktualizacja licznika wstecznego
             updated.health.injury.daysRemaining = actualRemaining;
+            // Korekta severity: lekki uraz nie może trwać dłużej niż 14 dni
+            if (updated.health.injury.severity === InjurySeverity.LIGHT && actualRemaining > 14) {
+              updated.health.injury.severity = InjurySeverity.SEVERE;
+            }
           }
         }
 

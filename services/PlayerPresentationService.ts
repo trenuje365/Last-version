@@ -85,8 +85,8 @@ export const PlayerPresentationService = {
     const days = player.health.injury?.daysRemaining || 0;
     const severity = player.health.injury?.severity;
 
-    // Czerwony tylko dla poważnych kontuzji (blokujących grę)
-    if (severity === InjurySeverity.SEVERE) {
+    // Czerwony dla poważnych kontuzji lub gdy lekka trwa zbyt długo
+    if (severity === InjurySeverity.SEVERE || days > 14) {
       return { text: `KONTUZJA (${days} dni)`, colorClass: 'text-red-500 font-bold' };
     }
 

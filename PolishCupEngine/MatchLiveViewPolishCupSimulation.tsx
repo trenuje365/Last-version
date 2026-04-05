@@ -343,7 +343,7 @@ const fatigueMult = 0.12 + (pFatigue / 100) * 0.43; // Zakres: 0.12 (cond=0) →
     
     // ZMIANA PRO: Potencjał nieliniowy. Każdy punkt atrybutu powyżej 50 ma coraz większą wagę.
     // 1.15 zamiast 1.35 — łagodniejsza krzywa, niższe Tiery mają realne szanse na akcje
-    const powerBase = Math.pow(avgAttr, 1.07); 
+    const powerBase = Math.pow(avgAttr, 1.0);
     // Lekka kontuzja: gracz gra przez ból — bezpośrednia kara -6% wkładu w moc drużyny
     const lightInjMult = injuriesMap[p.id] === InjurySeverity.LIGHT ? 0.94 : 1.0;
     
@@ -1980,7 +1980,7 @@ if (targetPlayer && !prev.isPausedForEvent) {
         let _humanFactorCallCount = 0;
         const humanFactor = () => {
             _humanFactorCallCount++;
-            return 0.82 + (seededRng(currentSeed, nextMinute, _humanFactorCallCount * 137) * 0.36);
+            return 0.60 + (seededRng(currentSeed, nextMinute, _humanFactorCallCount * 137) * 0.80);
         };
 
         const battleCategories: { attrs: (keyof PlayerAttributes)[]; positions: PlayerPosition[] }[] = [

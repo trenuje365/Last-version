@@ -7,7 +7,7 @@ import { ChampionshipHistoryService } from '../../data/championship_history';
 import historiaBg from '../../Graphic/themes/historia.png';
 
 export const MatchHistoryView: React.FC = () => {
-  const { navigateTo, clubs, seasonNumber, supercupWinners } = useGame();
+  const { navigateTo, clubs, nationalTeams, seasonNumber, supercupWinners } = useGame();
   const [selectedLeague, setSelectedLeague] = useState<string>('ALL');
   const [selectedSeason, setSelectedSeason] = useState<number>(seasonNumber);
   const [selectedMatch, setSelectedMatch] = useState<MatchHistoryEntry | null>(null);
@@ -200,6 +200,7 @@ export const MatchHistoryView: React.FC = () => {
       if (selectedLeague === 'CL') return matchSeason && m.competition.startsWith('CL_');
       if (selectedLeague === 'EL') return matchSeason && m.competition.startsWith('EL_');
       if (selectedLeague === 'CONF') return matchSeason && m.competition.startsWith('CONF_');
+      if (selectedLeague === 'NT') return matchSeason && (nationalTeams.some(t => t.id === m.homeTeamId) || nationalTeams.some(t => t.id === m.awayTeamId));
 
       return matchSeason && m.competition === selectedLeague;
     });
@@ -230,6 +231,7 @@ export const MatchHistoryView: React.FC = () => {
   } else if (comp.startsWith('CL_')) compName = 'LIGA MISTRZÓW';
   else if (comp.startsWith('EL_')) compName = 'LIGA EUROPY';
   else if (comp.startsWith('CONF_')) compName = 'LIGA KONFERENCJI';
+  else if (nationalTeams.some(t => t.id === matches[0].homeTeamId) || nationalTeams.some(t => t.id === matches[0].awayTeamId)) compName = comp;
 
   // Dodaj datę do labelu (opcjonalnie, ale czytelniej)
   groups.push({
@@ -241,7 +243,7 @@ export const MatchHistoryView: React.FC = () => {
     return groups; 
   }, [history, selectedLeague]);
 
-  const getClub = (id: string) => clubs.find(c => c.id === id);
+  const getClub = (id: string) => clubs.find(c => c.id === id) || nationalTeams.find(t => t.id === id);
 
   return (
     <>
@@ -289,7 +291,8 @@ export const MatchHistoryView: React.FC = () => {
               { id: 'POLISH_CUP', label: 'PUCHAR POLSKI', icon: '🛡️' },
               { id: 'CL', label: 'LIGA MISTRZÓW', icon: '⭐' },
               { id: 'EL', label: 'PUCHAR LIGI EUROPY', icon: '🟠' },
-              { id: 'CONF', label: 'PUCHAR LIGI KONFERENCJI', icon: '🟢' }
+              { id: 'CONF', label: 'PUCHAR LIGI KONFERENCJI', icon: '🟢' },
+              { id: 'NT', label: 'MECZE MIĘDZYNARODOWE', icon: '🌐' }
             ].map(l => (
               <button 
                 key={l.id} 

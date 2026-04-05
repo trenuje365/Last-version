@@ -46,6 +46,7 @@ import { TrainingService } from '../services/TrainingService';
 import { SeasonTransitionService } from '../services/SeasonTransitionService';
 import { LeagueStatsService } from '../services/LeagueStatsService';
 import { FinanceService } from '../services/FinanceService';
+import { BoardFinanceMonitorService } from '../services/BoardFinanceMonitorService';
 import { PolishCupDrawService } from '../services/PolishCupDrawService';
 import { CLDrawService } from '../services/CLDrawService';
 import { SuperCupService } from '../services/SuperCupService';
@@ -217,7 +218,7 @@ setPendingNegotiations: React.Dispatch<React.SetStateAction<PendingNegotiation[]
 finalizeFreeAgentContract: (mailId: string) => void;
   transferOffers: TransferOffer[];
   submitTransferOffer: (playerId: string, offer: TransferClubBidInput) => TransferOfferSubmissionResult;
-  finalizeTransferNegotiation: (offerId: string, contract: TransferContractInput) => TransferOfferSubmissionResult;
+  finalizeTransferNegotiation: (offerId: string, contract: TransferContractInput, bypassBoardCheck?: boolean) => TransferOfferSubmissionResult;
   incomingOffers: IncomingTransferOffer[];
   viewedIncomingOfferId: string | null;
   respondToIncomingOffer: (offerId: string, response: 'accept' | 'counter' | 'reject', counterFee?: number) => void;
@@ -835,6 +836,8 @@ const getOrGenerateSquad = useCallback((clubId: string): Player[] => {
         leagueId: newLeagueId,
         reputation: newReputation,
         budget: club.budget + nextSeasonInjection,
+        transferBudget: Math.floor((club.budget + nextSeasonInjection) * (0.25 + Math.random() * 0.45)),
+        boardBudgetRequestsThisSeason: 0,
         financeHistory: [...financeLogsToAdd, ...(club.financeHistory || [])].slice(0, 50),
         stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
         europeanBonusPoints: 0,
@@ -1184,6 +1187,7 @@ setMessages([welcomeMail, fanMail]);
           type: 'CONTRACT_OFFER',
           negotiationId: neg.id,
           accepted: decision.accepted,
+          acceptanceExpiryDate: decision.accepted ? (() => { const d = new Date(simDate); d.setDate(d.getDate() + 4); return d.toISOString(); })() : undefined,
           salary: neg.salary,
           years: neg.years,
           bonus: neg.bonus,
@@ -1224,6 +1228,58 @@ setMessages([welcomeMail, fanMail]);
     setPendingNegotiations(prev => prev.filter(n => !finished.find(f => f.id === n.id)));
   };
 
+  const processExpiredAcceptances = (simDate: Date) => {
+    const today = new Date(simDate).setHours(0,0,0,0);
+    const expired = messages.filter(m =>
+      m.metadata?.type === 'CONTRACT_OFFER' &&
+      m.metadata?.accepted === true &&
+      m.metadata?.acceptanceExpiryDate &&
+      new Date(m.metadata.acceptanceExpiryDate).setHours(0,0,0,0) <= today
+    );
+
+    if (expired.length === 0) return;
+
+    expired.forEach(mail => {
+      const { playerId } = mail.metadata as { playerId: string };
+      const player = (players['FREE_AGENTS'] || []).find(p => p.id === playerId);
+
+      if (!player) return;
+
+      const lockoutDate = new Date(simDate);
+      lockoutDate.setMonth(lockoutDate.getMonth() + 3);
+
+      setPlayers(prevPlayers => {
+        const updated = { ...prevPlayers };
+        updated['FREE_AGENTS'] = (updated['FREE_AGENTS'] || []).map(p =>
+          p.id === playerId ? {
+            ...p,
+            freeAgentClubLockouts: FreeAgentNegotiationService.buildClubLockouts(
+              p.freeAgentClubLockouts,
+              userTeamId!,
+              lockoutDate.toISOString()
+            )
+          } : p
+        );
+        return updated;
+      });
+
+      const withdrawalMail: MailMessage = {
+        id: `MAIL_EXPIRED_${mail.id}`,
+        sender: `Agent gracza ${player.lastName}`,
+        role: 'Agencja Menadżerska',
+        subject: `Wycofanie zgody na transfer: ${player.lastName}`,
+        body: `Zawodnik ${player.firstName} ${player.lastName} wycofał swoją zgodę. Brak odpowiedzi z Państwa strony w ciągu 4 dni został potraktowany jako brak poważnego zainteresowania. Dalsze rozmowy są niemożliwe przez 3 miesiące.`,
+        date: new Date(simDate),
+        isRead: false,
+        type: MailType.SYSTEM,
+        priority: 90,
+        metadata: undefined
+      };
+
+      setMessages(prev => [withdrawalMail, ...prev.filter(m2 => m2.id !== mail.id)]);
+    });
+  };
+
   const advanceDay = useCallback(() => {
     if (viewState === ViewState.CUP_DRAW || viewState === ViewState.CL_DRAW || viewState === ViewState.EL_DRAW || viewState === ViewState.EL_R2Q_DRAW || viewState === ViewState.CONF_DRAW || viewState === ViewState.CONF_R2Q_DRAW || viewState === ViewState.CONF_GROUP_DRAW || viewState === ViewState.CONF_R16_DRAW || viewState === ViewState.CONF_QF_DRAW || viewState === ViewState.CONF_SF_DRAW || viewState === ViewState.PLAYOFF_DRAW) return;
 
@@ -1232,7 +1288,34 @@ setMessages([welcomeMail, fanMail]);
     const isAutoJumping = targetJumpTime !== null;
 
     processNegotiationResponses(dateToProcess);
-    
+    processExpiredAcceptances(dateToProcess);
+
+// --- BOARD FINANCE MONITOR ---
+    if (userTeamId && !isResigned) {
+      setClubs(prev => {
+        const userClub = prev.find(c => c.id === userTeamId);
+        if (!userClub) return prev;
+        const monitorResult = BoardFinanceMonitorService.check(userClub);
+        if (monitorResult.action === 'NONE') return prev;
+        const budgetMail: MailMessage = {
+          id: `BOARD_BUDGET_${Date.now()}`,
+          sender: 'Zarząd Klubu',
+          role: 'Dyrektor Finansowy',
+          subject: monitorResult.mailSubject,
+          body: monitorResult.mailBody,
+          date: new Date(dateToProcess),
+          isRead: false,
+          type: MailType.BOARD,
+          priority: 95,
+        };
+        setMessages(prev => [budgetMail, ...prev]);
+        return prev.map(c => c.id === userTeamId ? {
+          ...c,
+          transferBudget: monitorResult.newTransferBudget,
+          boardBudgetMonitorState: monitorResult.newState,
+        } : c);
+      });
+    }
 
 // --- EMERGENCY GK PROTOCOL (STAGE 1 PRO) ---
     if (userTeamId && !isResigned) {
@@ -2768,7 +2851,7 @@ const finalResult: SimulationOutput = {
       const recentFixture = allFixtures.find(f => f.date.toDateString() === dateToProcess.toDateString() && (f.homeTeamId === userTeamId || f.awayTeamId === userTeamId));
       
       // Zastosowanie recoveredPlayers zapewnia świeże dane w mailach
-      const newMails = MailService.generateDailyMails(dateToProcess, userClub, recoveredPlayers, finalResult.updatedClubs, userRank, confidence, recentFixture, messages);
+      const newMails = MailService.generateDailyMails(dateToProcess, userClub, recoveredPlayers, finalResult.updatedClubs, userRank, confidence, recentFixture, messages, lineups[userTeamId]);
       if (newMails.length > 0) setMessages(prev => [...newMails, ...prev]);
     }
 
@@ -4800,7 +4883,7 @@ const finalResult: SimulationOutput = {
     };
   }, [userTeamId, clubs, players, currentDate, transferOffers]);
 
-  const finalizeTransferNegotiation = useCallback((offerId: string, contractInput: TransferContractInput): TransferOfferSubmissionResult => {
+  const finalizeTransferNegotiation = useCallback((offerId: string, contractInput: TransferContractInput, bypassBoardCheck?: boolean): TransferOfferSubmissionResult => {
     if (!userTeamId) {
       return { ok: false, status: 'VALIDATION_ERROR', message: 'Najpierw musisz wybrac klub uzytkownika.' };
     }
@@ -4846,10 +4929,16 @@ const finalResult: SimulationOutput = {
       targetPlayer,
       buyerClub,
       buyerSquad,
-      contractInput
+      contractInput,
+      bypassBoardCheck
     );
     if (!contractValidation.approved) {
       return { ok: false, status: 'VALIDATION_ERROR', message: contractValidation.reason };
+    }
+
+    const totalCommitment = transferOffer.fee + contractInput.salary * contractInput.years + contractInput.bonus;
+    if (totalCommitment > buyerClub.transferBudget) {
+      return { ok: false, status: 'VALIDATION_ERROR', message: `Łączny koszt transferu i kontraktu (${totalCommitment.toLocaleString('pl-PL')} PLN) przekracza dostępny budżet transferowy (${buyerClub.transferBudget.toLocaleString('pl-PL')} PLN).` };
     }
 
     const playerDecision = TransferPlayerDecisionService.evaluateMove(
@@ -5019,17 +5108,18 @@ const finalizeFreeAgentContract = useCallback((mailId: string) => {
 
     if (!playerToSign) return;
 
-    // 1. Zabierz bonus z budżetu klubu
-    setClubs(prev => prev.map(c => c.id === userTeamId ? { 
-      ...c, 
-      budget: c.budget - bonus,
+    // 1. Zabierz bonus i wartość kontraktu (pensja × lata) z budżetu transferowego
+    const contractCost = bonus + salary * years;
+    setClubs(prev => prev.map(c => c.id === userTeamId ? {
+      ...c,
+      transferBudget: c.transferBudget - contractCost,
       financeHistory: [
         {
           id: Math.random().toString(36).substr(2, 9),
           date: currentDate.toISOString().split('T')[0],
-          amount: -bonus,
+          amount: -contractCost,
           type: 'EXPENSE' as const,
-          description: `Bonus za podpis: ${playerToSign.lastName}`
+          description: `Kontrakt z wolnym agentem: ${playerToSign.lastName} (${years}L × ${salary.toLocaleString('pl-PL')} PLN + bonus)`
         },
         ...(c.financeHistory || [])
       ].slice(0, 50)

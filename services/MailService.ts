@@ -1,4 +1,4 @@
-import { Club, Player, MailMessage, MailType, Fixture, MatchStatus, HealthStatus, InjurySeverity, RetirementInfo } from '../types';
+import { Club, Player, MailMessage, MailType, Fixture, MatchStatus, HealthStatus, InjurySeverity, RetirementInfo, Lineup } from '../types';
 import { MAIL_TEMPLATES, MailTemplate } from '../data/mail_templates_pl';
 import { FinanceService } from './FinanceService';
 
@@ -55,7 +55,7 @@ export const MailService = {
       sender: template.sender,
       role: template.role,
       subject: template.subject.replace(/\{CLUB\}/g, userClub.name).replace(/\{TARGET_LEAGUE\}/g, targetLeagueName),
-      body: template.body.replace(/\{CLUB\}/g, userClub.name).replace(/\{TARGET_LEAGUE\}/g, targetLeagueName),
+      body: template.body.replace(/\{CLUB\}/g, userClub.name).replace(/\{TARGET_LEAGUE\}/g, targetLeagueName) + `\n\nP.S. Zarząd przyznał Panu budżet transferowy na ten sezon w wysokości ${userClub.transferBudget.toLocaleString('pl-PL')} PLN. Proszę nim mądrze zarządzać.`,
       date: gameDate ? new Date(gameDate) : new Date(),
       isRead: false,
       type: template.type,
@@ -394,14 +394,15 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
    * Codzienne generowanie poczty z zachowaniem logiki realizmu futbolowego.
    */
   generateDailyMails: (
-    currentDate: Date, 
-    userClub: Club, 
-    allPlayers: Record<string, Player[]>, 
+    currentDate: Date,
+    userClub: Club,
+    allPlayers: Record<string, Player[]>,
     allClubs: Club[],
-    rank: number, 
+    rank: number,
     boardConfidence: number,
     recentFixture?: Fixture,
-    existingMails: MailMessage[] = []
+    existingMails: MailMessage[] = [],
+    userLineup?: Lineup
   ): MailMessage[] => {
     const newMails: MailMessage[] = [];
     const played = userClub.stats.played;
@@ -518,11 +519,38 @@ generateSeasonTicketMail: (club: { name: string; stadiumName: string; stadiumCap
        }
     }
 
-    const overworkedPlayer = userSquad.find(p => p.condition < 55 && p.overallRating > 60);
+    const squadIds = new Set([
+       ...(userLineup?.startingXI.filter(Boolean) as string[] ?? []),
+       ...(userLineup?.bench ?? [])
+    ]);
+    const isInSquad = (p: Player) => squadIds.size === 0 || squadIds.has(p.id);
+
+    const mildFatiguePlayer = userSquad.find(p =>
+       p.condition < 85 && p.condition >= 80 &&
+       isInSquad(p) &&
+       p.health.status !== HealthStatus.INJURED
+    );
+    if (mildFatiguePlayer && rng < 0.3) {
+       const alreadySentMild = existingMails.some(m =>
+         m.subject.includes(mildFatiguePlayer.lastName)
+       );
+       if (!alreadySentMild) {
+         newMails.push(createMail('staff_fatigue_check', { 'PLAYER': mildFatiguePlayer.lastName }));
+       }
+    }
+
+    const overworkedPlayer = userSquad.find(p =>
+       p.condition < 80 &&
+       isInSquad(p) &&
+       p.health.status !== HealthStatus.INJURED
+    );
     if (overworkedPlayer && rng < 0.3) {
-       newMails.push(createMail('staff_fatigue_warning', { 
-         'PLAYER': overworkedPlayer.lastName 
-       }));
+       const alreadySentFatigue = existingMails.some(m =>
+         m.subject.includes(overworkedPlayer.lastName)
+       );
+       if (!alreadySentFatigue) {
+         newMails.push(createMail('staff_fatigue_warning', { 'PLAYER': overworkedPlayer.lastName }));
+       }
     }
 
     const severeInjury = userSquad.find(p => p.health.status === HealthStatus.INJURED && p.health.injury?.severity === InjurySeverity.SEVERE && p.health.injury.daysRemaining >= 12);

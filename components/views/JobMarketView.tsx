@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ViewState, PlayerPosition, Player } from '../../types';
+import { ViewState, PlayerPosition, Player, TransferOffer, TransferOfferStatus, PendingNegotiation, NegotiationStatus } from '../../types';
 
 const initialFilters = {
   age: { min: 16, max: 35 },
@@ -28,7 +28,7 @@ const _persisted = {
 };
 
 export const JobMarketView: React.FC = () => {
-  const { coaches, clubs, navigateTo, viewCoachDetails, viewClubDetails, players, viewPlayerDetails } = useGame();
+  const { coaches, clubs, navigateTo, viewCoachDetails, viewClubDetails, players, viewPlayerDetails, transferOffers, pendingNegotiations, userTeamId } = useGame();
 
   // Filtry Piłkarzy - inicjalizowane z ostatnich zapamiętanych wartości
   const [searchTermPlayers, setSearchTermPlayers] = useState(_persisted.searchTermPlayers);
@@ -41,6 +41,36 @@ export const JobMarketView: React.FC = () => {
   const [nationalityFilter, setNationalityFilter] = useState<'ALL' | 'LOCAL' | 'FOREIGN'>('ALL');
 
   const [filters, setFilters] = useState<typeof initialFilters>(_persisted.filters);
+  const [showMyList, setShowMyList] = useState(false);
+
+  const userClub = useMemo(() => clubs.find(c => c.id === userTeamId) ?? null, [clubs, userTeamId]);
+
+  const allPlayersFlat = useMemo(() => Object.values(players).flat(), [players]);
+
+  const activeTransferOffers = useMemo(() =>
+    transferOffers.filter(o =>
+      o.buyerClubId === userTeamId &&
+      o.status !== TransferOfferStatus.COMPLETED &&
+      o.status !== TransferOfferStatus.PLAYER_REJECTED &&
+      o.status !== TransferOfferStatus.SELLER_REJECTED
+    ),
+  [transferOffers, userTeamId]);
+
+  const activePendingNegotiations = useMemo(() =>
+    pendingNegotiations.filter(n => n.clubId === userTeamId && n.status === NegotiationStatus.PENDING),
+  [pendingNegotiations, userTeamId]);
+
+  const getOfferStatusLabel = (status: TransferOfferStatus): string => {
+    switch (status) {
+      case TransferOfferStatus.SELLER_REVIEW: return 'Oczekuje na klub';
+      case TransferOfferStatus.SELLER_COUNTERED: return 'Kontroferta klubu';
+      case TransferOfferStatus.SELLER_ACCEPTED: return 'Klub zaakceptował';
+      case TransferOfferStatus.PLAYER_NEGOTIATION: return 'Negocjacje z zawodnikiem';
+      case TransferOfferStatus.READY_TO_FINALIZE: return 'Gotowe do finalizacji';
+      case TransferOfferStatus.AGREED_PRECONTRACT: return 'Przedkontrakty podpisany';
+      default: return status;
+    }
+  };
 
   // Synchronizacja stanu do persystentnego obiektu modułowego
   useEffect(() => { _persisted.posFilter = posFilter; }, [posFilter]);
@@ -180,7 +210,19 @@ export const JobMarketView: React.FC = () => {
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em] mt-1">Baza danych PZPN • Rynek Zawodników</p>
             </div>
           </div>
+          {userClub && (
+            <div className="text-center">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fundusze transferowe</p>
+              <p className="text-xl font-black text-emerald-400">{userClub.budget.toLocaleString('pl-PL')} <span className="text-sm text-slate-400">PLN</span></p>
+            </div>
+          )}
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowMyList(true)}
+              className="px-8 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/[0.15] transition-all shadow-xl active:scale-95 group"
+            >
+              <span className="group-hover:text-cyan-400 transition-colors">📋 Moja lista</span>
+            </button>
             <button
               onClick={() => navigateTo(ViewState.TRANSFER_NEWS)}
               className="px-8 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/[0.15] transition-all shadow-xl active:scale-95 group"
@@ -195,6 +237,99 @@ export const JobMarketView: React.FC = () => {
             </button>
           </div>
         </header>
+
+        {/* MOJA LISTA - OVERLAY */}
+        {showMyList && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowMyList(false)}>
+            <div className="relative w-[820px] max-h-[80vh] flex flex-col bg-slate-950 border border-white/10 rounded-[24px] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+
+              {/* MODAL HEADER */}
+              <div className="flex items-center justify-between px-8 py-5 border-b border-white/10 shrink-0">
+                <div>
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter">MOJA <span className="text-cyan-400">LISTA NEGOCJACJI</span></h2>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Aktywne negocjacje transferowe</p>
+                </div>
+                <div className="flex items-center gap-6">
+                  {userClub && (
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dostępne fundusze</p>
+                      <p className="text-lg font-black text-emerald-400">{userClub.transferBudget.toLocaleString('pl-PL')} PLN</p>
+                    </div>
+                  )}
+                  <button onClick={() => setShowMyList(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] border border-white/10 hover:bg-white/[0.15] transition-all text-slate-400 hover:text-white text-lg font-black">✕</button>
+                </div>
+              </div>
+
+              {/* TABLE */}
+              <div className="overflow-y-auto custom-scrollbar flex-1">
+                {activeTransferOffers.length === 0 && activePendingNegotiations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                    <div className="text-4xl mb-4">📋</div>
+                    <p className="text-[11px] font-black uppercase tracking-widest">Brak aktywnych negocjacji</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="px-6 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">LP</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">Zawodnik</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">Pozycja</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">Obecny klub</th>
+                        <th className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">OVR</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeTransferOffers.map((offer, idx) => {
+                        const player = allPlayersFlat.find(p => p.id === offer.playerId);
+                        if (!player) return null;
+                        const sellerClub = clubs.find(c => c.id === offer.sellerClubId);
+                        const posTheme = getPosTheme(player.position);
+                        return (
+                          <tr key={offer.id} className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors">
+                            <td className="px-6 py-4 text-[10px] font-black text-slate-500">{idx + 1}.</td>
+                            <td className="px-4 py-4">
+                              <span className="text-[11px] font-black uppercase tracking-wide text-white">{player.firstName} {player.lastName}</span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className={`text-[9px] font-black uppercase tracking-widest ${posTheme.color}`}>{player.position}</span>
+                            </td>
+                            <td className="px-4 py-4 text-[10px] font-black text-slate-300">{sellerClub?.name ?? '—'}</td>
+                            <td className="px-4 py-4 text-center">
+                              <span className="text-[12px] font-black text-white">{player.overallRating}</span>
+                            </td>
+                            <td className="px-4 py-4 text-[9px] font-black text-yellow-400 uppercase tracking-wide">{getOfferStatusLabel(offer.status)}</td>
+                          </tr>
+                        );
+                      })}
+                      {activePendingNegotiations.map((neg, idx) => {
+                        const player = allPlayersFlat.find(p => p.id === neg.playerId);
+                        if (!player) return null;
+                        const posTheme = getPosTheme(player.position);
+                        return (
+                          <tr key={neg.id} className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors">
+                            <td className="px-6 py-4 text-[10px] font-black text-slate-500">{activeTransferOffers.length + idx + 1}.</td>
+                            <td className="px-4 py-4">
+                              <span className="text-[11px] font-black uppercase tracking-wide text-white">{player.firstName} {player.lastName}</span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className={`text-[9px] font-black uppercase tracking-widest ${posTheme.color}`}>{player.position}</span>
+                            </td>
+                            <td className="px-4 py-4 text-[10px] font-black text-slate-400 italic">Wolny agent</td>
+                            <td className="px-4 py-4 text-center">
+                              <span className="text-[12px] font-black text-white">{player.overallRating}</span>
+                            </td>
+                            <td className="px-4 py-4 text-[9px] font-black text-cyan-400 uppercase tracking-wide">Negocjacje kontraktu</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 flex gap-4 min-h-0">
           

@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { ViewState } from '../../types';
 import { FreeAgentNegotiationService } from '../../services/FreeAgentNegotiationService';
 import { FinanceService } from '@/services/FinanceService';
+import { BoardBudgetRequestService, BoardRequestResult } from '../../services/BoardBudgetRequestService';
 
 export const FreeAgentNegotiationView: React.FC = () => {
   const {
@@ -15,6 +16,7 @@ export const FreeAgentNegotiationView: React.FC = () => {
     setPendingNegotiations,
     updatePlayer,
     pendingNegotiations,
+    setClubs,
   } = useGame();
 
   const player = useMemo(
@@ -27,19 +29,9 @@ export const FreeAgentNegotiationView: React.FC = () => {
   );
 
   const maxSalaryAllowed = useMemo(() => {
-    if (!myClub || !player) return 500000;
-
-    const fair = FinanceService.getFairMarketSalary(player.overallRating);
-    let budgetMultiplier = 0.25;
-    let fairMultiplier = 4;
-
-    if (myClub.budget > 150000000 && player.overallRating > 75) {
-      budgetMultiplier = 0.4;
-      fairMultiplier = 8;
-    }
-
-    return Math.floor(Math.min(fair * fairMultiplier, myClub.budget * budgetMultiplier));
-  }, [myClub, player]);
+    if (!myClub) return 500000;
+    return myClub.transferBudget;
+  }, [myClub]);
 
   const maxBonusAllowed = useMemo(() => {
     if (!myClub || !player) return 0;
@@ -57,6 +49,8 @@ export const FreeAgentNegotiationView: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [agentReaction, setAgentReaction] = useState<{ type: string; msg: string } | null>(null);
   const [boardVeto, setBoardVeto] = useState<{ msg: string } | null>(null);
+  const [extraBudget, setExtraBudget] = useState(0);
+  const [boardRequestResult, setBoardRequestResult] = useState<BoardRequestResult | null>(null);
 
   const agentInterest = useMemo(() => {
     if (!player || !myClub) return { interested: true, message: '' };
@@ -76,6 +70,28 @@ export const FreeAgentNegotiationView: React.FC = () => {
   if (!player || !myClub) return null;
 
   const isInterested = agentInterest.interested;
+  const effectiveBudget = maxSalaryAllowed + extraBudget;
+  const totalCostPreview = salary * years + bonus;
+  const mySquad = players[userTeamId!] || [];
+  const boardRequestsUsed = myClub.boardBudgetRequestsThisSeason ?? 0;
+  const canRequestBoard = totalCostPreview > effectiveBudget && boardRequestsUsed < 2 && extraBudget === 0;
+
+  const handleBoardRequest = () => {
+    const shortfall = totalCostPreview - effectiveBudget;
+    const result = BoardBudgetRequestService.evaluateBoardRequest(player, myClub, mySquad, shortfall);
+    setBoardRequestResult(result);
+    setClubs(prev => prev.map(c => c.id === myClub.id
+      ? { ...c, boardBudgetRequestsThisSeason: (c.boardBudgetRequestsThisSeason ?? 0) + 1 }
+      : c
+    ));
+  };
+
+  const handleBoardRequestConfirm = () => {
+    if (boardRequestResult && boardRequestResult.grantedAmount > 0) {
+      setExtraBudget(boardRequestResult.grantedAmount);
+    }
+    setBoardRequestResult(null);
+  };
 
   const handleConfirm = () => {
     if (!isInterested) return;
@@ -99,9 +115,9 @@ export const FreeAgentNegotiationView: React.FC = () => {
       ? mySquad.reduce((sum, squadPlayer) => sum + squadPlayer.annualSalary, 0) / mySquad.length
       : 120000;
 
-    const boardCheck = FinanceService.evaluateFASigningBoardDecision(player, salary, bonus, mySquad, myClub);
-    if (!boardCheck.approved) {
-      setBoardVeto({ msg: boardCheck.reason });
+    const totalCost = salary * years + bonus;
+    if (totalCost > effectiveBudget) {
+      setBoardVeto({ msg: `Łączny koszt kontraktu (${totalCost.toLocaleString('pl-PL')} PLN) przekracza dostępny budżet transferowy (${effectiveBudget.toLocaleString('pl-PL')} PLN).` });
       return;
     }
 
@@ -213,7 +229,7 @@ export const FreeAgentNegotiationView: React.FC = () => {
                   <input
                     type="range"
                     min="0"
-                    max={maxSalaryAllowed}
+                    max={effectiveBudget}
                     step="5000"
                     value={salary}
                     onChange={e => setSalary(parseInt(e.target.value, 10))}
@@ -221,9 +237,7 @@ export const FreeAgentNegotiationView: React.FC = () => {
                   />
                   <div className="flex justify-between px-1">
                     <span className="text-[8px] font-bold text-slate-600 uppercase">Min: 0</span>
-                    <span className="text-[8px] font-bold text-slate-600 uppercase">
-                      Limit Zarzadu: {maxSalaryAllowed.toLocaleString()}
-                    </span>
+                    <span className="text-[8px] font-bold text-slate-600 uppercase">Max: {effectiveBudget.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -290,6 +304,24 @@ export const FreeAgentNegotiationView: React.FC = () => {
           )}
         </div>
 
+        {isInterested && canRequestBoard && (
+          <button
+            onClick={handleBoardRequest}
+            className="w-full py-4 rounded-[20px] font-black italic text-lg uppercase tracking-tighter transition-all border-b-4 bg-amber-600 hover:bg-amber-500 text-white border-amber-800 active:scale-95"
+          >
+            PROŚBA DO ZARZĄDU O DODATKOWY BUDŻET
+            <span className="block text-xs font-bold normal-case tracking-normal mt-1 text-amber-200">
+              Brakuje: {(totalCostPreview - effectiveBudget).toLocaleString('pl-PL')} PLN | Pozostałe wnioski: {2 - boardRequestsUsed}
+            </span>
+          </button>
+        )}
+
+        {isInterested && extraBudget > 0 && (
+          <p className="text-center text-emerald-400 text-[11px] font-black uppercase tracking-widest">
+            Zarząd przyznał dodatkowe {extraBudget.toLocaleString('pl-PL')} PLN — budżet rozszerzony
+          </p>
+        )}
+
         <button
           onClick={handleConfirm}
           disabled={isSending || !isInterested || isAlreadyNegotiating}
@@ -330,6 +362,33 @@ export const FreeAgentNegotiationView: React.FC = () => {
         </div>
       )}
 
+      {boardRequestResult && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-lg animate-fade-in p-6">
+          <div className={`max-w-md w-full p-10 rounded-[40px] border-2 shadow-2xl text-center flex flex-col items-center gap-6 ${
+            boardRequestResult.result === 'REJECTED' ? 'border-red-500 bg-red-950/20' :
+            boardRequestResult.result === 'PARTIAL' ? 'border-amber-500 bg-amber-950/20' :
+            'border-emerald-500 bg-emerald-950/20'
+          }`}>
+            <h3 className={`text-2xl font-black uppercase italic tracking-tighter ${
+              boardRequestResult.result === 'REJECTED' ? 'text-red-400' :
+              boardRequestResult.result === 'PARTIAL' ? 'text-amber-400' :
+              'text-emerald-400'
+            }`}>
+              {boardRequestResult.result === 'REJECTED' ? 'ZARZĄD ODMAWIA' :
+               boardRequestResult.result === 'PARTIAL' ? 'CZĘŚCIOWE DOFINANSOWANIE' :
+               'ZARZĄD ZATWIERDZA'}
+            </h3>
+            <p className="text-slate-300 italic leading-relaxed">"{boardRequestResult.message}"</p>
+            <button
+              onClick={handleBoardRequestConfirm}
+              className="mt-4 w-full py-4 bg-white text-black font-black uppercase rounded-2xl hover:scale-105 transition-all shadow-xl"
+            >
+              Rozumiem
+            </button>
+          </div>
+        </div>
+      )}
+
       {boardVeto && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-lg animate-fade-in p-6">
           <div className="max-w-md w-full p-10 rounded-[40px] border-2 border-red-500 bg-slate-900 shadow-[0_0_100px_rgba(239,68,68,0.2)] text-center flex flex-col items-center gap-6">
@@ -344,6 +403,7 @@ export const FreeAgentNegotiationView: React.FC = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

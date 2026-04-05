@@ -99,7 +99,7 @@ export const TransferExecutionService = {
 
         return {
           ...club,
-          budget: club.budget - offer.fee - offer.bonus,
+          transferBudget: club.transferBudget - offer.fee - offer.bonus - (offer.salary || 0) * (offer.years || 0),
           signingBonusPool: Math.max(0, club.signingBonusPool - offer.bonus),
           rosterIds: [...club.rosterIds, player.id],
           financeHistory: [buyerBonusLog, buyerFeeLog, ...(club.financeHistory || [])].slice(0, 50)

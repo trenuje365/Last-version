@@ -141,12 +141,20 @@ export const MAIL_TEMPLATES: MailTemplate[] = [
 
   // --- STAFF (FATIGUE & HEALTH) ---
   {
+    id: 'staff_fatigue_check',
+    type: MailType.STAFF,
+    sender: 'Sztab Medyczny',
+    role: 'Fizjoterapeuta',
+    subject: 'Raport kondycyjny: {PLAYER}',
+    body: 'Trenerze, rzuciłem okiem na wyniki pomiarów {PLAYER} i wygląda na to, że chłopak zaczyna odczuwać zmęczenie. Nic alarmującego na ten moment, ale warto mieć to z tyłu głowy przy ustalaniu składu. Może warto dać mu chwilę oddechu zanim zaczniemy go znowu regularnie wystawiać?'
+  },
+  {
     id: 'staff_fatigue_warning',
     type: MailType.STAFF,
     sender: 'Sztab Medyczny',
     role: 'Fizjoterapeuta',
     subject: 'Raport kondycyjny: {PLAYER}',
-    body: 'Organizm zawodnika {PLAYER} wysyła niepokojące sygnały. Jego aktualna kondycja spadła do niebezpiecznego poziomu. Sugeruję dać mu wolne w najblizym meczu lub posadzić na ławce. Ryzyko poważnej kontuzji przy takim przemęczeniu drastycznie wzrasta.'
+    body: 'Trenerze, muszę być z Panem szczery — kondycja {PLAYER} jest teraz naprawdę na granicy. Wystawianie go do gry w tym stanie to spore ryzyko. Organizm wyraźnie sygnalizuje, że potrzebuje przerwy. Proszę poważnie rozważyć danie mu wolnego przy najbliższej okazji, zanim dopadnie go coś poważniejszego.'
   },
   {
     id: 'staff_severe_injury',

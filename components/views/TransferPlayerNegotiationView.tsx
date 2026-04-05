@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { TransferOfferStatus, TransferTiming, ViewState } from '../../types';
 import { FinanceService } from '../../services/FinanceService';
 import { TransferPlayerDecisionService } from '../../services/TransferPlayerDecisionService';
+import { BoardBudgetRequestService, BoardRequestResult } from '../../services/BoardBudgetRequestService';
 
 interface NegotiationFeedback {
   ok: boolean;
@@ -19,7 +20,8 @@ export const TransferPlayerNegotiationView: React.FC = () => {
     userTeamId,
     transferOffers,
     finalizeTransferNegotiation,
-    navigateWithoutHistory
+    navigateWithoutHistory,
+    setClubs,
   } = useGame();
 
   const playerData = useMemo(() => {
@@ -101,10 +103,14 @@ export const TransferPlayerNegotiationView: React.FC = () => {
   }, [negotiationPlan, player, buyerClub]);
 
   const maxSalary = useMemo(() => {
-    if (!player || !buyerClub) return 500_000;
-    const fairSalary = FinanceService.getFairMarketSalary(player.overallRating);
-    return Math.floor(Math.min(buyerClub.budget * 0.25, fairSalary * 2.2));
-  }, [player, buyerClub]);
+    if (!buyerClub) return 500_000;
+    return buyerClub.transferBudget;
+  }, [buyerClub]);
+
+  const sliderMax = useMemo(() => {
+    if (!buyerClub) return maxSalary;
+    return buyerClub.transferBudget;
+  }, [buyerClub, maxSalary]);
 
   const maxBonus = useMemo(() => buyerClub?.signingBonusPool || 0, [buyerClub]);
 
@@ -112,6 +118,8 @@ export const TransferPlayerNegotiationView: React.FC = () => {
   const [bonus, setBonus] = useState(0);
   const [years, setYears] = useState(3);
   const [feedback, setFeedback] = useState<NegotiationFeedback | null>(null);
+  const [extraBudget, setExtraBudget] = useState(0);
+  const [boardRequestResult, setBoardRequestResult] = useState<BoardRequestResult | null>(null);
 
   useEffect(() => {
     if (!player) return;
@@ -139,6 +147,29 @@ export const TransferPlayerNegotiationView: React.FC = () => {
       </div>
     );
   }
+
+  const effectiveBudget = buyerClub.transferBudget + extraBudget;
+  const totalCostPreview = offer.fee + salary * years + bonus;
+  const boardRequestsUsed = buyerClub.boardBudgetRequestsThisSeason ?? 0;
+  const canRequestBoard = totalCostPreview > effectiveBudget && boardRequestsUsed < 2 && extraBudget === 0;
+  const mySquadForBoard = players[buyerClub.id] || [];
+
+  const handleBoardRequest = () => {
+    const shortfall = totalCostPreview - effectiveBudget;
+    const result = BoardBudgetRequestService.evaluateBoardRequest(player, buyerClub, mySquadForBoard, shortfall);
+    setBoardRequestResult(result);
+    setClubs(prev => prev.map(c => c.id === buyerClub.id
+      ? { ...c, boardBudgetRequestsThisSeason: (c.boardBudgetRequestsThisSeason ?? 0) + 1 }
+      : c
+    ));
+  };
+
+  const handleBoardRequestConfirm = () => {
+    if (boardRequestResult && boardRequestResult.grantedAmount > 0) {
+      setExtraBudget(boardRequestResult.grantedAmount);
+    }
+    setBoardRequestResult(null);
+  };
 
   const handleSubmit = () => {
     const result = finalizeTransferNegotiation(offer.id, { salary, bonus, years });
@@ -264,12 +295,18 @@ export const TransferPlayerNegotiationView: React.FC = () => {
                   <input
                     type="range"
                     min="50000"
-                    max={Math.max(50000, maxSalary)}
+                    max={Math.max(50000, sliderMax)}
                     step="5000"
                     value={salary}
                     onChange={e => setSalary(parseInt(e.target.value, 10))}
                     className="w-full accent-blue-500"
                   />
+                  <div className="flex justify-end mt-1">
+                    <span className={`text-[8px] font-bold uppercase ${salary > maxSalary ? 'text-amber-400' : 'text-slate-600'}`}>
+                      Limit Zarządu: {maxSalary.toLocaleString()}
+                      {salary > maxSalary && ' ⚠ PRZEKROCZONY'}
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -335,6 +372,24 @@ export const TransferPlayerNegotiationView: React.FC = () => {
               </div>
             )}
 
+            {canRequestBoard && negotiationPlan?.willingToTalk && (
+              <button
+                onClick={handleBoardRequest}
+                className="w-full py-4 rounded-[24px] font-black italic uppercase tracking-[0.2em] text-sm transition-all border-b-4 bg-amber-600 hover:bg-amber-500 text-white border-amber-800 active:scale-95"
+              >
+                PROŚBA DO ZARZĄDU O DODATKOWY BUDŻET
+                <span className="block text-[10px] font-bold normal-case tracking-normal mt-1 text-amber-200">
+                  Brakuje: {(totalCostPreview - effectiveBudget).toLocaleString('pl-PL')} PLN | Pozostałe wnioski: {2 - boardRequestsUsed}
+                </span>
+              </button>
+            )}
+
+            {extraBudget > 0 && (
+              <p className="text-center text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                Zarząd przyznał dodatkowe {extraBudget.toLocaleString('pl-PL')} PLN
+              </p>
+            )}
+
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
@@ -353,6 +408,33 @@ export const TransferPlayerNegotiationView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {boardRequestResult && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-lg animate-fade-in p-6">
+          <div className={`max-w-md w-full p-10 rounded-[40px] border-2 shadow-2xl text-center flex flex-col items-center gap-6 ${
+            boardRequestResult.result === 'REJECTED' ? 'border-red-500 bg-red-950/20' :
+            boardRequestResult.result === 'PARTIAL' ? 'border-amber-500 bg-amber-950/20' :
+            'border-emerald-500 bg-emerald-950/20'
+          }`}>
+            <h3 className={`text-2xl font-black uppercase italic tracking-tighter ${
+              boardRequestResult.result === 'REJECTED' ? 'text-red-400' :
+              boardRequestResult.result === 'PARTIAL' ? 'text-amber-400' :
+              'text-emerald-400'
+            }`}>
+              {boardRequestResult.result === 'REJECTED' ? 'ZARZĄD ODMAWIA' :
+               boardRequestResult.result === 'PARTIAL' ? 'CZĘŚCIOWE DOFINANSOWANIE' :
+               'ZARZĄD ZATWIERDZA'}
+            </h3>
+            <p className="text-slate-300 italic leading-relaxed">"{boardRequestResult.message}"</p>
+            <button
+              onClick={handleBoardRequestConfirm}
+              className="mt-4 w-full py-4 bg-white text-black font-black uppercase rounded-2xl hover:scale-105 transition-all shadow-xl"
+            >
+              Rozumiem
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

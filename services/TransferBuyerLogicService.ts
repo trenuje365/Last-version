@@ -46,10 +46,10 @@ export const TransferBuyerLogicService = {
       return { approved: false, reason: 'Nasz zarząd nie pozwala złożyć tej oferty, ponieważ mam już szeroką kadrę.' };
     }
 
-    if (offer.fee > buyerClub.budget) {
+    if (offer.fee > buyerClub.transferBudget) {
       return {
         approved: false,
-        reason: `Kwota odstępnego (${offer.fee.toLocaleString()} PLN) przekracza budżet klubu.`
+        reason: `Kwota odstępnego (${offer.fee.toLocaleString()} PLN) przekracza dostępny budżet transferowy (${buyerClub.transferBudget.toLocaleString()} PLN).`
       };
     }
 
@@ -71,10 +71,11 @@ export const TransferBuyerLogicService = {
   },
 
   validateContractTerms: (
-    player: Player,
+    _player: Player,
     buyerClub: Club,
-    buyerSquad: Player[],
-    contract: TransferContractInput
+    _buyerSquad: Player[],
+    contract: TransferContractInput,
+    _bypassBoardCheck?: boolean
   ): BuyerValidationResult => {
     if (!Number.isFinite(contract.salary) || contract.salary <= 0) {
       return { approved: false, reason: 'Roczna pensja musi być większa od zera.' };
@@ -92,26 +93,6 @@ export const TransferBuyerLogicService = {
       return {
         approved: false,
         reason: `Bonus za podpis przekracza dostępną pulę (${buyerClub.signingBonusPool.toLocaleString()} PLN).`
-      };
-    }
-
-    const boardDecision = FinanceService.evaluateFASigningBoardDecision(
-      player,
-      contract.salary,
-      contract.bonus,
-      buyerSquad,
-      buyerClub
-    );
-
-    if (!boardDecision.approved) {
-      return { approved: false, reason: boardDecision.reason };
-    }
-
-    const wageBillAfter = FinanceService.calculateCurrentWageBill(buyerSquad) + contract.salary;
-    if (wageBillAfter > buyerClub.budget * 0.7) {
-      return {
-        approved: false,
-        reason: 'Nie możemy się zgodzić na ten transfer. Ta transakcja zbyt mocno obciążyłaby fundusz płac.'
       };
     }
 

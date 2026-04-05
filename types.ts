@@ -258,6 +258,7 @@ export interface MailMessage {
     years: number;
     bonus: number;
     responseDate: string;
+    acceptanceExpiryDate?: string;
   status: NegotiationStatus;
   isAiOffer: boolean;
     playerId: string;
@@ -698,7 +699,10 @@ export interface Club {
   coachId?: string;
   stats: TeamStats;
   isInPolishCup?: boolean;
-  budget: number; 
+  budget: number;
+  transferBudget: number;
+  boardBudgetRequestsThisSeason?: number;
+  boardBudgetMonitorState?: 'NORMAL' | 'ALERT';
   boardStrictness: number;
   signingBonusPool: number; // Pula pieniędzy zarezerwowana tylko na bonusy za podpis
   squadNeeds?: Record<string, number>;

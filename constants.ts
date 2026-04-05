@@ -117,6 +117,8 @@ const generatePlaceholderClub = (leagueId: string, index: number, tier: number):
     form: []
 },
     boardStrictness: Math.floor(Math.random() * 10) + 1,
+    transferBudget: Math.floor(FinanceService.calculateInitialBudget(tier, 1) * (0.25 + Math.random() * 0.45)),
+    boardBudgetRequestsThisSeason: 0,
     signingBonusPool: 0
   };
 };
@@ -142,9 +144,11 @@ const loadClubsForTier = (tier: number, leagueId: string, limit: number): Club[]
       reputation: raw.reputation,
       isDefaultActive: isActive,
       budget: FinanceService.calculateInitialBudget(tier, raw.reputation),
+      transferBudget: Math.floor(FinanceService.calculateInitialBudget(tier, raw.reputation) * (0.25 + Math.random() * 0.45)),
+      boardBudgetRequestsThisSeason: 0,
       boardStrictness: Math.floor(Math.random() * 10) + 1,
       signingBonusPool: FinanceService.calculateInitialSigningPool(
-        FinanceService.calculateInitialBudget(tier, raw.reputation), 
+        FinanceService.calculateInitialBudget(tier, raw.reputation),
         raw.reputation
       ),
       colorPrimary: raw.colors[0],
@@ -205,6 +209,8 @@ export const STATIC_CL_CLUBS: Club[] = RAW_CHAMPIONS_LEAGUE_CLUBS.map(raw => {
     colorSecondary: raw.colors[1] || '#FFFFFF',
     rosterIds: [],
     budget,
+    transferBudget: Math.floor(budget * (0.25 + Math.random() * 0.45)),
+    boardBudgetRequestsThisSeason: 0,
     boardStrictness: 5,
     signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
     stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
@@ -230,6 +236,8 @@ export const STATIC_EL_CLUBS: Club[] = RAW_EUROPA_LEAGUE_CLUBS.map(raw => {
     colorSecondary: raw.colors[1] || '#FFFFFF',
     rosterIds: [],
     budget,
+    transferBudget: Math.floor(budget * (0.25 + Math.random() * 0.45)),
+    boardBudgetRequestsThisSeason: 0,
     boardStrictness: 5,
     signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
     stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
@@ -255,6 +263,8 @@ export const STATIC_CONF_CLUBS: Club[] = RAW_CONFERENCE_LEAGUE_CLUBS.map(raw => 
     colorSecondary: raw.colors[1] || '#FFFFFF',
     rosterIds: [],
     budget,
+    transferBudget: Math.floor(budget * (0.25 + Math.random() * 0.45)),
+    boardBudgetRequestsThisSeason: 0,
     boardStrictness: 5,
     signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
     stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
@@ -285,6 +295,8 @@ const buildInternationalClub = (
     colorSecondary: raw.colors[1] || '#FFFFFF',
     rosterIds: [],
     budget,
+    transferBudget: Math.floor(budget * (0.25 + Math.random() * 0.45)),
+    boardBudgetRequestsThisSeason: 0,
     boardStrictness: 5,
     signingBonusPool: FinanceService.calculateInitialSigningPool(budget, raw.reputation),
     stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
@@ -326,6 +338,8 @@ export const UNEMPLOYED_MANAGER_CLUB: Club = {
   rosterIds: [],
   stats: { points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, played: 0, form: [] },
   boardStrictness: 0,
+  transferBudget: 0,
+  boardBudgetRequestsThisSeason: 0,
   signingBonusPool: 0,
   budget: 0,
 };
@@ -357,9 +371,11 @@ export const generatePlaceholderPlayersForClub = (clubId: string): Player[] => {
     },
     
     attributes: {
-      strength: 50, stamina: 50, pace: 50, defending: 50, passing: 50, attacking: 50, 
-      finishing: 50, technique: 50, vision: 50, dribbling: 50, heading: 50, 
-      positioning: 50, goalkeeping: 10
+      strength: 50, stamina: 50, pace: 50, defending: 50, passing: 50, attacking: 50,
+      finishing: 50, technique: 50, vision: 50, dribbling: 50, heading: 50,
+      positioning: 50, goalkeeping: 10,
+      freeKicks: 50, talent: 50, penalties: 50, corners: 50,
+      aggression: 50, crossing: 50, leadership: 50, mentality: 50, workRate: 50
     },
     fatigueDebt: 0,
     condition: 100,
