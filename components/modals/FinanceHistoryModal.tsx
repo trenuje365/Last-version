@@ -240,7 +240,7 @@ export const FinanceHistoryModal: React.FC<FinanceHistoryModalProps> = ({ isOpen
             </div>
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
               <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest block mb-1">Budżet transferowy</span>
-              <span className="text-sm font-black font-mono text-yellow-400">{formatCurrency(club.signingBonusPool)}</span>
+              <span className="text-sm font-black font-mono text-yellow-400">{formatCurrency(club.transferBudget)}</span>
             </div>
           </div>
           <button onClick={onClose} className="w-full px-10 py-3 bg-white text-slate-900 font-black italic uppercase tracking-widest text-xs rounded-xl hover:scale-105 transition-all shadow-xl">Zamknij</button>

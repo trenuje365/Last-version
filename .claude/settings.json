@@ -4,7 +4,9 @@
       "Bash(find 'c:/Users/Jack Cave/Documents/FM google studio/Last version' -iname *MatchLiveView* -not -iname *.old -not -iname *copy* -not -iname *reference*)",
       "Bash(find 'c:/Users/Jack Cave/Documents/FM google studio/Last version' -iname *PreMatch* -not -iname *.old -not -iname *copy* -not -iname *reference*)",
       "Bash(find 'c:/Users/Jack Cave/Documents/FM google studio/Last version' -name types.ts -not -name *.old)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -rl \"MOJA LISTA NEGOCJACJI\\\\|FUNDUSZE TRANSFEROWE\\\\|DOSTĘPNE FUNDUSZE\" 'c:/Users/Jack Cave/Documents/FM google studio/Last version' --include=*.tsx --include=*.ts)",
+      "Bash(grep -rl \"MOJA LISTA\\\\|FUNDUSZE TRANSFEROWE\\\\|DOSTĘPNE FUNDUSZE\" 'c:/Users/Jack Cave/Documents/FM google studio/Last version' --include=*.tsx)"
     ]
   }
 }

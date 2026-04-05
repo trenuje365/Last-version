@@ -213,7 +213,7 @@ export const JobMarketView: React.FC = () => {
           {userClub && (
             <div className="text-center">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fundusze transferowe</p>
-              <p className="text-xl font-black text-emerald-400">{userClub.budget.toLocaleString('pl-PL')} <span className="text-sm text-slate-400">PLN</span></p>
+              <p className="text-xl font-black text-emerald-400">{userClub.transferBudget.toLocaleString('pl-PL')} <span className="text-sm text-slate-400">PLN</span></p>
             </div>
           )}
           <div className="flex items-center gap-3">
