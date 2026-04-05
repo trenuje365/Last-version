@@ -6,6 +6,49 @@ import { MatchHistoryService } from '../../services/MatchHistoryService';
 import { ChampionshipHistoryService } from '../../data/championship_history';
 import historiaBg from '../../Graphic/themes/historia.png';
 
+const CLUB_LOGO_MAP: Record<string, string> = {
+  PL_LEGIA_WARSZAWA: 'legia-warsaw-2019-logo.png',
+  PL_LECH_POZNAN: 'lech-poznan-2022-logo.png',
+  PL_JAGIELLONIA_BIALYSTOK: 'jagiellonia-bialystok-2024-logo.png',
+  PL_RAKOW_CZESTOCHOWA: 'rakow-czestochowa-2014-logo.png',
+  PL_POGON_SZCZECIN: 'pogon_szczecin.png',
+  PL_GORNIK_ZABRZE: 'Gornik_zabrze.png',
+  PL_CRACOVIA: 'cracovia-2024-logo.png',
+  PL_ZAGLEBIE_LUBIN: 'zaglebie-lubin-2022-logo.png',
+  PL_WIDZEW_LODZ: 'widzew-lodz.png',
+  PL_LECHIA_GDANSK: 'lechia_gdansk.png',
+  PL_PIAST_GLIWICE: 'piast-gliwice-1997-logo.png',
+  PL_ARKA_GDYNIA: 'arka-gdynia-2009-logo.png',
+  PL_KORONA_KIELCE: 'korona-kielce-2024-logo.png',
+  PL_RADOMIAK_RADOM: 'RKS_Radomiak_Radom.png',
+  PL_MOTOR_LUBLIN: 'motor-lublin-2023-logo.png',
+  PL_GKS_KATOWICE: 'gks-katowice-logo.png',
+  PL_TERMALICA_NIECIECZA: 'bruk-bet-termalica-nieciecza-2021-logo.png',
+  PL_WISLA_PLOCK: 'wisla-plock-2006-logo.png',
+  PL_WISLA_KRAKOW: 'wisla-krakow-logo.png',
+  PL_POGON_GRODZISK_MAZOWIECKI: 'pogon-grodzisk-mazowiecki.png',
+  PL_POLONIA_BYTOM: 'Polonia_Bytom.png',
+  PL_CHROBRY_GLOGOW: 'chrobry_glogow.png',
+  PL_STAL_RZESZOW: 'stal-rzeszow-2025-logo.png',
+  PL_SLASK_WROCLAW: 'Slask_Wroclaw.png',
+  PL_POLONIA_WARSZAWA: 'Polonia_warszawa.png',
+  PL_WIECZYSTA_KRAKOW: 'wieczysta-krakow-logo.png',
+  PL_RUCH_CHORZOW: 'ruch-chorzow-2021-logo.png',
+  PL_MIEDZ_LEGNICA: 'miedz-legnica-2022-logo.png',
+  PL_LKS_LODZ: 'lks_lodz.png',
+  PL_POGON_SIEDLCE: 'pogon_siedlce.png',
+  PL_ODRA_OPOLE: 'odra-opole.png',
+  PL_PUSZCZA_NIEPOLOMICE: 'puszcza-niepolomice-2013-logo.png',
+  PL_ZNICZ_PRUSZKOW: 'znicz-pruszkow.png',
+  PL_STAL_MIELEC: 'stal-mielec.png',
+};
+
+const getClubLogoUrl = (clubId: string): string | null => {
+  const file = CLUB_LOGO_MAP[clubId];
+  if (!file) return null;
+  return new URL(`../../Graphic/logo/${file}`, import.meta.url).href;
+};
+
 export const MatchHistoryView: React.FC = () => {
   const { navigateTo, clubs, nationalTeams, seasonNumber, supercupWinners } = useGame();
   const [selectedLeague, setSelectedLeague] = useState<string>('ALL');
@@ -248,7 +291,7 @@ export const MatchHistoryView: React.FC = () => {
   return (
     <>
     <div className="fixed inset-0 -z-10">
-      <div className="absolute inset-0 bg-cover bg-center blur-sm scale-105" style={{ backgroundImage: `url(${historiaBg})` }} />
+      <div className="absolute inset-0 bg-cover bg-center scale-105" style={{ backgroundImage: `url(${historiaBg})` }} />
       <div className="absolute inset-0 bg-black/85" />
     </div>
     <div className="h-[calc(100vh-3rem)] max-w-[1400px] mx-auto flex flex-col gap-4 animate-fade-in text-white">
@@ -506,118 +549,135 @@ export const MatchHistoryView: React.FC = () => {
       </div>
 
       {/* DETAIL MODAL */}
-      {selectedMatch && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6 animate-fade-in" onClick={() => setSelectedMatch(null)}>
-           <div className="max-w-2xl w-full bg-slate-900 border border-white/10 rounded-[50px] shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col relative" onClick={e => e.stopPropagation()}>
-              
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+      {selectedMatch && (() => {
+        const homeClub = getClub(selectedMatch.homeTeamId);
+        const awayClub = getClub(selectedMatch.awayTeamId);
+        return (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 animate-fade-in" onClick={() => setSelectedMatch(null)}>
+           <div className="max-w-6xl w-full border border-white/15 rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative" onClick={e => e.stopPropagation()} style={{ background: `linear-gradient(135deg, ${homeClub?.colorsHex?.[0] ?? '#0f172a'}33 0%, #0f172a 40%, #0f172a 60%, ${awayClub?.colorsHex?.[0] ?? '#0f172a'}33 100%)` }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
 
-              <div className="p-8 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                 <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-2xl">📝</div>
-                    <div>
-                       <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter">Raport Meczowy</h2>
-                       <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{selectedMatch.competition.replace('L_PL_', 'LIGA ')} • {selectedMatch.date}</p>
+              {/* Nagłówek */}
+              <div className="pt-8 px-8 pb-0 text-center">
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{selectedMatch.competition.replace('L_PL_', 'LIGA ')}</p>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 mt-0.5">{selectedMatch.date}</p>
+              </div>
+
+              {/* Karta meczu */}
+              <div className="px-8 py-6">
+
+                 {/* Meta-bar */}
+                 {(selectedMatch.venue || selectedMatch.attendance || selectedMatch.weather) && (
+                   <div className="mb-4 flex justify-center">
+                      <div className="rounded-xl border border-white/10 bg-slate-950/85 px-4 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_25px_rgba(0,0,0,0.35)]">
+                         {[
+                           selectedMatch.venue,
+                           selectedMatch.attendance ? `${selectedMatch.attendance.toLocaleString('pl-PL')} widzów` : null,
+                           selectedMatch.weather ? `${selectedMatch.weather.description} ${selectedMatch.weather.tempC}°C` : null
+                         ].filter(Boolean).join(' • ')}
+                      </div>
+                   </div>
+                 )}
+
+                 {/* Drużyny + wynik */}
+                 <div className="flex items-center justify-between">
+                    <div className="flex-1 flex items-center justify-end gap-3">
+                       <span className="font-black italic uppercase tracking-tighter text-2xl text-white leading-tight text-right">{getClub(selectedMatch.homeTeamId)?.name}</span>
+                       {getClubLogoUrl(selectedMatch.homeTeamId) && (
+                         <img src={getClubLogoUrl(selectedMatch.homeTeamId)!} alt="" className="w-10 h-10 object-contain shrink-0" />
+                       )}
+                    </div>
+                    <div className="flex items-center gap-2 mx-8 min-w-[120px] justify-center">
+                       <span className="text-2xl font-black tabular-nums text-white">{selectedMatch.homeScore}</span>
+                       <span className="text-slate-500 text-xl font-black">:</span>
+                       <span className="text-2xl font-black tabular-nums text-white">{selectedMatch.awayScore}</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-start gap-3">
+                       {getClubLogoUrl(selectedMatch.awayTeamId) && (
+                         <img src={getClubLogoUrl(selectedMatch.awayTeamId)!} alt="" className="w-10 h-10 object-contain shrink-0" />
+                       )}
+                       <span className="font-black italic uppercase tracking-tighter text-2xl text-white leading-tight">{getClub(selectedMatch.awayTeamId)?.name}</span>
                     </div>
                  </div>
-                 <button onClick={() => setSelectedMatch(null)} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-500 transition-all text-2xl font-light">&times;</button>
-              </div>
 
-              <div className="p-12 flex items-center justify-between bg-black/40 relative">
-                 <div className="flex-1 text-center font-black italic text-xl uppercase text-white leading-tight drop-shadow-lg">{getClub(selectedMatch.homeTeamId)?.name}</div>
-                 
-                 
-                 <div className="px-12 py-6 bg-slate-800 rounded-[35px] border border-white/10 text-6xl font-black font-mono text-white shadow-2xl mx-8 tabular-nums">
-                    {selectedMatch.homeScore}:{selectedMatch.awayScore}
-                 </div>
-                 <div className="flex-1 text-center font-black italic text-xl uppercase text-white leading-tight drop-shadow-lg">{getClub(selectedMatch.awayTeamId)?.name}</div>
-              </div>
- {/* TUTAJ WSTAW TEN KOD */}
-              {selectedMatch.attendance && (
-                <div className="px-10 py-4 bg-emerald-500/5 border-b border-white/5 flex justify-between items-center group">
-                   <div className="flex items-center gap-3">
-                      <span className="text-xl group-hover:scale-110 transition-transform">🏟️</span>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Oficjalna frekwencja:</span>
+                 {/* Karne / dogrywka */}
+                 {selectedMatch.homePenaltyScore !== undefined && (
+                   <div className="text-center mt-1">
+                      <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">k. {selectedMatch.homePenaltyScore}:{selectedMatch.awayPenaltyScore}</span>
                    </div>
-                   <span className="text-sm font-black text-emerald-400 font-mono tabular-nums italic">
-                      {selectedMatch.attendance.toLocaleString()} WIDZÓW
-                   </span>
-                </div>
-              )}
-              {/* KONIEC KODU DO WSTAWIENIA */}
-              <div className="flex-1 overflow-y-auto p-10 custom-scrollbar space-y-6">
+                 )}
+                 {selectedMatch.homePenaltyScore === undefined && selectedMatch.goals.some(g => g.minute > 95) && (
+                   <div className="text-center mt-1">
+                      <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">po dogrywce</span>
+                   </div>
+                 )}
+
+                 {/* Zdarzenia */}
                  {(() => {
-                    const allEvents = [
-                       ...selectedMatch.goals.map(g => ({ ...g, type: 'GOAL' })),
-                       ...selectedMatch.cards.map(c => ({ ...c, type: c.type }))
-                    ].sort((a, b) => a.minute - b.minute);
+                    const homeGoals = selectedMatch.goals.filter(g => g.teamId === selectedMatch.homeTeamId).sort((a, b) => a.minute - b.minute);
+                    const awayGoals = selectedMatch.goals.filter(g => g.teamId === selectedMatch.awayTeamId).sort((a, b) => a.minute - b.minute);
+                    const homeCards = selectedMatch.cards.filter(c => c.teamId === selectedMatch.homeTeamId).sort((a, b) => a.minute - b.minute);
+                    const awayCards = selectedMatch.cards.filter(c => c.teamId === selectedMatch.awayTeamId).sort((a, b) => a.minute - b.minute);
 
-                    if (allEvents.length === 0) return <div className="text-center py-20 opacity-20 italic font-black uppercase tracking-widest">Brak kluczowych zdarzeń</div>;
+                    if (!homeGoals.length && !awayGoals.length && !homeCards.length && !awayCards.length) return null;
 
-                    const groups: Record<number, any[]> = {};
-                    allEvents.forEach(ev => {
-                       if (!groups[ev.minute]) groups[ev.minute] = [];
-                       groups[ev.minute].push(ev);
-                    });
-
-                    return Object.entries(groups)
-                      .sort((a,b) => Number(a[0]) - Number(b[0]))
-                      .map(([minute, eventsInMin]) => (
-                        <div key={minute} className="grid grid-cols-[1fr_80px_1fr] items-center gap-6 group mb-4">
-                           {/* Lewa strona (Gospodarze) */}
-                           <div className="text-right space-y-2">
-                              {eventsInMin.filter(e => e.teamId === selectedMatch.homeTeamId).map((ev, idx) => (
-                                 <div key={idx} className="flex items-center justify-end gap-4 animate-slide-right">
-                                    <div className="flex flex-col">
-                                       <span className="text-sm font-black text-white uppercase italic tracking-tighter">{ev.playerName}</span>
-                                       {ev.type === 'SECOND_YELLOW' && <span className="text-[8px] text-red-500 font-black uppercase">Druga żółta</span>}
-                                       {ev.type === 'GOAL' && (ev as any).isPenalty && <span className="text-[8px] text-rose-500 font-black uppercase">Rzut karny</span>}
-                                    </div>
-                                    <span className="text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                                       {ev.type === 'GOAL' ? '⚽' : (ev.type === 'YELLOW' ? '🟨' : '🟥')}
-                                    </span>
-                                 </div>
-                              ))}
-                           </div>
-
-                           {/* Centrum */}
-                           <div className="flex justify-center self-start pt-1">
-                              <div className="w-12 h-10 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center font-black font-mono text-xs text-blue-400 shadow-inner group-hover:border-blue-500 transition-colors">
-                                {minute}'
+                    return (
+                      <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-3">
+                         {(homeGoals.length > 0 || awayGoals.length > 0) && (
+                           <div className="grid grid-cols-2 gap-6">
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 justify-start text-left text-sm text-slate-200">
+                                 {homeGoals.map(g => (
+                                   <span key={`hg-${g.minute}-${g.playerName}`} className="inline-flex items-center gap-1.5">
+                                      <span className="text-[13px] text-emerald-300">⚽</span>
+                                      <span>{g.minute}' {g.playerName}{(g as any).isPenalty ? ' (k.)' : ''}</span>
+                                   </span>
+                                 ))}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 justify-end text-right text-sm text-slate-200">
+                                 {awayGoals.map(g => (
+                                   <span key={`ag-${g.minute}-${g.playerName}`} className="inline-flex items-center gap-1.5">
+                                      <span className="text-[13px] text-emerald-300">⚽</span>
+                                      <span>{g.minute}' {g.playerName}{(g as any).isPenalty ? ' (k.)' : ''}</span>
+                                   </span>
+                                 ))}
                               </div>
                            </div>
-
-                           {/* Prawa strona (Goście) */}
-                           <div className="text-left space-y-2">
-                              {eventsInMin.filter(e => e.teamId === selectedMatch.awayTeamId).map((ev, idx) => (
-                                 <div key={idx} className="flex items-center justify-start gap-4 animate-slide-left">
-                                    <span className="text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                                       {ev.type === 'GOAL' ? '⚽' : (ev.type === 'YELLOW' ? '🟨' : '🟥')}
-                                    </span>
-                                    <div className="flex flex-col">
-                                       <span className="text-sm font-black text-white uppercase italic tracking-tighter">{ev.playerName}</span>
-                                       {ev.type === 'SECOND_YELLOW' && <span className="text-[8px] text-red-500 font-black uppercase">Druga żółta</span>}
-                                       {ev.type === 'GOAL' && (ev as any).isPenalty && <span className="text-[8px] text-rose-500 font-black uppercase">Rzut karny</span>}
-                                    </div>
-                                 </div>
-                              ))}
+                         )}
+                         {(homeCards.length > 0 || awayCards.length > 0) && (
+                           <div className="grid grid-cols-2 gap-6">
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 justify-start text-left text-xs text-slate-300">
+                                 {homeCards.map(c => (
+                                   <span key={`hc-${c.minute}-${c.type}`} className="inline-flex items-center gap-1.5">
+                                      <span>{c.type === 'YELLOW' ? '🟨' : '🟥'}</span>
+                                      <span>{c.minute}' {c.playerName}{c.type === 'SECOND_YELLOW' ? ' (2. żółta)' : ''}</span>
+                                   </span>
+                                 ))}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 justify-end text-right text-xs text-slate-300">
+                                 {awayCards.map(c => (
+                                   <span key={`ac-${c.minute}-${c.type}`} className="inline-flex items-center gap-1.5">
+                                      <span>{c.type === 'YELLOW' ? '🟨' : '🟥'}</span>
+                                      <span>{c.minute}' {c.playerName}{c.type === 'SECOND_YELLOW' ? ' (2. żółta)' : ''}</span>
+                                   </span>
+                                 ))}
+                              </div>
                            </div>
-                        </div>
-                    ));
+                         )}
+                      </div>
+                    );
                  })()}
               </div>
 
-              <div className="p-8 bg-black/60 border-t border-white/5 text-center shrink-0">
-                 <button 
-                  onClick={() => setSelectedMatch(null)} 
-                  className="px-16 py-4 bg-white text-slate-900 font-black italic uppercase tracking-widest rounded-2xl text-xs hover:scale-105 transition-all shadow-xl active:scale-95"
-                 >
+              {/* Zamknij */}
+              <div className="px-8 pb-8 text-center">
+                 <button onClick={() => setSelectedMatch(null)} className="px-16 py-3 bg-white text-slate-900 font-black italic uppercase tracking-widest rounded-2xl text-xs hover:scale-105 transition-all shadow-xl active:scale-95">
                     Zamknij raport
                  </button>
               </div>
            </div>
         </div>
-      )}
+        );
+      })()}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
