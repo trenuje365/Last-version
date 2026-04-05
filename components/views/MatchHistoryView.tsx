@@ -6,48 +6,6 @@ import { MatchHistoryService } from '../../services/MatchHistoryService';
 import { ChampionshipHistoryService } from '../../data/championship_history';
 import historiaBg from '../../Graphic/themes/historia.png';
 
-const CLUB_LOGO_MAP: Record<string, string> = {
-  PL_LEGIA_WARSZAWA: 'legia-warsaw-2019-logo.png',
-  PL_LECH_POZNAN: 'lech-poznan-2022-logo.png',
-  PL_JAGIELLONIA_BIALYSTOK: 'jagiellonia-bialystok-2024-logo.png',
-  PL_RAKOW_CZESTOCHOWA: 'rakow-czestochowa-2014-logo.png',
-  PL_POGON_SZCZECIN: 'pogon_szczecin.png',
-  PL_GORNIK_ZABRZE: 'Gornik_zabrze.png',
-  PL_CRACOVIA: 'cracovia-2024-logo.png',
-  PL_ZAGLEBIE_LUBIN: 'zaglebie-lubin-2022-logo.png',
-  PL_WIDZEW_LODZ: 'widzew-lodz.png',
-  PL_LECHIA_GDANSK: 'lechia_gdansk.png',
-  PL_PIAST_GLIWICE: 'piast-gliwice-1997-logo.png',
-  PL_ARKA_GDYNIA: 'arka-gdynia-2009-logo.png',
-  PL_KORONA_KIELCE: 'korona-kielce-2024-logo.png',
-  PL_RADOMIAK_RADOM: 'RKS_Radomiak_Radom.png',
-  PL_MOTOR_LUBLIN: 'motor-lublin-2023-logo.png',
-  PL_GKS_KATOWICE: 'gks-katowice-logo.png',
-  PL_TERMALICA_NIECIECZA: 'bruk-bet-termalica-nieciecza-2021-logo.png',
-  PL_WISLA_PLOCK: 'wisla-plock-2006-logo.png',
-  PL_WISLA_KRAKOW: 'wisla-krakow-logo.png',
-  PL_POGON_GRODZISK_MAZOWIECKI: 'pogon-grodzisk-mazowiecki.png',
-  PL_POLONIA_BYTOM: 'Polonia_Bytom.png',
-  PL_CHROBRY_GLOGOW: 'chrobry_glogow.png',
-  PL_STAL_RZESZOW: 'stal-rzeszow-2025-logo.png',
-  PL_SLASK_WROCLAW: 'Slask_Wroclaw.png',
-  PL_POLONIA_WARSZAWA: 'Polonia_warszawa.png',
-  PL_WIECZYSTA_KRAKOW: 'wieczysta-krakow-logo.png',
-  PL_RUCH_CHORZOW: 'ruch-chorzow-2021-logo.png',
-  PL_MIEDZ_LEGNICA: 'miedz-legnica-2022-logo.png',
-  PL_LKS_LODZ: 'lks_lodz.png',
-  PL_POGON_SIEDLCE: 'pogon_siedlce.png',
-  PL_ODRA_OPOLE: 'odra-opole.png',
-  PL_PUSZCZA_NIEPOLOMICE: 'puszcza-niepolomice-2013-logo.png',
-  PL_ZNICZ_PRUSZKOW: 'znicz-pruszkow.png',
-  PL_STAL_MIELEC: 'stal-mielec.png',
-};
-
-const getClubLogoUrl = (clubId: string): string | null => {
-  const file = CLUB_LOGO_MAP[clubId];
-  if (!file) return null;
-  return new URL(`../../Graphic/logo/${file}`, import.meta.url).href;
-};
 
 export const MatchHistoryView: React.FC = () => {
   const { navigateTo, clubs, nationalTeams, seasonNumber, supercupWinners } = useGame();
@@ -567,25 +525,27 @@ export const MatchHistoryView: React.FC = () => {
               <div className="px-8 py-6">
 
                  {/* Meta-bar */}
-                 {(selectedMatch.venue || selectedMatch.attendance || selectedMatch.weather) && (
-                   <div className="mb-4 flex justify-center">
-                      <div className="rounded-xl border border-white/10 bg-slate-950/85 px-4 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_25px_rgba(0,0,0,0.35)]">
-                         {[
-                           selectedMatch.venue,
-                           selectedMatch.attendance ? `${selectedMatch.attendance.toLocaleString('pl-PL')} widzów` : null,
-                           selectedMatch.weather ? `${selectedMatch.weather.description} ${selectedMatch.weather.tempC}°C` : null
-                         ].filter(Boolean).join(' • ')}
-                      </div>
-                   </div>
-                 )}
+                 <div className="mb-4 flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                    <div className="flex gap-6 text-slate-400">
+                       <span>Stadion: <span className="text-white">{homeClub?.stadiumName}</span></span>
+                       {selectedMatch.attendance && <span>Widzów: <span className="text-white">{selectedMatch.attendance.toLocaleString('pl-PL')}</span></span>}
+                    </div>
+                    {selectedMatch.refereeName && (
+                      <span className="text-slate-400">Sędzia: <span className="text-white">{selectedMatch.refereeName}</span></span>
+                    )}
+                 </div>
 
                  {/* Drużyny + wynik */}
                  <div className="flex items-center justify-between">
                     <div className="flex-1 flex items-center justify-end gap-3">
-                       <span className="font-black italic uppercase tracking-tighter text-2xl text-white leading-tight text-right">{getClub(selectedMatch.homeTeamId)?.name}</span>
-                       {getClubLogoUrl(selectedMatch.homeTeamId) && (
-                         <img src={getClubLogoUrl(selectedMatch.homeTeamId)!} alt="" className="w-10 h-10 object-contain shrink-0" />
-                       )}
+                       <span className="font-black italic uppercase tracking-tighter text-2xl text-white leading-tight text-right">{homeClub?.name}</span>
+                       {homeClub?.logoFile
+                         ? <img src={new URL(`../../Graphic/logo/${homeClub.logoFile}`, import.meta.url).href} alt="" className="w-10 h-10 object-contain shrink-0" />
+                         : <div className="w-10 h-10 rounded-xl border border-white/10 flex flex-col overflow-hidden shrink-0">
+                             <div className="flex-1" style={{ backgroundColor: homeClub?.colorsHex[0] }} />
+                             <div className="flex-1" style={{ backgroundColor: homeClub?.colorsHex[1] || homeClub?.colorsHex[0] }} />
+                           </div>
+                       }
                     </div>
                     <div className="flex items-center gap-2 mx-8 min-w-[120px] justify-center">
                        <span className="text-2xl font-black tabular-nums text-white">{selectedMatch.homeScore}</span>
@@ -593,10 +553,14 @@ export const MatchHistoryView: React.FC = () => {
                        <span className="text-2xl font-black tabular-nums text-white">{selectedMatch.awayScore}</span>
                     </div>
                     <div className="flex-1 flex items-center justify-start gap-3">
-                       {getClubLogoUrl(selectedMatch.awayTeamId) && (
-                         <img src={getClubLogoUrl(selectedMatch.awayTeamId)!} alt="" className="w-10 h-10 object-contain shrink-0" />
-                       )}
-                       <span className="font-black italic uppercase tracking-tighter text-2xl text-white leading-tight">{getClub(selectedMatch.awayTeamId)?.name}</span>
+                       {awayClub?.logoFile
+                         ? <img src={new URL(`../../Graphic/logo/${awayClub.logoFile}`, import.meta.url).href} alt="" className="w-10 h-10 object-contain shrink-0" />
+                         : <div className="w-10 h-10 rounded-xl border border-white/10 flex flex-col overflow-hidden shrink-0">
+                             <div className="flex-1" style={{ backgroundColor: awayClub?.colorsHex[0] }} />
+                             <div className="flex-1" style={{ backgroundColor: awayClub?.colorsHex[1] || awayClub?.colorsHex[0] }} />
+                           </div>
+                       }
+                       <span className="font-black italic uppercase tracking-tighter text-2xl text-white leading-tight">{awayClub?.name}</span>
                     </div>
                  </div>
 

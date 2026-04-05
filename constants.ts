@@ -151,6 +151,7 @@ const loadClubsForTier = (tier: number, leagueId: string, limit: number): Club[]
         FinanceService.calculateInitialBudget(tier, raw.reputation),
         raw.reputation
       ),
+      logoFile: raw.logoFile,
       colorPrimary: raw.colors[0],
       colorSecondary: raw.colors[1] || '#FFFFFF',
       rosterIds: [],

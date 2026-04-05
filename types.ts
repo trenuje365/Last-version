@@ -711,6 +711,7 @@ export interface Club {
   freeKickTakerId?: string | null;
   financeHistory?: FinanceLog[];
   europeanBonusPoints?: number;
+  logoFile?: string;
 }
 
 export interface EuropeanStatus {
@@ -737,6 +738,7 @@ export interface NationalTeam {
   coachId: string | null;
   squadPlayerIds: string[];
   tacticId: string | null;
+  logoFile?: string;
 }
 export interface League {
   id: string;
@@ -1109,6 +1111,7 @@ export interface MatchHistoryEntry {
   substitutions?: MatchSubstitutionEntry[];
   injuries?: MatchInjuryEntry[];
   timeline?: MatchEvent[];
+  refereeName?: string;
 }
 export interface LeagueRoundResults {
   dateKey: string;

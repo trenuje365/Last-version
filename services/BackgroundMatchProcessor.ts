@@ -193,6 +193,7 @@ if (todayFixtures.length === 0) {
         homeScore: result.homeScore,
         awayScore: result.awayScore,
         attendance: attendance,
+        refereeName: `${assignedRef.firstName} ${assignedRef.lastName}`,
         goals: result.scorers.map(s => {
           const p = (currentPlayers[home.id].concat(currentPlayers[away.id])).find(x => x.id === s.playerId);
           return {
